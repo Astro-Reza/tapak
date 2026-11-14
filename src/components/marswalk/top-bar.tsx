@@ -13,9 +13,45 @@ const TABS: { label: string; route: Route; match: readonly Route[] }[] = [
   { label: "Debrief", route: "debrief", match: ["debrief"] },
 ];
 
+function Tabs({
+  route,
+  onNavigate,
+  className,
+  tabClassName,
+}: {
+  route: Route;
+  onNavigate: (route: Route) => void;
+  className?: string;
+  tabClassName?: string;
+}) {
+  return (
+    <nav aria-label="Mission views" className={className}>
+      {TABS.map((tab) => {
+        const active = tab.match.includes(route);
+        return (
+          <button
+            key={tab.route}
+            type="button"
+            aria-current={active ? "page" : undefined}
+            onClick={() => onNavigate(tab.route)}
+            className={cn(
+              "mw-tab relative flex shrink-0 items-center justify-center t-label-m text-[16px] whitespace-nowrap",
+              active ? "text-fg" : "text-fg-secondary",
+              tabClassName,
+            )}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 /**
- * Global header, 86 px. Stays put during screen changes so the astronaut never
- * loses it. The link chip mirrors the relay link verdict.
+ * Global header, 64 px on wide screens. Stays put during screen changes so the
+ * astronaut never loses it. Below 1024 px the tabs move to a scrollable second
+ * row. The link chip mirrors the relay link verdict.
  */
 export function TopBar({
   route,
@@ -29,46 +65,42 @@ export function TopBar({
   onNavigate: (route: Route) => void;
 }) {
   return (
-    <header className="absolute inset-x-0 top-0 z-50 flex h-top-bar items-center justify-between border-b border-line-subtle bg-top-bar px-xl">
-      <div className="flex shrink-0 items-center gap-lg whitespace-nowrap">
-        <p className="t-wordmark text-fg">
-          MARS<span className="text-brand">WALK</span>
-        </p>
-        <p className="t-data-telemetry text-fg-secondary">
-          {MISSION.id} · {MISSION.site}
-        </p>
-      </div>
-      <nav aria-label="Mission views" className="flex shrink-0 items-start">
-        {TABS.map((tab) => {
-          const active = tab.match.includes(route);
-          return (
-            <button
-              key={tab.route}
-              type="button"
-              aria-current={active ? "page" : undefined}
-              onClick={() => onNavigate(tab.route)}
-              className={cn(
-                "mw-tab relative flex h-top-bar items-center justify-center px-lg t-label-m whitespace-nowrap",
-                active ? "text-fg" : "text-fg-secondary",
-              )}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </nav>
-      <div className="flex shrink-0 items-center gap-lg">
-        <p className="whitespace-nowrap t-data-coordinate text-fg">
-          SOL {MISSION.sol} · {clock} LMST
-        </p>
-        <div className="flex items-center gap-sm">
-          <span className="text-fg">
-            <Icon name="signal" size={20} />
-          </span>
-          <p className="whitespace-nowrap t-data-telemetry text-fg-secondary">{MISSION.relay}</p>
-          <StatusChip status={linkStatus} />
+    <header className="relative z-50 shrink-0 border-b border-line-subtle bg-top-bar">
+      <div className="flex h-[60px] items-center justify-between gap-md px-md lg:h-[80px] lg:gap-lg lg:px-lg">
+        <div className="flex min-w-0 items-center gap-md whitespace-nowrap">
+          <p className="t-wordmark text-[25px] text-fg sm:text-[28px] xl:text-[34px]">
+            MARS<span className="text-brand">WALK</span>
+          </p>
+          <p className="hidden t-data-telemetry text-[14px] text-fg-secondary min-[1366px]:block">
+            {MISSION.id} · {MISSION.site}
+          </p>
+        </div>
+        <Tabs
+          route={route}
+          onNavigate={onNavigate}
+          className="hidden h-full items-start lg:flex"
+          tabClassName="h-full px-sm xl:px-md"
+        />
+        <div className="flex shrink-0 items-center gap-sm xl:gap-md">
+          <p className="whitespace-nowrap t-data-coordinate text-[15px] text-fg">
+            <span className="hidden sm:inline">SOL {MISSION.sol} · </span>
+            {clock} LMST
+          </p>
+          <div className="flex items-center gap-sm">
+            <span className="hidden text-fg sm:inline">
+              <Icon name="signal" size={19} />
+            </span>
+            <p className="hidden whitespace-nowrap t-data-telemetry text-[14px] text-fg-secondary xl:block">{MISSION.relay}</p>
+            <span className="origin-right scale-[0.94]"><StatusChip status={linkStatus} /></span>
+          </div>
         </div>
       </div>
+      <Tabs
+        route={route}
+        onNavigate={onNavigate}
+        className="flex overflow-x-auto border-t border-line-subtle px-sm lg:hidden"
+        tabClassName="h-[45px] flex-1 px-sm"
+      />
     </header>
   );
 }

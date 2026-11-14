@@ -183,8 +183,8 @@ export function ScreenHeading({
   return (
     <div
       className={cn(
-        "flex shrink-0 whitespace-nowrap",
-        inline ? "items-baseline gap-lg" : "flex-col items-start gap-xs",
+        "flex min-w-0 shrink-0",
+        inline ? "flex-wrap items-baseline gap-x-lg gap-y-xs" : "flex-col items-start gap-xs",
         className,
       )}
     >

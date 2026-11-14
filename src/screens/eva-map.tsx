@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader } from "@/components/ui/card";
 import { SearchInput } from "@/components/ui/input";
 import { PassRow } from "@/components/marswalk/comms";
+import { Fit } from "@/components/marswalk/fit";
 import { Icon } from "@/components/marswalk/icons";
 import {
   Basemap,
   LayerRow,
+  MapDim,
   MapFrame,
   ProfileChart,
   ProfileLine,
@@ -51,12 +53,12 @@ export function EvaMapScreen() {
   const profile = EVA.profile;
 
   return (
-    <>
-      <aside className="absolute top-top-bar bottom-0 left-0 flex w-rail flex-col gap-lg bg-raised px-lg py-xl">
+    <div className="flex min-h-full flex-col xl:h-full xl:min-h-[760px] xl:flex-row">
+      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
         <ScreenHeading title="EVA progress" sub={EVA.subtitle} />
-        <div className="flex flex-wrap content-start gap-md">
+        <div className="grid grid-cols-2 gap-md sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-2">
           {EVA.tiles.map((tile, i) => (
-            <MetricTile key={tile.label} {...tile} className="w-[142px]" style={stagger(i, group)} />
+            <MetricTile key={tile.label} {...tile} className="min-w-0" style={stagger(i, group)} />
           ))}
         </div>
         <Card className="shrink-0 rounded-sm">
@@ -69,14 +71,16 @@ export function EvaMapScreen() {
         </Card>
       </aside>
 
+      <section className="relative flex flex-col gap-lg p-lg xl:block xl:min-w-0 xl:flex-1 xl:p-0">
       <MapFrame
-        className="top-top-bar bottom-0 left-rail w-[710px]"
+        className="h-[60vh] min-h-[380px] rounded-md xl:absolute xl:inset-0 xl:h-auto xl:min-h-0 xl:rounded-none"
+        design={{ width: 710, height: 938 }}
         origin={{ x: EVA.you.x, y: EVA.you.y }}
-        controls={{ left: 650, top: 526 }}
+        controlsClassName="right-lg top-1/2 -translate-y-1/2"
         world={
           <>
             <Basemap {...EVA.basemap} />
-            <div className="absolute inset-0 bg-canvas opacity-30" />
+            <MapDim opacity={0.3} />
             <RouteOverlay width={710} height={938}>
               <RouteLine points={EVA.walked} variant="walked-dotted" />
               <RouteLine points={EVA.remaining} />
@@ -101,9 +105,14 @@ export function EvaMapScreen() {
           </>
         }
       >
-        <SearchInput placeholder="Search in map" aria-label="Search in map" className="absolute top-xl left-xl w-[260px]" />
+        <SearchInput
+          placeholder="Search in map"
+          aria-label="Search in map"
+          className="absolute top-lg left-lg z-10 w-[min(260px,calc(100%_-_32px))] xl:top-xl xl:left-xl"
+        />
+      </MapFrame>
 
-        <div className="mw-flash-in absolute top-xl left-[390px] flex w-[296px] flex-col gap-xs rounded-sm border border-line-subtle bg-scrim px-lg py-sm">
+        <div className="mw-flash-in flex flex-col gap-xs rounded-sm border border-line-subtle bg-scrim px-lg py-sm xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:w-[296px]">
           {EVA_LAYERS.map((id) => (
             <LayerRow
               key={id}
@@ -114,9 +123,9 @@ export function EvaMapScreen() {
           ))}
         </div>
 
-        <Card className="absolute top-[718px] left-xl h-[196px] w-[662px] rounded-sm">
+        <Card className="rounded-sm xl:absolute xl:inset-x-xl xl:bottom-xl xl:z-10">
           <CardHeader title="Route profile" meta={profile.meta} />
-          <div className="relative min-h-px flex-1 overflow-hidden">
+          <Fit width={660} height={148} className="aspect-[660/148] w-full">
             <ProfileChart width={660} height={148} baseline={130} area={[...profile.walked, ...profile.ahead.slice(1)]}>
               <ProfileLine points={profile.walked} tone="secondary" />
               <ProfileLine points={profile.ahead} draw />
@@ -133,11 +142,11 @@ export function EvaMapScreen() {
             >
               {profile.nowLabel}
             </span>
-          </div>
+          </Fit>
         </Card>
-      </MapFrame>
+      </section>
 
-      <aside className="absolute top-top-bar right-0 bottom-0 flex w-rail flex-col gap-lg bg-raised px-lg py-xl">
+      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
         <ScreenHeading title="Connectivity" sub="Tablet · HUD · relay · habitat" />
         <ul className="flex flex-col gap-xs rounded-sm bg-panel px-md py-sm">
           {EVA.hops.map((hop, i) => (
@@ -163,7 +172,7 @@ export function EvaMapScreen() {
             ))}
           </StatList>
         </Card>
-        <section className="flex min-h-px flex-1 flex-col gap-xs overflow-hidden">
+        <section className="flex flex-col gap-xs xl:min-h-px xl:flex-1 xl:overflow-hidden">
           <h2 className="t-data-telemetry text-fg-muted">System log</h2>
           <ul className="flex flex-col gap-xs">
             {EVA.log.map((line, i) => (
@@ -172,6 +181,6 @@ export function EvaMapScreen() {
           </ul>
         </section>
       </aside>
-    </>
+    </div>
   );
 }

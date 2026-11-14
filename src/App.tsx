@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ToastProvider } from "@/components/marswalk/toaster";
 import { TopBar } from "@/components/marswalk/top-bar";
 import { DEBRIEF, EVA, PLAN } from "@/data/mission";
@@ -14,9 +13,6 @@ import { EvaMapScreen } from "@/screens/eva-map";
 import { FovScreen } from "@/screens/fov";
 import { HubScreen } from "@/screens/hub";
 import { PlanScreen } from "@/screens/plan";
-
-/** iPad Pro 12.9" landscape, the size of the Figma frames. */
-const STAGE = { width: 1366, height: 1024 };
 
 /** Each Figma screen is a snapshot at a mission time (LMST). */
 const CLOCK: Record<Route, string> = {
@@ -38,25 +34,6 @@ const SCREENS: Record<Route, () => React.JSX.Element> = {
   "comms/passes": CommsPassesScreen,
   debrief: DebriefScreen,
 };
-
-/** Scales the fixed 1366 x 1024 stage to fit the viewport, centered. */
-function useStageFit() {
-  const [fit, setFit] = useState({ scale: 1, left: 0, top: 0 });
-  useEffect(() => {
-    const update = () => {
-      const scale = Math.min(window.innerWidth / STAGE.width, window.innerHeight / STAGE.height);
-      setFit({
-        scale,
-        left: (window.innerWidth - STAGE.width * scale) / 2,
-        top: (window.innerHeight - STAGE.height * scale) / 2,
-      });
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  return fit;
-}
 
 type Phase = "idle" | "cover" | "reveal";
 
@@ -101,53 +78,27 @@ function useScreenChange(route: Route) {
 export default function App() {
   const [route, navigate] = useHashRoute();
   const { shown, phase } = useScreenChange(route);
-  const fit = useStageFit();
   const Screen = SCREENS[shown];
-  const inComms = shown === "comms" || shown === "comms/passes";
 
   return (
     <StoreProvider>
-      <div
-        className="absolute overflow-hidden bg-canvas"
-        style={{
-          width: STAGE.width,
-          height: STAGE.height,
-          left: fit.left,
-          top: fit.top,
-          transform: `scale(${fit.scale})`,
-          transformOrigin: "0 0",
-        }}
-      >
-        <ToastProvider>
+      <ToastProvider>
+        <div className="flex h-full flex-col bg-canvas">
           <TopBar route={route} clock={CLOCK[shown]} onNavigate={navigate} />
-          <main key={shown}>
-            <Screen />
-            {inComms ? (
-              <ToggleGroup
-                type="single"
-                aria-label="Comms view"
-                value={shown}
-                onValueChange={(value) => value && navigate(value as Route)}
-                className={
-                  shown === "comms"
-                    ? "absolute top-[96px] right-xl"
-                    : "absolute top-[110px] right-[424px]"
-                }
-              >
-                <ToggleGroupItem value="comms">Link budget</ToggleGroupItem>
-                <ToggleGroupItem value="comms/passes">Pass prediction</ToggleGroupItem>
-              </ToggleGroup>
-            ) : null}
-          </main>
-          {phase === "idle" ? null : (
-            <div className="mw-cols" data-phase={phase} aria-hidden="true">
-              {Array.from({ length: 6 }, (_, i) => (
-                <i key={i} style={{ "--i": i } as CSSProperties} />
-              ))}
-            </div>
-          )}
-        </ToastProvider>
-      </div>
+          <div className="relative min-h-0 flex-1">
+            <main key={shown} className="absolute inset-0 overflow-x-hidden overflow-y-auto">
+              <Screen />
+            </main>
+            {phase === "idle" ? null : (
+              <div className="mw-cols" data-phase={phase} aria-hidden="true">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <i key={i} style={{ "--i": i } as CSSProperties} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </ToastProvider>
     </StoreProvider>
   );
 }

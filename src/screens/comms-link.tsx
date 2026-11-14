@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 
 import { Card, CardHeader } from "@/components/ui/card";
+import { CommsToggle } from "@/components/marswalk/comms";
+import { Fit } from "@/components/marswalk/fit";
 import { Icon } from "@/components/marswalk/icons";
 import { LayerRow, SatelliteMarker, WaypointDot } from "@/components/marswalk/map";
 import {
@@ -45,7 +47,7 @@ const ELEVATION_LABELS = [
  * the uplink margin at that elevation; below θmin it is shaded as outage, with a
  * dashed danger boundary. The live relay carries the signature brackets.
  */
-function SkyDome() {
+function SkyDome({ className }: { className?: string }) {
   const wedges = Array.from({ length: 180 / DOME.step }, (_, i) => {
     const shade = LINK.wedgeShade[i < 30 ? i : 59 - i];
     return (
@@ -61,7 +63,7 @@ function SkyDome() {
   const thetaMin = LINK.uplinkThetaMin;
 
   return (
-    <div className="relative min-h-px flex-1 overflow-hidden">
+    <Fit width={878} height={432} className={className}>
       <svg width={878} height={432} viewBox="0 0 878 432" fill="none" aria-hidden="true" className="absolute top-0 left-0">
         <path d={`M${edge(0)}A${DOME.r} ${DOME.r} 0 0 1 ${edge(180)}Z`} fill="var(--data-link-low)" />
       </svg>
@@ -118,7 +120,7 @@ function SkyDome() {
       </span>
 
       <LayerRow layer="link" active className="absolute top-xs left-[664px] w-[200px]" />
-    </div>
+    </Fit>
   );
 }
 
@@ -126,7 +128,7 @@ function SkyDome() {
 
 const PDF = { x0: 24, x1: 390, base: 150, peak: 98.5 };
 
-function GammaPdf() {
+function GammaPdf({ className }: { className?: string }) {
   const { k, lambda, meanElevation, uplinkThetaMin } = LINK;
   const f = (theta: number) => (theta <= 0 ? 0 : theta ** (k - 1) * Math.exp(-theta / lambda));
   const fMax = f((k - 1) * lambda);
@@ -140,7 +142,7 @@ function GammaPdf() {
   };
 
   return (
-    <div className="relative h-[180px] w-full shrink-0 overflow-hidden">
+    <Fit width={413} height={180} className={className}>
       <svg width={413} height={180} viewBox="0 0 413 180" fill="none" aria-hidden="true" className="absolute top-0 left-0">
         {/* P_out = F(θmin): share of in-view time below threshold */}
         <path
@@ -175,7 +177,7 @@ function GammaPdf() {
         E[θ] {meanElevation}°
       </span>
       <span className="absolute top-[104px] left-[40px] whitespace-nowrap t-data-telemetry text-fg">P_out</span>
-    </div>
+    </Fit>
   );
 }
 
@@ -195,10 +197,14 @@ const candleTone = {
 function BudgetCard({ budget, className, delay }: { budget: Budget; className?: string; delay: number }) {
   const build = delay + headerDelay();
   return (
-    <Card className={cn("absolute h-[348px] w-[647px]", className)}>
+    <Card className={cn("min-h-0", className)}>
       <CardHeader title={budget.title} meta={`body at E[θ] ${LINK.meanElevation}° · wick Q1–Q3`} delay={delay} />
-      <div className="flex min-h-px flex-1 items-start gap-lg px-lg py-md">
-        <div className="relative h-[268px] w-[452px] shrink-0">
+      <div className="flex min-h-0 flex-1 flex-col gap-lg px-lg py-md sm:flex-row sm:items-start">
+        <Fit
+          width={452}
+          height={268}
+          className="aspect-[452/268] w-full sm:w-auto sm:min-w-0 sm:flex-1 lg:aspect-auto lg:self-stretch"
+        >
           {budget.grid.map((line) => (
             <span key={line.label}>
               <span className="absolute left-[40px] h-px w-[412px] bg-line-subtle" style={{ top: line.y }} />
@@ -278,9 +284,9 @@ function BudgetCard({ budget, className, delay }: { budget: Budget; className?: 
               </span>
             );
           })}
-        </div>
+        </Fit>
 
-        <div className="flex min-w-px flex-1 flex-col items-start gap-sm">
+        <div className="flex shrink-0 flex-col items-start gap-sm">
           <p className="t-body-s text-fg-secondary">Margin</p>
           <p className="flex items-baseline gap-xs whitespace-nowrap">
             <span className="t-display-metric text-fg">{budget.margin}</span>
@@ -302,36 +308,43 @@ function BudgetCard({ budget, className, delay }: { budget: Budget; className?: 
 export function CommsLinkScreen() {
   const group = motionMs("stagger-group");
   return (
-    <>
-      <ScreenHeading
-        inline
-        title="Relay link · MRS constellation"
-        sub="Elevation-based statistical link budget · UHF 401.6 MHz · relays at 400 km · site Jezero West"
-        className="absolute top-[106px] left-xl"
-      />
+    <div className="flex min-h-full flex-col gap-lg p-lg md:p-xl lg:h-full lg:min-h-[760px]">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-md">
+        <ScreenHeading
+          inline
+          title="Relay link · MRS constellation"
+          sub="Elevation-based statistical link budget · UHF 401.6 MHz · relays at 400 km · site Jezero West"
+          className="shrink"
+        />
+        <CommsToggle />
+      </div>
 
-      <Card className="absolute top-[148px] left-xl h-[480px] w-[880px]">
-        <CardHeader title="Uplink margin across the sky" meta="suit → relay · Pr(θ) − Pth · simulated" />
-        <SkyDome />
-      </Card>
+      <div className="grid gap-lg lg:min-h-0 lg:flex-[480_1_0%] lg:grid-cols-[minmax(0,880fr)_minmax(0,414fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-xl">
+        <Card className="min-h-0">
+          <CardHeader title="Uplink margin across the sky" meta="suit → relay · Pr(θ) − Pth · simulated" />
+          <SkyDome className="aspect-[878/432] w-full lg:aspect-auto lg:min-h-0 lg:flex-1" />
+        </Card>
 
-      <Card className="absolute top-[148px] left-[928px] h-[480px] w-[414px]">
-        <CardHeader title="Elevation statistics" meta="gamma fit · 214 simulated passes" delay={group} />
-        <GammaPdf />
-        <div className="flex flex-col px-lg py-sm">
-          <StatList>
-            {LINK.stats.map((row) => (
-              <StatRow key={row.label} {...row} />
-            ))}
-          </StatList>
-          <p className="t-caption text-fg-secondary">
-            P_out = F(θmin): share of in-view time the link is below threshold
-          </p>
-        </div>
-      </Card>
+        <Card className="min-h-0">
+          <CardHeader title="Elevation statistics" meta="gamma fit · 214 simulated passes" delay={group} />
+          <GammaPdf className="aspect-[413/180] w-full lg:aspect-auto lg:min-h-[96px] lg:flex-1" />
+          <div className="flex shrink-0 flex-col px-lg py-sm">
+            <StatList>
+              {LINK.stats.map((row) => (
+                <StatRow key={row.label} {...row} />
+              ))}
+            </StatList>
+            <p className="t-caption text-fg-secondary">
+              P_out = F(θmin): share of in-view time the link is below threshold
+            </p>
+          </div>
+        </Card>
+      </div>
 
-      <BudgetCard budget={BUDGETS[0]} className="top-[652px] left-xl" delay={group * 2} />
-      <BudgetCard budget={BUDGETS[1]} className="top-[652px] left-[695px]" delay={group * 3} />
-    </>
+      <div className="grid gap-lg lg:min-h-0 lg:flex-[348_1_0%] lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] lg:gap-xl">
+        <BudgetCard budget={BUDGETS[0]} delay={group * 2} />
+        <BudgetCard budget={BUDGETS[1]} delay={group * 3} />
+      </div>
+    </div>
   );
 }

@@ -21,16 +21,7 @@ export const MISSION = {
 
 export type ChecklistEntry = { id: string; text: string; time: string };
 
-export const PRE_EVA: ChecklistEntry[] = [
-  { id: "pre-1", text: "Suit leak check", time: "T-02:10" },
-  { id: "pre-2", text: "HUD to tablet handshake", time: "T-01:50" },
-  { id: "pre-3", text: "Relay passes synced to HUD", time: "T-01:30" },
-  { id: "pre-4", text: "Route verdict reviewed · CAUTION", time: "T-01:10" },
-  { id: "pre-5", text: "Top up O₂ and power", time: "T-00:40" },
-  { id: "pre-6", text: "Airlock depress", time: "T-00:15" },
-  { id: "pre-7", text: "Buddy check", time: "T-00:05" },
-];
-export const PRE_EVA_DONE = ["pre-1", "pre-2", "pre-3", "pre-4"];
+/* The Hub's Pre-EVA and Post-EVA checklists live in ./eva-checklist.ts (from the EVA checklist sheet). */
 
 export const DURING_EVA: ChecklistEntry[] = [
   { id: "eva-1", text: "Egress + HUD link check", time: "00:05" },

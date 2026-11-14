@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { SearchInput } from "@/components/ui/input";
 import { HazardAlert, VerdictBanner } from "@/components/marswalk/alerts";
+import { Fit } from "@/components/marswalk/fit";
 import { HoldButton } from "@/components/marswalk/hold-button";
 import {
   Basemap,
   CellLayer,
   LAYERS,
   LayerRow,
+  MapDim,
   MapFrame,
   ProfileChart,
   ProfileLine,
@@ -20,6 +22,7 @@ import {
 } from "@/components/marswalk/map";
 import { ScreenHeading, StatList, StatRow, StatusChip } from "@/components/marswalk/primitives";
 import { useToast } from "@/components/marswalk/toaster";
+import { Trace, TraceContent, TraceLine, TraceStep } from "@/components/marswalk/trace";
 import { LAYER_CELLS, PLAN, WAYPOINTS, type LayerId } from "@/data/mission";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 import { useStore } from "@/lib/store";
@@ -67,38 +70,46 @@ export function PlanScreen() {
   };
 
   return (
-    <>
-      {/* Left rail */}
-      <aside className="absolute top-top-bar bottom-0 left-0 flex w-rail flex-col gap-lg bg-raised px-lg py-xl">
+    <div className="flex min-h-full flex-col lg:h-full lg:min-h-[800px] lg:flex-row">
+      {/* Left rail (below the map on narrow screens) */}
+      <aside className="order-last flex flex-col gap-lg bg-raised px-lg py-xl lg:order-none lg:w-rail lg:shrink-0 lg:overflow-y-auto">
         <ScreenHeading title="Route plan" sub={PLAN.subtitle} />
-        <ul className="flex flex-col">
-          {WAYPOINTS.map((wp, i) => (
-            <li key={wp.id} className="mw-flash-in" style={stagger(i, motionMs("stagger-group"))}>
-              <button
-                type="button"
-                aria-pressed={selected === wp.id}
-                disabled={!wp.plan}
-                onClick={() => setSelected(wp.id)}
-                className="flex w-full items-center gap-md border-b border-line-subtle px-md py-sm text-left"
-              >
-                <WaypointDot size={14} />
-                <span className="flex min-w-px flex-1 flex-col gap-xs">
-                  <span className="truncate t-label-m text-fg">
-                    {wp.id} · {wp.name}
-                  </span>
-                  <span className="truncate t-data-telemetry text-fg-secondary">{wp.detail}</span>
-                </span>
-                <StatusChip status={wp.status} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <Trace>
+          {WAYPOINTS.map((wp, i) => {
+            const km = (s: string) => parseFloat(s);
+            const leg = i ? km(wp.detail) - km(WAYPOINTS[i - 1].detail) : 0;
+            const open = selected === wp.id;
+            return (
+              <TraceStep key={wp.id} index={i} stagger={motionMs("stagger-group")}>
+                <TraceLine
+                  first={i === 0}
+                  last={i === WAYPOINTS.length - 1}
+                  icon={<WaypointDot size={14} />}
+                  title={`${wp.id} · ${wp.name}`}
+                  description={wp.detail}
+                  trailing={<StatusChip status={wp.status} />}
+                  expanded={wp.plan ? open : undefined}
+                  pressed={open}
+                  disabled={!wp.plan}
+                  onClick={() => setSelected(wp.id)}
+                />
+                {open ? (
+                  <TraceContent last={i === WAYPOINTS.length - 1}>
+                    {i === 0
+                      ? "Start of route · lander pad"
+                      : `Leg ${i}: ${leg.toFixed(2)} km from ${WAYPOINTS[i - 1].id} · ${wp.status === "caution" ? "CAUTION, see hazard alert" : "no hazards flagged"}`}
+                  </TraceContent>
+                ) : null}
+              </TraceStep>
+            );
+          })}
+        </Trace>
         <StatList className="rounded-sm bg-panel px-md py-sm">
           {PLAN.summary.map((row) => (
             <StatRow key={row.label} {...row} />
           ))}
         </StatList>
-        <div className="min-h-px flex-1" />
+        <div className="hidden min-h-px flex-1 lg:block" />
         <HoldButton
           label={routeCommitted ? "Route committed" : "Commit route"}
           confirmTitle="Commit this route?"
@@ -115,15 +126,39 @@ export function PlanScreen() {
         </Button>
       </aside>
 
-      {/* Map */}
+      {/* Map. Panels float over it on wide screens and stack around it on narrow ones. */}
+      <section className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
+        {/* Safety information: readable on the first frame, never behind a build */}
+        <div className="flex flex-col gap-lg lg:pointer-events-none lg:absolute lg:inset-x-xl lg:top-xl lg:z-10">
+          <VerdictBanner verdict={PLAN.verdict} reasons={PLAN.reasons} className="lg:pointer-events-auto lg:max-w-[990px]" />
+          <div className="flex flex-col gap-lg md:flex-row md:items-start md:justify-between">
+            <HazardAlert {...PLAN.hazard} className="md:w-[360px] md:min-w-0 md:shrink lg:pointer-events-auto" />
+
+            <div className="mw-flash-in flex flex-col gap-sm rounded-sm border border-line-subtle bg-canvas px-lg py-md md:w-[304px] md:shrink-0 lg:pointer-events-auto">
+              <SearchInput
+                placeholder="Search or add layer"
+                aria-label="Search layers"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              {visibleLayers.map((id) => (
+                <LayerRow key={id} layer={id} active={layers[id] === "on"} onToggle={() => toggleLayer(id)} />
+              ))}
+              {visibleLayers.length === 0 ? (
+                <p className="py-sm t-body-s text-fg-secondary">No layer matches “{query}”</p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
       <MapFrame
-        className="top-top-bar bottom-0 left-rail right-0"
+        className="h-[60vh] min-h-[360px] rounded-md lg:absolute lg:inset-0 lg:h-auto lg:min-h-0 lg:rounded-none"
+        design={{ width: 1038, height: 938 }}
         origin={{ x: 519, y: 469 }}
-        controls={{ left: 978, top: 746 }}
         world={
           <>
             <Basemap {...PLAN.basemap} />
-            <div className="absolute inset-0 bg-canvas opacity-35" />
+            <MapDim opacity={0.35} />
             {PLAN_LAYERS.map((id) =>
               layers[id] === "off" ? null : (
                 <CellLayer key={id} cells={LAYER_CELLS[id]} opacity={LAYER_OPACITY} leaving={layers[id] === "leaving"} />
@@ -148,29 +183,11 @@ export function PlanScreen() {
             )}
           </>
         }
-      >
-        {/* Safety information: readable on the first frame, never behind a build */}
-        <VerdictBanner verdict={PLAN.verdict} reasons={PLAN.reasons} className="absolute top-xl left-xl w-[990px]" />
-        <HazardAlert {...PLAN.hazard} className="absolute top-[128px] left-xl w-[360px]" />
+      />
 
-        <div className="mw-flash-in absolute top-[128px] left-[710px] flex w-[304px] flex-col gap-sm rounded-sm border border-line-subtle bg-canvas px-lg py-md">
-          <SearchInput
-            placeholder="Search or add layer"
-            aria-label="Search layers"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {visibleLayers.map((id) => (
-            <LayerRow key={id} layer={id} active={layers[id] === "on"} onToggle={() => toggleLayer(id)} />
-          ))}
-          {visibleLayers.length === 0 ? (
-            <p className="py-sm t-body-s text-fg-secondary">No layer matches “{query}”</p>
-          ) : null}
-        </div>
-
-        <Card className="absolute top-[682px] left-xl h-[232px] w-[640px] rounded-sm">
+        <Card className="rounded-sm lg:absolute lg:bottom-xl lg:left-xl lg:z-10 lg:w-[min(640px,calc(100%_-_120px))]">
           <CardHeader title="Route profile" meta={PLAN.profile.meta} />
-          <div className="relative min-h-px flex-1 overflow-hidden">
+          <Fit width={638} height={184} className="aspect-[638/184] w-full">
             <ProfileChart width={638} height={184} baseline={160} area={PLAN.profile.line}>
               <ProfileLine points={PLAN.profile.line} draw />
               <ProfileLine points={PLAN.profile.blocked} tone="hazard" />
@@ -205,9 +222,9 @@ export function PlanScreen() {
             <span className="absolute top-sm left-lg whitespace-nowrap t-body-s text-fg-secondary">
               {PLAN.profile.note}
             </span>
-          </div>
+          </Fit>
         </Card>
-      </MapFrame>
-    </>
+      </section>
+    </div>
   );
 }

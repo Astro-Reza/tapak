@@ -57,12 +57,10 @@
   --stroke-edge: 4px;
 
   /* Size */
-  --size-top-bar: 86px;
+  --size-top-bar: 80px;
   --size-rail: 328px;
   --size-touch-glove: 56px;
   --size-control: 36px;
-  --size-stage-w: 1366px;
-  --size-stage-h: 1024px;
   --size-bracket-arm: 10px;
   --size-bracket-offset: 8px;
 }
@@ -145,6 +143,11 @@
   body,
   #root {
     height: 100%;
+  }
+  /* Whole UI renders at 75%. Percent sizes already resolve against the viewport. */
+  #root {
+    zoom: 0.75;
+    width: 100%;
   }
   body {
     margin: 0;

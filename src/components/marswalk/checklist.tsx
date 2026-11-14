@@ -103,7 +103,7 @@ export function ChecklistCard({
           </div>
         </div>
       ) : null}
-      <ul className={cn("flex flex-col gap-xs px-sm", listClassName)}>
+      <ul className={cn("flex min-h-0 flex-col gap-xs overflow-y-auto px-sm", listClassName)}>
         {entries.map((entry, i) => (
           <ChecklistItem
             key={entry.id}

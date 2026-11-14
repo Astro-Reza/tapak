@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useHashRoute, type Route } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import type { RelayPass } from "@/data/mission";
 import { Icon } from "./icons";
@@ -41,5 +43,22 @@ export function PassRow({
       </div>
       {pass.state === "in-view" && signature ? <Brackets /> : null}
     </li>
+  );
+}
+
+/** Switches between the two Comms views (link budget and pass prediction). */
+export function CommsToggle({ className }: { className?: string }) {
+  const [route, navigate] = useHashRoute();
+  return (
+    <ToggleGroup
+      type="single"
+      aria-label="Comms view"
+      value={route}
+      onValueChange={(value) => value && navigate(value as Route)}
+      className={className}
+    >
+      <ToggleGroupItem value="comms">Link budget</ToggleGroupItem>
+      <ToggleGroupItem value="comms/passes">Pass prediction</ToggleGroupItem>
+    </ToggleGroup>
   );
 }

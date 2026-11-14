@@ -1,7 +1,8 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { PassRow } from "@/components/marswalk/comms";
+import { CommsToggle, PassRow } from "@/components/marswalk/comms";
+import { Fit } from "@/components/marswalk/fit";
 import { ImageSlot, SatelliteMarker, WaypointMarker } from "@/components/marswalk/map";
 import {
   Brackets,
@@ -28,9 +29,10 @@ const SATELLITES = [
   { label: "MRS-L4", left: 158, top: 316 },
 ];
 
-const LANE_W = 886;
+/** Globe scene in Figma pixels (the left panel above the contact windows). */
+const SCENE = { width: 966, height: 790 };
 const PASS_CHIP_W = 40;
-const pxPerMinute = LANE_W / CONTACT_WINDOWS.minutes;
+const pct = (minute: number) => `${(minute / CONTACT_WINDOWS.minutes) * 100}%`;
 
 /** 06 · Comms · Pass Prediction. Passes are propagated from synthetic elements. */
 export function CommsPassesScreen() {
@@ -40,13 +42,22 @@ export function CommsPassesScreen() {
   const tick = motionMs("tick");
 
   return (
-    <>
-      <div className="absolute top-top-bar bottom-0 left-0 w-[966px] overflow-hidden bg-top-bar">
-        <ScreenHeading
-          title="Relay passes over Jezero West"
-          sub="4 relays · 400 km · 3 orbital planes · propagated from synthetic elements"
-          className="absolute top-xl left-xl"
-        />
+    <div className="flex min-h-full flex-col lg:h-full lg:min-h-[720px] lg:flex-row">
+      <div className="relative flex flex-col overflow-hidden bg-top-bar lg:min-w-0 lg:flex-1">
+        <div className="flex flex-wrap items-start justify-between gap-md p-lg md:p-xl lg:pointer-events-none lg:absolute lg:inset-x-0 lg:top-0 lg:z-10">
+          <ScreenHeading
+            title="Relay passes over Jezero West"
+            sub="4 relays · 400 km · 3 orbital planes · propagated from synthetic elements"
+            className="shrink"
+          />
+          <CommsToggle className="lg:pointer-events-auto" />
+        </div>
+
+        <Fit
+          width={SCENE.width}
+          height={SCENE.height}
+          className="aspect-[966/790] w-full lg:aspect-auto lg:min-h-0 lg:flex-1"
+        >
 
         <div className="absolute top-[120px] left-[163px] size-[640px] overflow-hidden rounded-pill">
           <ImageSlot
@@ -57,7 +68,7 @@ export function CommsPassesScreen() {
           />
         </div>
 
-        <svg width={966} height={938} viewBox="0 0 966 938" fill="none" aria-hidden="true" className="absolute top-0 left-0">
+        <svg width={966} height={790} viewBox="0 0 966 790" fill="none" aria-hidden="true" className="absolute top-0 left-0">
           {ORBITS.map((o) => (
             <ellipse
               key={o.tilt}
@@ -96,36 +107,37 @@ export function CommsPassesScreen() {
             </StatList>
           </div>
         ) : null}
+        </Fit>
 
-        <section className="absolute top-[810px] left-xl flex h-[104px] w-[918px] flex-col gap-sm rounded-sm border border-line-subtle bg-panel px-lg py-md">
-          <div className="flex items-start justify-between whitespace-nowrap">
+        <section className="m-lg mt-0 flex shrink-0 flex-col gap-sm rounded-sm border border-line-subtle bg-panel px-lg py-md md:m-xl md:mt-0">
+          <div className="flex flex-wrap items-start justify-between gap-x-lg gap-y-xs">
             <h2 className="t-label-m text-fg">Contact windows · next 6 h</h2>
             <p className="t-data-telemetry text-fg-muted">{CONTACT_WINDOWS.meta}</p>
           </div>
-          <div className="relative h-2xl shrink-0 overflow-hidden rounded-sm bg-inset" style={{ width: LANE_W }}>
+          <div className="relative h-2xl w-full shrink-0 overflow-hidden rounded-sm bg-inset">
             <span
               aria-label="EVA remaining"
               className="absolute top-0 left-0 h-full bg-raised"
-              style={{ width: CONTACT_WINDOWS.evaEnds * pxPerMinute }}
+              style={{ width: pct(CONTACT_WINDOWS.evaEnds) }}
             />
             {CONTACT_WINDOWS.passes.map((pass, i) => (
               <TimelineBar
                 key={`${pass.label}-${pass.start}`}
                 kind="comms"
                 label={pass.label}
-                style={{ left: pass.start * pxPerMinute, width: PASS_CHIP_W, ...stagger(i, group * 2) }}
+                style={{ left: pct(pass.start), width: PASS_CHIP_W, ...stagger(i, group * 2) }}
               />
             ))}
             <span
               aria-label="Now"
               className="absolute top-0 h-full w-(--stroke-default) bg-brand"
-              style={{ left: CONTACT_WINDOWS.now * pxPerMinute }}
+              style={{ left: pct(CONTACT_WINDOWS.now) }}
             />
           </div>
         </section>
       </div>
 
-      <aside className="absolute top-top-bar right-0 bottom-0 flex w-[400px] flex-col gap-lg bg-raised px-lg py-xl">
+      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl lg:w-[360px] lg:shrink-0 lg:overflow-y-auto xl:w-[400px]">
         <ScreenHeading title="Link prediction" sub="Margins use the uplink, the weaker direction" />
         <ul className="flex flex-col gap-xs">
           {PASSES.map((pass, i) => (
@@ -137,7 +149,7 @@ export function CommsPassesScreen() {
             <StatRow key={row.label} {...row} />
           ))}
         </StatList>
-        <div className="min-h-px flex-1" />
+        <div className="hidden min-h-px flex-1 lg:block" />
         <Button className="w-full" onClick={() => toast("Passes synced to HUD", { safety: true })}>
           Sync passes to HUD
         </Button>
@@ -145,6 +157,6 @@ export function CommsPassesScreen() {
           Export elements
         </Button>
       </aside>
-    </>
+    </div>
   );
 }

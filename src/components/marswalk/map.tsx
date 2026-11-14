@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { LayerId } from "@/data/mission";
+import { FitLayer, useFit, type Size } from "./fit";
 import { Icon } from "./icons";
 import { Brackets } from "./primitives";
 import { useToast } from "./toaster";
@@ -34,7 +35,17 @@ export function ImageSlot({
 }) {
   const toast = useToast();
   const [missing, setMissing] = useState(false);
-  if (missing) return <div role="img" aria-label={missingLabel} className="absolute inset-0 bg-inset" />;
+  // The placeholder takes the slot's own geometry (the basemap runs far past
+  // the design box), so a missing image still fills the frame edge to edge.
+  if (missing)
+    return (
+      <div
+        role="img"
+        aria-label={missingLabel}
+        className={cn("absolute bg-inset", style ? undefined : "inset-0", className)}
+        style={style}
+      />
+    );
   return (
     <img
       src={asset(file)}
@@ -53,6 +64,14 @@ export function ImageSlot({
   );
 }
 
+/**
+ * Dims the basemap. It runs far past the design box because the basemap does,
+ * so wide or tall frames are dimmed edge to edge.
+ */
+export function MapDim({ opacity }: { opacity: number }) {
+  return <div className="absolute -inset-[300%] bg-canvas" style={{ opacity }} />;
+}
+
 /** Mars basemap placeholder texture, positioned like the Figma frame (2:1 image). */
 export function Basemap({ width, left, top }: { width: number; left: number; top: number }) {
   return (
@@ -69,37 +88,44 @@ export function Basemap({ width, left, top }: { width: number; left: number; top
 const ZOOM_STEPS = [1, 1.25, 1.6] as const;
 
 /**
- * Map viewport. `world` (imagery, layers, route, markers) sits on a camera that
- * zooms smoothly; this is the one place DESIGN-MOTION.md allows a smooth ease.
- * `children` are panels that float over the map and do not move with it.
+ * Map viewport. `world` (imagery, layers, route, markers) is drawn in design
+ * pixels (`design`) and fitted to the frame around `origin`; the basemap runs
+ * past the design box so any aspect ratio stays filled. The world sits on a
+ * camera that zooms smoothly; this is the one place DESIGN-MOTION.md allows a
+ * smooth ease. `children` are panels that float over the map and do not move.
  */
 export function MapFrame({
   world,
   children,
-  controls,
+  design,
+  controlsClassName = "right-xl bottom-xl",
   className,
   origin,
 }: {
   world: ReactNode;
   children?: ReactNode;
-  controls: { left: number; top: number };
+  design: Size;
+  controlsClassName?: string;
   className?: string;
   origin: { x: number; y: number };
 }) {
   const [zoom, setZoom] = useState(0);
+  const [ref, box] = useFit(design, "contain", origin, { min: 0.55, max: 1.25 });
   return (
-    <div className={cn("absolute overflow-hidden bg-canvas", className)}>
-      <div
-        className="mw-map-camera absolute inset-0"
-        style={{
-          transform: `scale(${ZOOM_STEPS[zoom]})`,
-          transformOrigin: `${origin.x}px ${origin.y}px`,
-        }}
-      >
-        {world}
-      </div>
+    <div ref={ref} className={cn("relative overflow-hidden bg-canvas", className)}>
+      <FitLayer design={design} box={box}>
+        <div
+          className="mw-map-camera absolute inset-0"
+          style={{
+            transform: `scale(${ZOOM_STEPS[zoom]})`,
+            transformOrigin: `${origin.x}px ${origin.y}px`,
+          }}
+        >
+          {world}
+        </div>
+      </FitLayer>
       {children}
-      <div className="absolute flex flex-col gap-sm" style={controls}>
+      <div className={cn("absolute z-10 flex flex-col gap-sm", controlsClassName)}>
         <Button variant="map" size="icon" aria-label="North up" onClick={() => setZoom(0)}>
           <Icon name="north" size={20} />
         </Button>

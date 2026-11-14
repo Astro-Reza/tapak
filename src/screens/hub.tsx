@@ -1,83 +1,115 @@
-import { useState, type CSSProperties } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 
-import { Card, CardHeader } from "@/components/ui/card";
-import { ChecklistCard } from "@/components/marswalk/checklist";
+import { CardHeader } from "@/components/ui/card";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChecklistPanel } from "@/components/marswalk/checklist-panel";
 import { TimelineBar } from "@/components/marswalk/primitives";
-import { DURING_EVA, POST_EVA, PRE_EVA, TIMELINE } from "@/data/mission";
+import { POST_EVA_BLOCKS, PRE_EVA_BLOCKS, type ChecklistBlock } from "@/data/eva-checklist";
+import { DURING_EVA, TIMELINE } from "@/data/mission";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 import { clockAfter, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-/** Track label column and lane width from the Figma frame (lane = 4 h). */
+/** Track label column from the Figma frame; lanes stretch to fill (lane = 4 h). */
 const LABEL_W = 140;
-const LANE_W = 1134;
 const COMMS_CHIP_W = 64;
-const pxPerMinute = LANE_W / TIMELINE.minutes;
+const pct = (minute: number) => `${(minute / TIMELINE.minutes) * 100}%`;
 
-/** 01 · Mission Hub (Pre-EVA): the three checklists and the During-EVA timeline. */
+/** The EVA checklist sheet has no During-EVA tab yet, so this list still comes from the mission plan. */
+const DURING_EVA_BLOCKS: ChecklistBlock[] = [
+  {
+    id: "during-1",
+    title: "During EVA",
+    items: DURING_EVA.map((entry) => ({ id: entry.id, title: entry.text, codes: [], tag: entry.time })),
+  },
+];
+
+/** Tailwind `md`: below it the three checklists stack instead of sitting side by side. */
+const WIDE = "(min-width: 768px)";
+function useWide(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const query = window.matchMedia(WIDE);
+      query.addEventListener("change", notify);
+      return () => query.removeEventListener("change", notify);
+    },
+    () => window.matchMedia(WIDE).matches,
+  );
+}
+
+/**
+ * 01 · Mission Hub (Pre-EVA): the three checklists and the During-EVA
+ * timeline in one resizable frame. Every panel scrolls on its own.
+ */
 export function HubScreen() {
   const { done, toggle } = useStore();
-  const [expanded, setExpanded] = useState(false);
+  const wide = useWide();
   const group = motionMs("stagger-group");
   const ticks = Array.from({ length: TIMELINE.minutes / TIMELINE.tickEvery + 1 }, (_, i) => i * TIMELINE.tickEvery);
 
   return (
-    <div className="absolute inset-x-0 top-top-bar bottom-0 flex flex-col gap-xl p-xl">
-      {expanded ? null : (
-        <div className="flex h-[512px] shrink-0 items-start gap-xl">
-          <ChecklistCard
-            title="Pre-EVA checklist"
-            entries={PRE_EVA}
-            done={done.pre}
-            current
-            signature
-            onToggle={(id) => toggle("pre", id)}
-            className="h-full w-[560px] shrink-0"
-          />
-          <ChecklistCard
-            title="During-EVA checklist"
-            entries={DURING_EVA}
-            done={done.during}
-            metaSuffix={`starts ${TIMELINE.startLabel}`}
-            onToggle={(id) => toggle("during", id)}
-            className="h-full min-w-px flex-1"
-            delay={group}
-          />
-          <ChecklistCard
-            title="Post-EVA checklist"
-            entries={POST_EVA}
-            done={done.post}
-            onToggle={(id) => toggle("post", id)}
-            className="h-full min-w-px flex-1"
-            delay={group * 2}
-          />
-        </div>
-      )}
+    <div className={cn("h-full p-lg md:p-xl", wide ? "min-h-[720px]" : "min-h-[1280px]")}>
+      <ResizablePanelGroup
+        orientation="vertical"
+        className="overflow-hidden rounded-md border border-line-subtle bg-panel text-fg"
+      >
+        <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 240 : 480}>
+          <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
+            <ResizablePanel id="hub-pre" defaultSize="40%" minSize="18%">
+              <ChecklistPanel
+                title="Pre-EVA checklist"
+                blocks={PRE_EVA_BLOCKS}
+                done={done.pre}
+                current
+                signature
+                onToggle={(id) => toggle("pre", id)}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel id="hub-during" defaultSize="24%" minSize="18%">
+              <ChecklistPanel
+                title="During-EVA checklist"
+                blocks={DURING_EVA_BLOCKS}
+                done={done.during}
+                metaSuffix={`starts ${TIMELINE.startLabel}`}
+                onToggle={(id) => toggle("during", id)}
+                delay={group}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel id="hub-post" defaultSize="36%" minSize="18%">
+              <ChecklistPanel
+                title="Post-EVA checklist"
+                blocks={POST_EVA_BLOCKS}
+                done={done.post}
+                onToggle={(id) => toggle("post", id)}
+                delay={group * 2}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </ResizablePanel>
 
-      <Card className="min-h-px flex-1">
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-label={expanded ? "Collapse mission timeline" : "Expand mission timeline"}
-          onClick={() => setExpanded((v) => !v)}
-          className="flex h-[20px] w-full shrink-0 items-center justify-center"
-        >
-          <span className="h-xs w-[48px] rounded-pill bg-fg-muted" />
-        </button>
+        <ResizableHandle withHandle />
+
+        <ResizablePanel id="hub-timeline" defaultSize="30%" minSize={96}>
+          <section className="flex size-full min-h-0 flex-col">
         <CardHeader
           title="During-EVA missions · timeline"
-          meta={`${expanded ? "Slide down to close" : "Slide up for details"} · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
+          meta={`Drag up for details · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
           delay={group * 3}
         />
-        <div className="relative flex shrink-0 flex-col gap-sm px-lg py-md">
+        <ScrollArea className="min-h-0 flex-1" aria-label="Mission timeline">
+        <div className="shrink-0 overflow-x-auto overflow-y-hidden">
+        <div className="relative flex min-w-[760px] flex-col gap-sm px-lg py-md">
           <div className="flex gap-md">
             <div className="h-lg shrink-0" style={{ width: LABEL_W }} />
-            <div className="relative h-lg shrink-0 t-data-telemetry text-fg-muted" style={{ width: LANE_W }}>
+            <div className="relative h-lg min-w-0 flex-1 t-data-telemetry text-fg-muted">
               {ticks.map((minute, i) => (
                 <span
                   key={minute}
                   className="absolute top-0 whitespace-nowrap"
-                  style={i === ticks.length - 1 ? { right: 0 } : { left: minute * pxPerMinute }}
+                  style={i === ticks.length - 1 ? { right: 0 } : { left: pct(minute) }}
                 >
                   {clockAfter(TIMELINE.startLabel, minute)}
                 </span>
@@ -90,15 +122,12 @@ export function HubScreen() {
               <p className="shrink-0 t-body-s text-fg-secondary" style={{ width: LABEL_W }}>
                 {track.name}
               </p>
-              <div
-                className="relative h-2xl shrink-0 overflow-hidden rounded-sm bg-inset"
-                style={{ width: LANE_W }}
-              >
+              <div className="relative h-2xl min-w-0 flex-1 overflow-hidden rounded-sm bg-inset">
                 {ticks.slice(1, -1).map((minute) => (
                   <span
                     key={minute}
                     className="absolute top-0 h-full w-px bg-line opacity-25"
-                    style={{ left: minute * pxPerMinute }}
+                    style={{ left: pct(minute) }}
                   />
                 ))}
                 {track.events.map((event, i) => (
@@ -108,8 +137,8 @@ export function HubScreen() {
                     label={event.label}
                     style={
                       {
-                        left: event.start * pxPerMinute,
-                        width: event.duration ? event.duration * pxPerMinute : COMMS_CHIP_W,
+                        left: pct(event.start),
+                        width: event.duration ? pct(event.duration) : COMMS_CHIP_W,
                         ...stagger(row + i, group * 3 + headerDelay()),
                       } as CSSProperties
                     }
@@ -122,13 +151,13 @@ export function HubScreen() {
           {/* T-0 marker: brand marks "now" */}
           <span
             aria-hidden="true"
-            className="absolute top-md h-[236px] w-(--stroke-default) bg-brand"
+            className="absolute top-md bottom-md w-(--stroke-default) bg-brand"
             style={{ left: 16 + LABEL_W + 12 }}
           />
         </div>
+        </div>
 
-        {expanded ? (
-          <div className="grid min-h-px flex-1 grid-cols-5 gap-xl overflow-auto border-t border-line-subtle px-lg py-lg">
+          <div className="grid grid-cols-1 gap-xl border-t border-line-subtle px-lg py-lg sm:grid-cols-2 lg:grid-cols-5">
             {TIMELINE.tracks.map((track, col) => (
               <section key={track.name} className="flex flex-col gap-sm">
                 <h3 className="mw-text-in t-label-m text-fg" style={stagger(col)}>
@@ -152,8 +181,10 @@ export function HubScreen() {
               </section>
             ))}
           </div>
-        ) : null}
-      </Card>
+        </ScrollArea>
+          </section>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

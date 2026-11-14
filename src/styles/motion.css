@@ -349,7 +349,7 @@
        then leave left to right. The top bar stays put. */
 .mw-cols {
   position: absolute;
-  inset: var(--size-top-bar) 0 0 0;
+  inset: 0;
   z-index: 40;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
