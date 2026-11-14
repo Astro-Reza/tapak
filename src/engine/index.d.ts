@@ -176,3 +176,15 @@ export function validatePlan(p: unknown): Recipe;
 export function encodePlan(p: Recipe): string;
 export function decodePlan(s: string): Recipe;
 export function summaryMatches(a: Recipe["summary"], b: Recipe["summary"]): boolean;
+
+export interface Sample {
+  k: number; dwelling: boolean; dwellFrac?: number; x: number; z: number; y: number; t: number; dose: number; sky: number;
+  /** litres used so far */
+  o2: number; dist: number; slope: number;
+  /** L/min at this moment */
+  rate: number;
+}
+/** Position and consumables at EVA minute T (interpolated along the profile). */
+export function sampleAt(prof: ProfileSample[], T: number, s?: Suit): Sample;
+/** O2 litres spare above the walk-back reserve at `now` */
+export function walkBackMargin(grid: Grid, field: ReturnField, now: { x: number; z: number; o2: number }, s?: Suit): number;

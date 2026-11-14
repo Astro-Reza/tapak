@@ -62,4 +62,17 @@ for (const m of ['efficient', 'balanced', 'safest']) {
 const evaCap = POLICY_PROFILES['hold-sheet'].params.evaLimitMin;
 assert.ok(sheet.modes.efficient.reasons.some((r) => r.includes(`${evaCap} min`)) || sheet.modes.efficient.end?.t <= evaCap);
 assert.equal(JSON.stringify(SUIT), suitBefore, 'SUIT never mutated after planning');
+
+// 5. Playback: start, end and monotonic O2; status() consumes a sample like the original HUD.
+import { sampleAt, status, walkBackMargin } from './index.js';
+{
+  const prof = eff.prof, s0 = sampleAt(prof, 0), s1 = sampleAt(prof, eff.end.t);
+  assert.equal(s0.o2, 0); assert.ok(Math.abs(s1.o2 - eff.end.o2) < 1e-9); assert.ok(Math.abs(s1.dist - eff.end.dist) < 1e-9);
+  let last = -1;
+  for (let T = 0; T <= eff.end.t; T += 3) { const x = sampleAt(prof, T); assert.ok(x.o2 >= last - 1e-9); last = x.o2; }
+  const st = status(sampleAt(prof, 60), eff.end, base.s, base.env);
+  assert.ok(['nominal', 'caution', 'return'].includes(st.level));
+  assert.ok(walkBackMargin(grid, base.field, sampleAt(prof, 60), base.s) > 0);
+  console.log(`playback: T=60 min O2 ${st.o2Pct.toFixed(0)}% level ${st.level}`);
+}
 console.log('integration tests passed');

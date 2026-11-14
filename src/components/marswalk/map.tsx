@@ -22,12 +22,15 @@ const reported = new Set<string>();
 
 export function ImageSlot({
   file,
+  src,
   alt = "",
   className,
   style,
   missingLabel,
 }: {
   file: string;
+  /** full URL instead of public/images/<file> */
+  src?: string;
   alt?: string;
   className?: string;
   style?: CSSProperties;
@@ -48,7 +51,7 @@ export function ImageSlot({
     );
   return (
     <img
-      src={asset(file)}
+      src={src ?? asset(file)}
       alt={alt}
       draggable={false}
       onError={() => {
@@ -79,6 +82,19 @@ export function Basemap({ width, left, top }: { width: number; left: number; top
       file="mars-basemap.jpg"
       missingLabel="Basemap image missing · add public/images/mars-basemap.jpg"
       style={{ width, height: width / 2, left, top }}
+    />
+  );
+}
+
+/** Real terrain: HiRISE orthoimage of the planning patch, placed by the projection (square image). */
+export function OrthoBasemap({ src, left, top, width, height }: { src: string; left: number; top: number; width: number; height: number }) {
+  return (
+    <ImageSlot
+      file="jezero-ortho.jpg"
+      src={src}
+      alt="HiRISE orthoimage, Jezero crater"
+      missingLabel="Terrain image missing · public/data/terrain/ortho.jpg"
+      style={{ left, top, width, height }}
     />
   );
 }
@@ -313,13 +329,21 @@ export function LayerRow({
   active,
   onToggle,
   className,
+  low,
+  high,
+  note,
 }: {
   layer: LayerId;
   active: boolean;
   onToggle?: () => void;
   className?: string;
+  /** ramp end labels from the data, when computed */
+  low?: string;
+  high?: string;
+  /** provenance line under the ramp, e.g. "synthetic" or "modelled" */
+  note?: string;
 }) {
-  const def = LAYERS[layer];
+  const def = { ...LAYERS[layer], ...(low ? { low } : {}), ...(high ? { high } : {}) };
   const head = (
     <>
       <span
@@ -352,6 +376,7 @@ export function LayerRow({
         <span>{def.low}</span>
         <span>{def.high}</span>
       </div>
+      {note ? <p className="t-data-telemetry text-fg-muted">{note}</p> : null}
     </div>
   );
 }

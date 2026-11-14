@@ -6,6 +6,7 @@ import { DEBRIEF, EVA, PLAN } from "@/data/mission";
 import { isReducedMotion, motionMs } from "@/lib/motion";
 import { useHashRoute, type Route } from "@/lib/router";
 import { StoreProvider } from "@/lib/store";
+import { MissionProvider } from "@/sim/mission";
 import { CommsLinkScreen } from "@/screens/comms-link";
 import { CommsPassesScreen } from "@/screens/comms-passes";
 import { DebriefScreen } from "@/screens/debrief";
@@ -82,6 +83,7 @@ export default function App() {
 
   return (
     <StoreProvider>
+      <MissionProvider>
       <ToastProvider>
         <div className="flex h-full flex-col bg-canvas">
           <TopBar route={route} clock={CLOCK[shown]} onNavigate={navigate} />
@@ -99,6 +101,7 @@ export default function App() {
           </div>
         </div>
       </ToastProvider>
+      </MissionProvider>
     </StoreProvider>
   );
 }
