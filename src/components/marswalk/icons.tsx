@@ -46,6 +46,7 @@ const paths = {
     </>
   ),
   minus: <path d="M5 12H19" {...stroke} />,
+  close: <path d="M6 6L18 18M18 6L6 18" {...stroke} />,
   warning: (
     <>
       <path d="M12 3L22 20H2L12 3Z" {...stroke} />

@@ -22,6 +22,7 @@ motion:
     wipe: 200ms           # 4 ticks: a bar or header wiping across
     hold-confirm: 1200ms  # press-and-hold for destructive or committing actions
     map-camera: 400ms     # the only smooth motion: map pan, zoom and fly-to
+    camera-fly: 1100ms    # 3D camera flights (globe center, double-click fly-to, intro)
   stagger:
     item: 50ms            # between siblings in a build
     group: 100ms          # between groups (header, then body, then footer)

@@ -14,6 +14,7 @@
   --motion-duration-wipe: 200ms;
   --motion-duration-hold-confirm: 1200ms;
   --motion-duration-map-camera: 400ms;
+  --motion-duration-camera-fly: 1100ms; /* 3D camera flights: center, fly-to, intro */
   --motion-stagger-item: 50ms;
   --motion-stagger-group: 100ms;
   --motion-easing-step-structural: steps(3, jump-end);

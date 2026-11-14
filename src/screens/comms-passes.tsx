@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CommsToggle, PassRow } from "@/components/marswalk/comms";
+import { PassRow } from "@/components/marswalk/comms";
 import { ScreenHeading, StatList, StatRow, TimelineBar } from "@/components/marswalk/primitives";
 import { useToast } from "@/components/marswalk/toaster";
 import { SOURCE_LABEL, useCommsPasses } from "@/lib/comms-api";
@@ -35,7 +35,6 @@ export function CommsPassesScreen() {
             sub={`${data.constellation} · ${SOURCE_LABEL[source]}`}
             className="shrink"
           />
-          <CommsToggle className="lg:pointer-events-auto" />
         </div>
 
         <Suspense fallback={<div className="min-h-0 flex-1" />}>

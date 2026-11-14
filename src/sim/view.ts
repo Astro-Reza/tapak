@@ -19,6 +19,9 @@ import {
   type Status,
 } from "@/engine";
 import type { LoadedData } from "./load";
+import { arrivalIndices, stopName } from "./stops";
+
+export { arrivalIndices, stopName };
 
 /* ---------- formatting ---------- */
 
@@ -30,11 +33,6 @@ export const fmtLmst = (h: number) => {
 };
 const lat = (v: number) => `${Math.abs(v).toFixed(2)}° ${v >= 0 ? "N" : "S"}`;
 const lon = (v: number) => `${Math.abs(v).toFixed(2)}° ${v >= 0 ? "E" : "W"}`;
-/** "63_3564" (site_drive of the Perseverance traverse) -> label */
-export const stopName = (id: string) => {
-  const [site, drive] = id.split("_");
-  return drive ? `Site ${site} · drive ${drive}` : id;
-};
 
 /* ---------- projection: world metres -> design pixels ---------- */
 
@@ -171,11 +169,6 @@ function profileView(prof: ProfileSample[], arrivals: number[], s: { cautionSlop
 }
 
 /** Profile index of each stop arrival (stop 0 = start), then the return home. */
-export function arrivalIndices(ev: Evaluation): number[] {
-  const prof = ev.prof!;
-  const idx = ev.plan.legs.slice(1).map((leg) => prof.findIndex((p) => p.i === leg.startIdx));
-  return [0, ...idx, prof.length - 1];
-}
 
 /** The next arrival (waypoint, or home) after EVA minute T. Shared by EVA Map and FoV so both name the same stop. */
 export function nextArrival(prof: ProfileSample[], arrivals: number[], T: number) {

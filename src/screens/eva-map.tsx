@@ -54,8 +54,6 @@ function useSimulatedHeartRate(start: number) {
 
 const DESIGN = { width: 710, height: 938 };
 /** Route fitted between the search box and the profile card. */
-/** Rail content fills the scroll viewport (Hub scroll styling). */
-const RAIL_VIEWPORT = "[&>div]:!flex [&>div]:min-h-full [&>div]:flex-col";
 
 const ROUTE_BOX = { x0: 30, y0: 200, x1: 450, y1: 680 };
 
@@ -87,7 +85,7 @@ function EvaMapLoaded() {
 
   return (
     <div className="flex min-h-full flex-col xl:h-full xl:flex-row">
-      <ScrollArea className="shrink-0 bg-raised xl:w-rail" viewportClassName={RAIL_VIEWPORT} aria-label="EVA progress">
+      <ScrollArea className="shrink-0 bg-raised xl:w-rail" fill aria-label="EVA progress">
       <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="EVA progress" sub={`T+${fmtHM(evaT)} of ${fmtHM(s.evaLimitMin)} cap · simulated walk on the plan`} />
         <div className="flex items-center gap-sm" role="group" aria-label="Simulated EVA clock">
@@ -216,7 +214,7 @@ function EvaMapLoaded() {
         </Card>
       </section>
 
-      <ScrollArea className="shrink-0 bg-raised xl:w-rail" viewportClassName={RAIL_VIEWPORT} aria-label="Connectivity">
+      <ScrollArea className="shrink-0 bg-raised xl:w-rail" fill aria-label="Connectivity">
       <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="Connectivity" sub="Tablet · HUD · relay · habitat · simulated" />
         <ul className="flex flex-col gap-xs rounded-sm bg-panel px-md py-sm">

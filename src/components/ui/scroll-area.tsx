@@ -11,9 +11,14 @@ function ScrollArea({
   className,
   children,
   viewportClassName,
+  fill = false,
   type = "auto",
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & { viewportClassName?: string }) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  viewportClassName?: string;
+  /** Content column stretches to the panel height (charts that flex to fill), and scrolls only when taller. */
+  fill?: boolean;
+}) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -25,7 +30,11 @@ function ScrollArea({
         data-slot="scroll-area-viewport"
         // Radix wraps the content in a `display: table` div, which lets long
         // text push past the viewport; force it back to a block.
-        className={cn("size-full rounded-[inherit] [&>div]:!block", viewportClassName)}
+        className={cn(
+          "size-full rounded-[inherit]",
+          fill ? "[&>div]:!flex [&>div]:min-h-full [&>div]:flex-col" : "[&>div]:!block",
+          viewportClassName,
+        )}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

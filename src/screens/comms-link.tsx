@@ -1,15 +1,16 @@
-import type { CSSProperties } from "react";
+import { Fragment, useState, useSyncExternalStore, type CSSProperties } from "react";
 
-import { Card, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CardHeader } from "@/components/ui/card";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CommsToggle } from "@/components/marswalk/comms";
 import { Fit } from "@/components/marswalk/fit";
 import { Icon } from "@/components/marswalk/icons";
 import { LayerRow, SatelliteMarker, WaypointDot } from "@/components/marswalk/map";
 import {
   Brackets,
   MapTag,
-  ScreenHeading,
   StatList,
   StatRow,
   StatusChip,
@@ -17,9 +18,9 @@ import {
 import type { CommsLinkData } from "@/data/comms";
 import type { Budget } from "@/data/mission";
 import { SOURCE_LABEL, useCommsLink } from "@/lib/comms-api";
+import { CommsPassesScreen } from "@/screens/comms-passes";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { MissionLinkCard } from "@/sim/link-card";
 
 type Link = CommsLinkData["link"];
 
@@ -213,9 +214,10 @@ function BudgetCard({
 }) {
   const build = delay + headerDelay();
   return (
-    <Card className={cn("min-h-0", className)}>
+    <section className={cn("min-h-0", className)}>
       <CardHeader title={budget.title} meta={`body at E[θ] ${meanElevation}° · wick Q1–Q3`} delay={delay} />
-      <div className="flex min-h-0 flex-1 flex-col gap-lg px-lg py-md sm:flex-row sm:items-start">
+      <div role="group" aria-label={budget.title} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col gap-lg px-lg py-md sm:flex-row sm:items-start">
         <Fit
           width={452}
           height={268}
@@ -316,65 +318,183 @@ function BudgetCard({
           <StatusChip status={budget.status} />
         </div>
       </div>
-    </Card>
+      </div>
+    </section>
   );
 }
 
+/** Collapsed drawer: only its grab line shows at the bottom edge. */
+const PEEK = "40px";
+/** Raised drawer: share of the viewport height it covers. The content is full height and the closed 1 - OPEN is padded off. */
+const OPEN = 0.88;
+
+/** Tailwind `lg`: below it the panels stack in a scrolling column instead of resizable rows. */
+const WIDE = "(min-width: 1024px)";
+function useWide(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const query = window.matchMedia(WIDE);
+      query.addEventListener("change", notify);
+      return () => query.removeEventListener("change", notify);
+    },
+    () => window.matchMedia(WIDE).matches,
+  );
+}
+
+/** Panels stand clean in the drawer; only the resizable handles separate them. */
+const PANEL = "flex size-full min-h-0 min-w-0 flex-col text-fg";
+
 /**
- * 05 · Comms · Link Budget. All values are modelled, not measured. When the
- * frame is too short for the charts, the screen scrolls in a Scroll Area like
- * the Hub panels.
+ * 05 · Comms · Link Budget. All values are modelled, not measured. The view is
+ * a drawer over the 3D relay-pass view. It rests as a thin line at the bottom edge;
+ * drag or tap the line to raise it. Its panels are resizable like the Hub.
  */
 export function CommsLinkScreen() {
   const { data, source } = useCommsLink();
   const { link, budgets } = data;
+  const [snap, setSnap] = useState<number | string | null>(PEEK);
+  const wide = useWide();
+  const collapsed = snap !== OPEN;
   const group = motionMs("stagger-group");
-  return (
-    <ScrollArea
-      className="h-full"
-      viewportClassName="[&>div]:!flex [&>div]:min-h-full [&>div]:flex-col"
-      aria-label="Link budget"
-    >
-      <div className="flex flex-1 flex-col gap-lg p-lg md:p-xl lg:min-h-[760px]">
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-md">
-          <ScreenHeading
-            inline
-            title="Relay link · MRS constellation"
-            sub={`Elevation-based statistical link budget · UHF 401.6 MHz · relays at 400 km · site Jezero West · ${SOURCE_LABEL[source]}`}
-            className="shrink"
-          />
-          <CommsToggle />
+
+  const sky = (
+    <section className={PANEL} aria-label="Uplink margin across the sky">
+      <CardHeader title="Uplink margin across the sky" meta="suit → relay · Pr(θ) − Pth · simulated" />
+      <div role="group" aria-label="Uplink margin across the sky" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <SkyDome link={link} className="aspect-[878/432] w-full lg:aspect-auto lg:min-h-[200px] lg:flex-1" />
+      </div>
+    </section>
+  );
+
+  const stats = (
+    <section className={PANEL} aria-label="Elevation statistics">
+      <CardHeader title="Elevation statistics" meta={`gamma fit · ${data.passCount} simulated passes`} delay={group} />
+      <div role="group" aria-label="Elevation statistics" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-full flex-1 flex-col lg:flex-row lg:items-stretch">
+        <GammaPdf link={link} className="aspect-[413/180] w-full lg:aspect-auto lg:min-h-[96px] lg:min-w-0 lg:flex-1" />
+        <div className="flex shrink-0 flex-col justify-center px-lg py-sm lg:w-[44%] lg:max-w-[280px]">
+          <StatList>
+            {link.stats.map((row) => (
+              <StatRow key={row.label} {...row} />
+            ))}
+          </StatList>
+          <p className="t-caption text-fg-secondary">
+            P_out = F(θmin): share of in-view time the link is below threshold
+          </p>
         </div>
-
-        <div className="grid gap-lg lg:min-h-0 lg:flex-[480_1_0%] lg:grid-cols-[minmax(0,880fr)_minmax(0,414fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-xl">
-          <Card className="min-h-0">
-            <CardHeader title="Uplink margin across the sky" meta="suit → relay · Pr(θ) − Pth · simulated" />
-            <SkyDome link={link} className="aspect-[878/432] w-full lg:aspect-auto lg:min-h-0 lg:flex-1" />
-          </Card>
-
-          <Card className="min-h-0">
-            <CardHeader title="Elevation statistics" meta={`gamma fit · ${data.passCount} simulated passes`} delay={group} />
-            <GammaPdf link={link} className="aspect-[413/180] w-full lg:aspect-auto lg:min-h-[96px] lg:flex-1" />
-            <div className="flex shrink-0 flex-col px-lg py-sm">
-              <StatList>
-                {link.stats.map((row) => (
-                  <StatRow key={row.label} {...row} />
-                ))}
-              </StatList>
-              <p className="t-caption text-fg-secondary">
-                P_out = F(θmin): share of in-view time the link is below threshold
-              </p>
-            </div>
-          </Card>
-        </div>
-
-        <div className="grid gap-lg lg:min-h-0 lg:flex-[348_1_0%] lg:grid-cols-3 lg:grid-rows-[minmax(0,1fr)] lg:gap-xl">
-          {budgets.map((budget, i) => (
-            <BudgetCard key={budget.title} budget={budget} meanElevation={link.meanElevation} delay={group * (i + 2)} />
-          ))}
-          <MissionLinkCard delay={group * (budgets.length + 2)} />
         </div>
       </div>
-    </ScrollArea>
+    </section>
+  );
+
+  const budgetPanels = budgets.map((budget, i) => (
+    <BudgetCard
+      key={budget.title}
+      budget={budget}
+      meanElevation={link.meanElevation}
+      delay={group * (i + 2)}
+      className={PANEL}
+    />
+  ));
+
+  return (
+    <>
+      {/* The pass prediction screen stays underneath the drawer. */}
+      <div className="h-full" style={{ paddingBottom: PEEK }}>
+        <CommsPassesScreen />
+      </div>
+      <Drawer
+        open
+        modal={false}
+        dismissible={false}
+        snapPoints={[PEEK, OPEN]}
+        activeSnapPoint={snap}
+        setActiveSnapPoint={setSnap}
+      >
+        <DrawerContent
+          overlay={false}
+          className="h-dvh max-h-none pb-[12dvh]"
+          onHandleClick={() => setSnap(collapsed ? OPEN : PEEK)} aria-describedby="link-budget-sub">
+          {collapsed ? (
+            <div
+              className="flex h-[39px] shrink-0 cursor-pointer items-center justify-between gap-md px-lg md:px-xl"
+              onClick={() => setSnap(OPEN)}
+            >
+              <dl className="flex items-baseline gap-xl" aria-label="Link margins">
+                {budgets.slice(0, 2).map((budget) => (
+                  <div key={budget.title} className="flex items-baseline gap-sm">
+                    <dt className="t-body-s text-fg-secondary">{budget.title.split(" · ")[0]} margin</dt>
+                    <dd className="flex items-baseline gap-xs">
+                      <span className="t-label-m text-fg">{budget.margin}</span>
+                      <span className="t-label-unit text-fg-secondary">dB</span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <Button variant="ghost" size="control" className="h-[24px] px-md" onClick={() => setSnap(OPEN)}>
+                More info
+              </Button>
+            </div>
+          ) : null}
+          <DrawerHeader>
+            <div className="min-w-0">
+              <DrawerTitle>Relay link · MRS constellation</DrawerTitle>
+              <DrawerDescription id="link-budget-sub" className="sr-only">
+                {`Elevation-based statistical link budget · UHF 401.6 MHz · relays at 400 km · site Jezero West · ${SOURCE_LABEL[source]}`}
+              </DrawerDescription>
+            </div>
+            <Button
+              size="icon"
+              aria-label="Close"
+              className="size-[28px] bg-danger text-canvas"
+              onClick={() => setSnap(PEEK)}
+            >
+              <Icon name="close" size={16} />
+            </Button>
+          </DrawerHeader>
+
+          {wide ? (
+            <ScrollArea fill className="min-h-0 flex-1" aria-label="Link budget">
+            <div className="flex min-h-[860px] flex-1 flex-col px-xl pb-xl">
+              <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
+                <ResizablePanel id="link-left" defaultSize="58%" minSize="30%">
+                  <ResizablePanelGroup orientation="vertical">
+                    <ResizablePanel id="link-sky" defaultSize="64%" minSize={120}>
+                      {sky}
+                    </ResizablePanel>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel id="link-stats" defaultSize="36%" minSize={120}>
+                      {stats}
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel id="link-right" defaultSize="42%" minSize="25%">
+                  <ResizablePanelGroup orientation="vertical">
+                    {budgetPanels.map((panel, i) => (
+                      <Fragment key={budgets[i].title}>
+                        {i > 0 ? <ResizableHandle withHandle /> : null}
+                        <ResizablePanel id={`link-budget-${i}`} defaultSize="50%" minSize={120}>
+                          {panel}
+                        </ResizablePanel>
+                      </Fragment>
+                    ))}
+                  </ResizablePanelGroup>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+            </ScrollArea>
+          ) : (
+            <ScrollArea className="min-h-0 flex-1" aria-label="Link budget">
+              <div className="flex flex-col gap-lg p-lg">
+                {sky}
+                {stats}
+                {budgetPanels}
+              </div>
+            </ScrollArea>
+          )}
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 }

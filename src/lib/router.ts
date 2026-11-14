@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const ROUTES = ["hub", "plan", "eva", "fov", "comms", "comms/passes", "debrief"] as const;
+export const ROUTES = ["hub", "plan", "eva", "fov", "comms", "debrief"] as const;
 export type Route = (typeof ROUTES)[number];
 
 function readHash(): Route {

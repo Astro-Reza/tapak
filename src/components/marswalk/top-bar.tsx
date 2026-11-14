@@ -9,7 +9,7 @@ const TABS: { label: string; route: Route; match: readonly Route[] }[] = [
   { label: "Plan", route: "plan", match: ["plan"] },
   { label: "EVA Map", route: "eva", match: ["eva"] },
   { label: "FoV", route: "fov", match: ["fov"] },
-  { label: "Comms", route: "comms", match: ["comms", "comms/passes"] },
+  { label: "Comms", route: "comms", match: ["comms"] },
   { label: "Debrief", route: "debrief", match: ["debrief"] },
 ];
 

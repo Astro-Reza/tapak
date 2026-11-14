@@ -30,6 +30,7 @@ import { useStore } from "@/lib/store";
 import { ORTHO } from "@/sim/load";
 import { MissionGate, PlanControls } from "@/sim/controls";
 import { useMission } from "@/sim/mission";
+import { arPackageFileName, buildArPackage } from "@/sim/ar-package";
 import { layerCells, planView } from "@/sim/view";
 
 type PlanLayer = Exclude<LayerId, "link">;
@@ -38,8 +39,6 @@ const PLAN_LAYERS: PlanLayer[] = ["slope", "minerals", "thermal", "dose"];
 /** Layer opacity over the basemap (Figma: 40 %). Opacity changes stay instant. */
 const LAYER_OPACITY = 0.4;
 
-/** Rail content fills the scroll viewport so the commit button can sit at the bottom. */
-const RAIL_VIEWPORT = "[&>div]:!flex [&>div]:min-h-full [&>div]:flex-col";
 
 const DESIGN = { width: 1038, height: 938 };
 /** Where the route is fitted on the map: clear of the verdict, hazard and layer panels and the profile card. */
@@ -59,7 +58,7 @@ export function PlanScreen() {
 function PlanScreenLoaded() {
   const toast = useToast();
   const { routeCommitted, commitRoute } = useStore();
-  const { data, result, ev, busy, link } = useMission();
+  const { data, result, ev, busy, link, settings } = useMission();
   const view = useMemo(() => planView(data!, result!, ev!, ROUTE_BOX), [data, result, ev]);
   const cells = useMemo(
     () => (view.ok ? layerCells(data!, result!, view.proj, view.route, DESIGN) : null),
@@ -100,7 +99,7 @@ function PlanScreenLoaded() {
   return (
     <div className="flex min-h-full flex-col lg:h-full lg:flex-row">
       {/* Left rail (below the map on narrow screens) */}
-      <ScrollArea className="order-last shrink-0 bg-raised lg:order-none lg:w-rail" viewportClassName={RAIL_VIEWPORT} aria-label="Route plan">
+      <ScrollArea className="order-last shrink-0 bg-raised lg:order-none lg:w-rail" fill aria-label="Route plan">
       <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="Route plan" sub={PLAN.subtitle} />
         <Trace>
@@ -149,6 +148,22 @@ function PlanScreenLoaded() {
           onShortPress={() => toast("Hold to commit route")}
           className="w-full"
         />
+        <Button
+          variant="secondary"
+          className="w-full"
+          disabled={!view.ok || busy}
+          onClick={() => {
+            // the phone AR app follows this file; it never re-plans (docs/AR_MISSION_PACKAGE.md)
+            const pkg = buildArPackage({ data: data!, result: result!, mode: settings.mode, settings });
+            const url = URL.createObjectURL(new Blob([JSON.stringify(pkg)], { type: "application/json" }));
+            const a = Object.assign(document.createElement("a"), { href: url, download: arPackageFileName(settings.mode, settings.startLmst) });
+            a.click();
+            URL.revokeObjectURL(url);
+            toast(`AR mission package saved · ${pkg.waypoints.length} waypoints · ${(pkg.route.distanceM / 1000).toFixed(2)} km`);
+          }}
+        >
+          Export AR package
+        </Button>
         <Button variant="secondary" className="w-full" onClick={() => toast("Stop editing is not in this prototype")}>
           Edit stops
         </Button>

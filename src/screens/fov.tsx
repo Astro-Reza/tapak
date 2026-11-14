@@ -8,6 +8,7 @@ import { Icon } from "@/components/marswalk/icons";
 import { OrthoBasemap, SatelliteMarker, WaypointDot, WaypointMarker } from "@/components/marswalk/map";
 import { Brackets, MapTag, StatList, StatRow } from "@/components/marswalk/primitives";
 import { sampleAt, status, type Evaluation, type MissionResult, type ProfileSample, type Sample, type Suit } from "@/engine";
+import { mapEase, stepMs } from "@/lib/camera";
 import { isReducedMotion, motionMs } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { ORTHO } from "@/sim/load";
@@ -190,6 +191,8 @@ function FovScene({ ev }: { ev: Evaluation }) {
     dirty: true,
     snap: true,
     resetting: false,
+    /** clock jump in progress: glide from here to the new point on the map easing (lib/camera) */
+    glide: null as { x: number; z: number; heading: number; t0: number; ms: number } | null,
   });
   const ctx = useMemo<Ctx>(() => ({ prof, arrivals, end, suit, env }), [prof, arrivals, end, suit, env]);
   const [hud, setHud] = useState<Hud>(() => hudFor(ctx, init.sm, "route", init.pos, { yaw: init.heading, pitch: 0 }, init.heading, 0));
@@ -319,7 +322,14 @@ function FovScene({ ev }: { ev: Evaluation }) {
         ({ x, z } = step.sample);
         walkMps = step.walkMps;
         const h = routeHeading(prof, step.sample.dist);
-        if (h != null) st.heading = st.snap ? h : dampAngle(st.heading, h, 2.5, dt);
+        const g = st.glide;
+        if (g) {
+          const p = Math.min(1, (now - g.t0) / g.ms), e = mapEase(p);
+          x = g.x + (x - g.x) * e;
+          z = g.z + (z - g.z) * e;
+          if (h != null) st.heading = g.heading + wrapPi(h - g.heading) * e;
+          if (p >= 1) st.glide = null;
+        } else if (h != null) st.heading = st.snap ? h : dampAngle(st.heading, h, 2.5, dt);
         // as the original 30 m look-ahead point: tilt gently up or down the slope ahead
         const ahead = pointAtDist(prof, step.sample.dist + 30);
         const span = Math.max(Math.hypot(ahead.x - x, ahead.z - z), 10);
@@ -375,8 +385,13 @@ function FovScene({ ev }: { ev: Evaluation }) {
 
   const jump = (T: number) => {
     const st = sim.current;
+    const from = st.explore;
     st.T = Math.min(Math.max(T, 0), end.t);
-    st.snap = true; // a jump is a teleport: no slow swing of the heading
+    // the eye glides to the new point like the map camera (instant with reduced motion or for tiny steps)
+    const to = sampleAt(prof, st.T, suit);
+    const ms = isReducedMotion() || Math.hypot(to.x - from.x, to.z - from.z) <= 0.5 ? 0 : stepMs();
+    st.glide = ms > 0 ? { x: from.x, z: from.z, heading: st.heading, t0: performance.now(), ms } : null;
+    st.snap = !st.glide;
     st.syncedT = st.T;
     setEvaT(st.T);
   };
