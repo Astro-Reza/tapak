@@ -6,7 +6,7 @@ This is the web app for the "Marswalk v1 · iPad screens" in the Figma file *Mar
 
 ## Screenshots
 
-Captured from the production build at 1366 × 1024. The map, camera and globe areas are plain grey because the three placeholder images are not in the repository yet (see [Add the three images first](#add-the-three-images-first)).
+Captured from the production build at 1366 × 1024. The map, camera and globe areas are plain grey because the three placeholder images are not in the repository yet (see [Add the images first](#add-the-images-first)). Screens after the science-engine integration: [docs/INTEGRATION.md](docs/INTEGRATION.md#screenshots-figma-prototype-before-vs-integrated-after-1366--1024).
 
 | | |
 | --- | --- |
@@ -26,15 +26,16 @@ npm run preview    # serve the production build
 
 Requires Node 20 or newer. The build uses a relative base path, so `dist/` can be hosted from any folder (for example GitHub Pages).
 
-## Add the three images first
+## Add the images first
 
 The Figma screens use three raster placeholders. They are **not in this repository** yet; export them from Figma and save them here:
 
 | File | Figma layer | Used on |
 | --- | --- | --- |
-| `public/images/mars-basemap.jpg` | "Mars basemap (Solar System Scope texture, placeholder)", 3840 × 1920 | Plan, EVA Map, FoV minimap, Debrief |
-| `public/images/fov-camera.jpg` | "Camera view" fill on 04 · FoV Simulation | FoV |
 | `public/images/mars-globe.png` | "Mars globe (placeholder image)" | Comms · Pass prediction |
+
+Plan, EVA Map, FoV and Debrief now use the real HiRISE orthoimage and DTM in `public/data/terrain/`, so
+`mars-basemap.jpg` and `fov-camera.jpg` are no longer needed.
 
 Until they exist, each slot shows a neutral surface and a status line naming the missing file. Check the license and credit of each image before the submission; the design marks all three as placeholders to be replaced with real NASA imagery.
 
@@ -99,9 +100,23 @@ Reduced motion: with the OS setting, or `?motion=reduced` in the URL, every sequ
 
 Not built yet: directional ticks, pixel-stair loader, and the in-app reduced-motion switch.
 
+## Science engine
+
+Routes, oxygen, dose, weather, walk-back and the GO / CAUTION / NO-GO verdict are computed by the Marswalk science
+engine in `src/engine/` on real Jezero data (HiRISE DTM and orthoimage, MEDA weather, Perseverance stops) in
+`public/data/`. Typed adapters in `src/sim/` feed the screens. See [docs/INTEGRATION.md](docs/INTEGRATION.md) and
+[docs/SCIENCE_PROVENANCE.md](docs/SCIENCE_PROVENANCE.md).
+
+```bash
+npm test           # engine tests + regression and integration tests
+```
+
 ## Data honesty
 
-Terrain, slope cells, minerals, thermal inertia, dose, temperatures, telemetry and relay passes are synthetic or modelled. Nothing here is a Mars measurement. Screens say so where they show such data, routes are "planned", and the verdict is a planning aid. Keep those labels when wiring in real datasets.
+Terrain, MEDA temperatures and pressure, and stop positions are measurements. Routes, slope and sky view are calculated
+from them; oxygen and dose are modelled; suit and mission-rule values are assumed and switchable (Plan screen, "not yet
+agreed"). The EVA walk, debrief "measured" values, heart rate, relay passes, link budget, minerals and thermal layers
+are simulated or synthetic, and the screens say so. Routes are "planned", and the verdict is a planning aid.
 
 ## Known differences from the Figma frames
 

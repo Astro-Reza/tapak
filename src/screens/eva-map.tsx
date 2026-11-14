@@ -53,7 +53,7 @@ function useSimulatedHeartRate(start: number) {
 
 const DESIGN = { width: 710, height: 938 };
 /** Route fitted between the search box and the profile card. */
-const ROUTE_BOX = { x0: 70, y0: 170, x1: 640, y1: 700 };
+const ROUTE_BOX = { x0: 30, y0: 200, x1: 450, y1: 680 };
 
 /** 03 · EVA Map (During EVA): progress, live position, connectivity, telemetry. */
 export function EvaMapScreen() {
@@ -225,7 +225,7 @@ function EvaMapLoaded() {
           ))}
         </ul>
         <Card className="shrink-0 rounded-sm border-0">
-          <CardHeader title="Live telemetry" meta="model + MEDA · HR simulated" delay={group * 3} />
+          <CardHeader title="Live telemetry" meta="model · MEDA" delay={group * 3} />
           <StatList className="px-md py-sm">
             <StatRow label="Heart rate (simulated)" value={String(heartRate)} unit="bpm" />
             {view.telemetry.map((row) => (
