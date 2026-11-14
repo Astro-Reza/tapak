@@ -130,7 +130,7 @@ function EvaMapLoaded() {
         className="h-[60vh] min-h-[380px] rounded-md xl:absolute xl:inset-0 xl:h-auto xl:min-h-0 xl:rounded-none"
         design={DESIGN}
         origin={{ x: view.you[0], y: view.you[1] }}
-        controlsClassName="right-lg top-1/2 -translate-y-1/2"
+        controlsClassName="right-lg top-1/2 -translate-y-1/2 xl:top-xl xl:right-[344px] xl:translate-y-0"
         world={
           <>
             <OrthoBasemap src={ORTHO} {...view.proj.basemap} />
@@ -171,7 +171,9 @@ function EvaMapLoaded() {
         />
       </MapFrame>
 
-        <div className="mw-flash-in flex flex-col gap-xs rounded-sm border border-line-subtle bg-scrim px-lg py-sm xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:w-[296px]">
+        <div className="mw-flash-in flex flex-col rounded-sm border border-line-subtle bg-scrim xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:max-h-[calc(100%_-_352px)] xl:w-[296px]">
+        <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
+        <div className="flex flex-col gap-xs px-lg py-sm">
           {EVA_LAYERS.map((id) => (
             <LayerRow
               key={id}
@@ -187,6 +189,8 @@ function EvaMapLoaded() {
             <span className="text-danger">■</span> over the {s.maxSlopeDeg}° limit · <span className="text-danger">●</span> no-return ring
             {view.ring.length ? "" : " (beyond this map)"}
           </p>
+        </div>
+        </ScrollArea>
         </div>
 
         <Card className="rounded-sm xl:absolute xl:inset-x-xl xl:bottom-xl xl:z-10">

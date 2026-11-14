@@ -159,8 +159,12 @@ export function MapFrame({
           if (!d.moved && Math.hypot(dx, dy) < 4) return;
           if (!d.moved) {
             d.moved = true;
-            e.currentTarget.setPointerCapture(e.pointerId);
             setDragging(true);
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {
+              /* pointer already released: the drag still works without capture */
+            }
           }
           setPan(clampPan(d.px + dx, d.py + dy));
         }}
