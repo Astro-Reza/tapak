@@ -10,6 +10,7 @@ import { DURING_EVA, TIMELINE } from "@/data/mission";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 import { clockAfter, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { MissionStatusStrip } from "@/sim/status-strip";
 
 /** Track label column from the Figma frame; lanes stretch to fill (lane = 4 h). */
 const LABEL_W = 140;
@@ -49,10 +50,11 @@ export function HubScreen() {
   const ticks = Array.from({ length: TIMELINE.minutes / TIMELINE.tickEvery + 1 }, (_, i) => i * TIMELINE.tickEvery);
 
   return (
-    <div className={cn("h-full p-lg md:p-xl", wide ? "min-h-[720px]" : "min-h-[1280px]")}>
+    <div className={cn("flex h-full flex-col gap-lg p-lg md:p-xl", wide ? "min-h-[720px]" : "min-h-[1280px]")}>
+      <MissionStatusStrip className="shrink-0" />
       <ResizablePanelGroup
         orientation="vertical"
-        className="overflow-hidden rounded-md border border-line-subtle bg-panel text-fg"
+        className="min-h-0 flex-1 overflow-hidden rounded-md border border-line-subtle bg-panel text-fg"
       >
         <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 240 : 480}>
           <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
@@ -96,7 +98,7 @@ export function HubScreen() {
           <section className="flex size-full min-h-0 flex-col">
         <CardHeader
           title="During-EVA missions · timeline"
-          meta={`Drag up for details · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
+          meta={`Synthetic schedule · drag up for details · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
           delay={group * 3}
         />
         <ScrollArea className="min-h-0 flex-1" aria-label="Mission timeline">

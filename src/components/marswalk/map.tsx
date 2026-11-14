@@ -22,12 +22,15 @@ const reported = new Set<string>();
 
 export function ImageSlot({
   file,
+  src,
   alt = "",
   className,
   style,
   missingLabel,
 }: {
   file: string;
+  /** full URL instead of public/images/<file> */
+  src?: string;
   alt?: string;
   className?: string;
   style?: CSSProperties;
@@ -48,7 +51,7 @@ export function ImageSlot({
     );
   return (
     <img
-      src={asset(file)}
+      src={src ?? asset(file)}
       alt={alt}
       draggable={false}
       onError={() => {
@@ -79,6 +82,19 @@ export function Basemap({ width, left, top }: { width: number; left: number; top
       file="mars-basemap.jpg"
       missingLabel="Basemap image missing · add public/images/mars-basemap.jpg"
       style={{ width, height: width / 2, left, top }}
+    />
+  );
+}
+
+/** Real terrain: HiRISE orthoimage of the planning patch, placed by the projection (square image). */
+export function OrthoBasemap({ src, left, top, width, height }: { src: string; left: number; top: number; width: number; height: number }) {
+  return (
+    <ImageSlot
+      file="jezero-ortho.jpg"
+      src={src}
+      alt="HiRISE orthoimage, Jezero crater"
+      missingLabel="Terrain image missing · public/data/terrain/ortho.jpg"
+      style={{ left, top, width, height }}
     />
   );
 }
@@ -126,15 +142,16 @@ export function MapFrame({
       </FitLayer>
       {children}
       <div className={cn("absolute z-10 flex flex-col gap-sm", controlsClassName)}>
-        <Button variant="map" size="icon" aria-label="North up" onClick={() => setZoom(0)}>
+        <Button variant="map" size="icon" className="size-glove" aria-label="North up" onClick={() => setZoom(0)}>
           <Icon name="north" size={20} />
         </Button>
-        <Button variant="map" size="icon" aria-label="Center on position" onClick={() => setZoom(0)}>
+        <Button variant="map" size="icon" className="size-glove" aria-label="Center on position" onClick={() => setZoom(0)}>
           <Icon name="locate" size={20} />
         </Button>
         <Button
           variant="map"
           size="icon"
+          className="size-glove"
           aria-label="Zoom in"
           disabled={zoom === ZOOM_STEPS.length - 1}
           onClick={() => setZoom((z) => Math.min(z + 1, ZOOM_STEPS.length - 1))}
@@ -144,6 +161,7 @@ export function MapFrame({
         <Button
           variant="map"
           size="icon"
+          className="size-glove"
           aria-label="Zoom out"
           disabled={zoom === 0}
           onClick={() => setZoom((z) => Math.max(z - 1, 0))}
@@ -313,13 +331,21 @@ export function LayerRow({
   active,
   onToggle,
   className,
+  low,
+  high,
+  note,
 }: {
   layer: LayerId;
   active: boolean;
   onToggle?: () => void;
   className?: string;
+  /** ramp end labels from the data, when computed */
+  low?: string;
+  high?: string;
+  /** provenance line under the ramp, e.g. "synthetic" or "modelled" */
+  note?: string;
 }) {
-  const def = LAYERS[layer];
+  const def = { ...LAYERS[layer], ...(low ? { low } : {}), ...(high ? { high } : {}) };
   const head = (
     <>
       <span
@@ -340,7 +366,7 @@ export function LayerRow({
           role="switch"
           aria-checked={active}
           onClick={onToggle}
-          className="flex w-full items-center gap-sm"
+          className="flex min-h-glove w-full items-center gap-sm"
         >
           {head}
         </button>
@@ -352,6 +378,7 @@ export function LayerRow({
         <span>{def.low}</span>
         <span>{def.high}</span>
       </div>
+      {note ? <p className="t-data-telemetry text-fg-muted">{note}</p> : null}
     </div>
   );
 }

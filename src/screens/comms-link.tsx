@@ -16,6 +16,7 @@ import {
 import { BUDGETS, LINK, type Budget } from "@/data/mission";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { MissionLinkCard } from "@/sim/link-card";
 
 /* ---------- Sky dome ---------- */
 
@@ -341,9 +342,10 @@ export function CommsLinkScreen() {
         </Card>
       </div>
 
-      <div className="grid gap-lg lg:min-h-0 lg:flex-[348_1_0%] lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] lg:gap-xl">
+      <div className="grid gap-lg lg:min-h-0 lg:flex-[348_1_0%] lg:grid-cols-3 lg:grid-rows-[minmax(0,1fr)] lg:gap-xl">
         <BudgetCard budget={BUDGETS[0]} delay={group * 2} />
         <BudgetCard budget={BUDGETS[1]} delay={group * 3} />
+        <MissionLinkCard delay={group * 4} />
       </div>
     </div>
   );
