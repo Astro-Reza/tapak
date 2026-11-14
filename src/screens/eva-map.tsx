@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -30,26 +30,12 @@ import {
 import { EVA, PASSES_EVA, type LayerId } from "@/data/mission";
 import { ORTHO } from "@/sim/load";
 import { MissionGate } from "@/sim/controls";
+import { CrewPhysiologyCard } from "@/sim/crew-card";
 import { useMission } from "@/sim/mission";
 import { evaView, fmtHM, layerCells } from "@/sim/view";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 
 const EVA_LAYERS: LayerId[] = ["slope", "dose", "link"];
-
-/**
- * Simulated 1 Hz heart-rate feed so the readout ticker has something to show.
- * Placeholder for the suit telemetry stream; not a measurement.
- */
-function useSimulatedHeartRate(start: number) {
-  const [bpm, setBpm] = useState(start);
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setBpm((v) => Math.max(88, Math.min(96, v + (Math.random() < 0.5 ? -1 : 1))));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return bpm;
-}
 
 const DESIGN = { width: 710, height: 938 };
 /** Route fitted between the search box and the profile card. */
@@ -66,7 +52,6 @@ export function EvaMapScreen() {
 
 function EvaMapLoaded() {
   const [layers, setLayers] = useState<Record<string, boolean>>({ slope: true, dose: false, link: false });
-  const heartRate = useSimulatedHeartRate(92);
   const group = motionMs("stagger-group");
   const { data, result, ev, evaT, setEvaT, playing, setPlaying } = useMission();
   const view = useMemo(() => evaView(data!, result!, ev!, evaT, ROUTE_BOX), [data, result, ev, evaT]);
@@ -224,10 +209,10 @@ function EvaMapLoaded() {
             <PassRow key={pass.id} pass={pass} signature style={stagger(i, group * 2)} />
           ))}
         </ul>
+        <CrewPhysiologyCard delay={group * 3} />
         <Card className="shrink-0 rounded-sm border-0">
-          <CardHeader title="Live telemetry" meta="model · MEDA" delay={group * 3} />
+          <CardHeader title="Environment" meta="MEDA · model" delay={group * 3} />
           <StatList className="px-md py-sm">
-            <StatRow label="Heart rate (simulated)" value={String(heartRate)} unit="bpm" />
             {view.telemetry.map((row) => (
               <StatRow key={row.label} {...row} />
             ))}
