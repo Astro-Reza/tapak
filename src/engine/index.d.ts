@@ -188,3 +188,70 @@ export interface Sample {
 export function sampleAt(prof: ProfileSample[], T: number, s?: Suit): Sample;
 /** O2 litres spare above the walk-back reserve at `now` */
 export function walkBackMargin(grid: Grid, field: ReturnField, now: { x: number; z: number; o2: number }, s?: Suit): number;
+
+/* ---------- Phase 3: workload sources and physiology ---------- */
+
+/** Provenance of a displayed value. MEASURED only for a validated live sensor value. */
+export type Provenance = "MEASURED" | "DERIVED" | "MODELLED" | "ASSUMED" | "SIMULATED" | "UNAVAILABLE";
+export const PROVENANCE: Provenance[];
+
+/** One walking step: metres, rise/run, degrees, optional roughness in metres (Kinesis only). */
+export interface WalkSegment { distM: number; grade: number; slopeDeg: number; roughM?: number }
+/**
+ * Biomechanics contract shared by the analytic model and a future Kinesis Walker model.
+ * `absolute` = returns whole-body metabolic power (W); a relative-only source must not be used for O2.
+ */
+export interface WorkloadSource {
+  id: string;
+  kind: "analytic" | "kinesis";
+  absolute: boolean;
+  validated: boolean;
+  walking(seg: WalkSegment, s?: Suit): { watts: number; minutes: number; o2L: number };
+}
+export interface KinesisCalibration { metabolicJPerCotJ: number; basalW: number; sourceId: string }
+export function analyticWorkload(model?: string | null): WorkloadSource;
+export function kinesisReadiness(opts: {
+  lookup?: { suitMassKg: number; gravity: number } | null; suitKg: number; gravity: number; roughCoverage: number;
+  validated?: boolean; calibration?: KinesisCalibration | null;
+}): { ready: boolean; reasons: string[] };
+export function kinesisWorkload(
+  lookup: { at(gradeDeg: number, roughM: number): { cot: number; pFall: number } },
+  readiness: { ready: boolean; reasons: string[] },
+  calibration: KinesisCalibration | null,
+  bodyKg: number,
+  loadKg: number,
+): WorkloadSource;
+export function selectWorkload(analytic: WorkloadSource, kinesis?: WorkloadSource | null): WorkloadSource;
+
+export type Activity = "rover_rest" | "walk" | "stationary_light" | "stationary_heavy" | "mobile_heavy";
+export function activityVo2(activity: Activity): { activity: Activity; label: string; mlKgMin: number; id: string; cite: string; applicability: string };
+export const CATALOG: { version: number; reviewed: string; sources: unknown[]; values: { id: string; [k: string]: unknown }[] };
+
+export interface Segment {
+  kind: "walk" | "stop"; activity: Activity; t0: number; t1: number; distM: number; rise: number; slopeDeg: number;
+  /** the Phase 2 engine's O2 for this segment, litres */
+  engineO2L: number;
+}
+export type BudgetMode = "engine" | "analog-stops" | "analog" | "source";
+export interface BudgetRow extends Segment { lpm: number; watts: number; kjh: number; o2L: number }
+export interface Budget { mode: BudgetMode; rows: BudgetRow[]; o2L: number; energyKJ: number; minutes: number }
+export function activityTimeline(prof: ProfileSample[], s?: Suit, opts?: { stopActivity?: Activity }): Segment[];
+export function metabolicBudget(segs: Segment[], crew: CrewProfile, mode?: BudgetMode, ctx?: { workload?: WorkloadSource; s?: Suit }): Budget;
+export function metabolicAt(b: Budget, T: number, crew: CrewProfile): { row: BudgetRow | null; o2L: number; energyKJ: number; pctVo2peak: number | null };
+
+export interface HrCalibration { interceptBtuH: number; slopeBtuHPerBpm: number; mrRangeBtuH: [number, number]; source: string }
+export interface CrewProfile {
+  id: string; label: string; bodyKg: number; bodyKgSource?: string;
+  vo2peakMlKgMin: number | null; vo2peakSource?: string; hrCalibration: HrCalibration | null;
+}
+export const CREW: CrewProfile[];
+export interface SensorFrame { hrBpm?: number; suitPressureKPa?: number; ppO2MmHg?: number; ppCO2MmHg?: number; ageS?: number }
+export function validateSensorFrame(frame: SensorFrame | null): { accepted: Partial<SensorFrame>; rejected: { field: string; reason: string }[] };
+
+export interface Reading {
+  id: string; label: string; value: string | number | null; unit: string; provenance: Provenance;
+  source: string; note: string; confidence: "nominal" | "experimental";
+}
+export function crewStatus(opts: { budget: Budget; T: number; crew: CrewProfile; tankL: number; sensor?: SensorFrame | null; analog?: Budget | null }): {
+  readings: Reading[]; rejected: { field: string; reason: string }[];
+};

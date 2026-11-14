@@ -11,3 +11,8 @@ export { encodePlan, decodePlan, validatePlan, summaryMatches } from './sync/pla
 export { SCIENCE_PROFILES, POLICY_PROFILES, DEFAULT_SCIENCE, DEFAULT_POLICY, suitFor } from './profiles.js';
 export { planMission, withVerdict, verdictOf, MODES } from './mission.js';
 export { sampleAt, walkBackMargin } from './playback.js';
+export { analyticWorkload, kinesisWorkload, kinesisReadiness, selectWorkload } from './workload.js';
+export { activityTimeline, metabolicBudget, metabolicAt } from './physiology/metabolic.js';
+export { crewStatus, PROVENANCE } from './physiology/status.js';
+export { CREW, validateSensorFrame } from './physiology/crew.js';
+export { CATALOG, activityVo2 } from './physiology/catalog.js';
