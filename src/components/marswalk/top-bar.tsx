@@ -78,7 +78,7 @@ export function TopBar({
         <Tabs
           route={route}
           onNavigate={onNavigate}
-          className="hidden h-full items-start lg:flex"
+          className="hidden h-full items-start gap-lg lg:flex xl:gap-2xl"
           tabClassName="h-full px-sm xl:px-md"
         />
         <div className="flex shrink-0 items-center gap-sm xl:gap-md">
@@ -98,7 +98,7 @@ export function TopBar({
       <Tabs
         route={route}
         onNavigate={onNavigate}
-        className="flex overflow-x-auto border-t border-line-subtle px-sm lg:hidden"
+        className="flex gap-md overflow-x-auto border-t border-line-subtle px-sm lg:hidden"
         tabClassName="h-[45px] flex-1 px-sm"
       />
     </header>

@@ -129,7 +129,7 @@ export function ChecklistPanel({
           return (
             <section key={block.id} aria-label={block.title}>
               {grouped ? (
-                <header className="sticky top-0 z-10 flex items-baseline gap-sm border-y border-line-subtle bg-raised px-lg py-sm">
+                <header className="sticky top-0 z-10 flex items-baseline gap-sm border-y border-line-subtle bg-canvas px-lg py-sm">
                   <h3 className="min-w-px flex-1 truncate t-body-s text-fg">
                     {b + 1}. {block.title}
                   </h3>

@@ -4,6 +4,7 @@ import { CardHeader } from "@/components/ui/card";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChecklistPanel } from "@/components/marswalk/checklist-panel";
+import { HoldPanel } from "@/components/marswalk/hold-panel";
 import { TimelineBar } from "@/components/marswalk/primitives";
 import { POST_EVA_BLOCKS, PRE_EVA_BLOCKS, type ChecklistBlock } from "@/data/eva-checklist";
 import { DURING_EVA, TIMELINE } from "@/data/mission";
@@ -40,8 +41,8 @@ function useWide(): boolean {
 }
 
 /**
- * 01 · Mission Hub (Pre-EVA): the three checklists and the During-EVA
- * timeline in one resizable frame. Every panel scrolls on its own.
+ * 01 · Mission Hub (Pre-EVA): the three checklists, the hold criteria and the
+ * During-EVA timeline in one resizable frame. Every panel scrolls on its own.
  */
 export function HubScreen() {
   const { done, toggle } = useStore();
@@ -58,7 +59,7 @@ export function HubScreen() {
       >
         <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 240 : 480}>
           <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
-            <ResizablePanel id="hub-pre" defaultSize="40%" minSize="18%">
+            <ResizablePanel id="hub-pre" defaultSize="34%" minSize="14%">
               <ChecklistPanel
                 title="Pre-EVA checklist"
                 blocks={PRE_EVA_BLOCKS}
@@ -69,7 +70,7 @@ export function HubScreen() {
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel id="hub-during" defaultSize="24%" minSize="18%">
+            <ResizablePanel id="hub-during" defaultSize="18%" minSize="14%">
               <ChecklistPanel
                 title="During-EVA checklist"
                 blocks={DURING_EVA_BLOCKS}
@@ -80,7 +81,7 @@ export function HubScreen() {
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel id="hub-post" defaultSize="36%" minSize="18%">
+            <ResizablePanel id="hub-post" defaultSize="26%" minSize="14%">
               <ChecklistPanel
                 title="Post-EVA checklist"
                 blocks={POST_EVA_BLOCKS}
@@ -88,6 +89,10 @@ export function HubScreen() {
                 onToggle={(id) => toggle("post", id)}
                 delay={group * 2}
               />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel id="hub-hold" defaultSize="22%" minSize="14%">
+              <HoldPanel delay={group * 3} />
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
