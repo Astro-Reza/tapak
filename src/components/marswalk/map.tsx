@@ -142,15 +142,16 @@ export function MapFrame({
       </FitLayer>
       {children}
       <div className={cn("absolute z-10 flex flex-col gap-sm", controlsClassName)}>
-        <Button variant="map" size="icon" aria-label="North up" onClick={() => setZoom(0)}>
+        <Button variant="map" size="icon" className="size-glove" aria-label="North up" onClick={() => setZoom(0)}>
           <Icon name="north" size={20} />
         </Button>
-        <Button variant="map" size="icon" aria-label="Center on position" onClick={() => setZoom(0)}>
+        <Button variant="map" size="icon" className="size-glove" aria-label="Center on position" onClick={() => setZoom(0)}>
           <Icon name="locate" size={20} />
         </Button>
         <Button
           variant="map"
           size="icon"
+          className="size-glove"
           aria-label="Zoom in"
           disabled={zoom === ZOOM_STEPS.length - 1}
           onClick={() => setZoom((z) => Math.min(z + 1, ZOOM_STEPS.length - 1))}
@@ -160,6 +161,7 @@ export function MapFrame({
         <Button
           variant="map"
           size="icon"
+          className="size-glove"
           aria-label="Zoom out"
           disabled={zoom === 0}
           onClick={() => setZoom((z) => Math.max(z - 1, 0))}
@@ -364,7 +366,7 @@ export function LayerRow({
           role="switch"
           aria-checked={active}
           onClick={onToggle}
-          className="flex w-full items-center gap-sm"
+          className="flex min-h-glove w-full items-center gap-sm"
         >
           {head}
         </button>

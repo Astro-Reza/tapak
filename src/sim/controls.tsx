@@ -74,12 +74,12 @@ export function PlanControls() {
         </div>
       </div>
       {settings.kSuit !== 1 ? (
-        <p className="t-data-telemetry text-fg-secondary">
-          k_suit {settings.kSuit.toFixed(3)} from debrief{" "}
-          <button type="button" className="h-glove underline" onClick={() => update({ kSuit: 1 })}>
-            reset
-          </button>
-        </p>
+        <div className="flex items-center gap-sm">
+          <p className="min-w-0 flex-1 t-data-telemetry text-fg-secondary">k_suit {settings.kSuit.toFixed(3)} from debrief</p>
+          <Button variant="secondary" onClick={() => update({ kSuit: 1 })}>
+            Reset k_suit
+          </Button>
+        </div>
       ) : null}
     </div>
   );
