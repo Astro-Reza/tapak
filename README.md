@@ -4,6 +4,17 @@ Front-end for **Marswalk**, a single-EVA (Marswalk) planner built for NASA Space
 
 This is the web app for the "Marswalk v1 · iPad screens" in the Figma file *Marswalk - Palatine*. It is a front-end prototype: every number on screen is synthetic or modelled (see [Data honesty](#data-honesty)).
 
+## Screenshots
+
+Captured from the production build at 1366 × 1024. The map, camera and globe areas are plain grey because the three placeholder images are not in the repository yet (see [Add the three images first](#add-the-three-images-first)).
+
+| | |
+| --- | --- |
+| **01 · Mission Hub**<br>![Mission Hub](docs/screenshots/hub.png) | **02 · Route Planner**<br>![Route Planner](docs/screenshots/plan.png) |
+| **03 · EVA Map**<br>![EVA Map](docs/screenshots/eva.png) | **04 · FoV Simulation**<br>![FoV Simulation](docs/screenshots/fov.png) |
+| **05 · Comms · Link Budget**<br>![Comms link budget](docs/screenshots/comms.png) | **06 · Comms · Pass Prediction**<br>![Comms pass prediction](docs/screenshots/comms-passes.png) |
+| **07 · Debrief**<br>![Debrief](docs/screenshots/debrief.png) | |
+
 ## Run it
 
 ```bash
