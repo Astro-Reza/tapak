@@ -58,7 +58,7 @@ src/screens/  the leader's screens, now reading view models instead of src/data/
   - Playback: O₂ monotonic, ends at the plan total; `status()` and walk-back margin work on samples.
 - Side-by-side with the original app: the ported `test.mjs` output matches `MARSWALK/app` line for line except timings and
   the lookup end-to-end check (needs the generated `rough_m.bin`, deliberately not committed).
-- `npm run build` (tsc strict + Vite): passes. Warning: main chunk 1.07 MB (three.js); see issues.
+- `npm run build` (tsc strict + Vite): passes; CI runs typecheck, tests and build on every PR (`.github/workflows/ci.yml`).
 - Browser (1366 × 1024 and 768 × 1024): no console errors on any screen; no horizontal scroll at 768 px.
   Workflow checked: Plan 126.6 L → switch to hold-sheet rules 128.3 L / 4 h cap → Debrief "Apply k_suit 1.135" →
   Plan 132.0 L.
@@ -92,11 +92,11 @@ The "before" images are the leader's captures of the v1 build of the Figma frame
    `MARSWALK/app ?role=astronaut` page on another port cannot receive. A suit-device view is a follow-up.
 7. **Two-person crew**: the design shows EVA-1 and EVA-2; the engine plans one walker.
 8. **Minerals / thermal layers**: synthetic patches until CRISM and THEMIS data are added on the 4 m grid.
-9. **Top bar** (EVA-07, Sol 412, clock, MRS-L3, "Safe") is still static.
+9. **Top bar**: the LMST clock now follows the plan; EVA-07, Sol 412, MRS-L3 and the "Safe" link chip are still static scenario labels.
 10. **Glove targets below 56 px in existing components**: Comms "Link budget / Pass prediction" toggle (36 px),
     search inputs, checklist checkboxes (the row is the target). Not changed, to avoid redesigning leader components.
-11. **Bundle size**: three.js makes the main chunk ~1.07 MB (306 kB gzip). Lazy-loading FoV would fix it.
-12. **Data size**: `public/data` adds 9.8 MB (grid 4 MB, mesh 3.3 MB, images) and `public/draco` 0.75 MB to the repo.
+11. **Bundle size**: FoV is lazy-loaded; main chunk 502 kB (161 kB gzip), three.js chunk 569 kB loads with FoV only. Vite still warns about the three.js chunk.
+12. **Data size**: `public/data` adds 7.9 MB (grid 4.2 MB, mesh 3.3 MB, ortho 0.8 MB) and `public/draco` 0.75 MB; see RELEASE_READINESS.md §6.
 13. Planning runs on the main thread (~1 s on profile change); a Web Worker would keep the UI responsive.
 14. **`public/images/mars-globe.png` is still missing** (Comms · Pass prediction). It was missing before this branch; the
     slot shows a neutral surface and a toast. The `Basemap` component (placeholder texture) is now unused.
