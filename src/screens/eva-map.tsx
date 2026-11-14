@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { SearchInput } from "@/components/ui/input";
 import { PassRow } from "@/components/marswalk/comms";
 import { Fit } from "@/components/marswalk/fit";
 import { Icon } from "@/components/marswalk/icons";
 import {
-  Basemap,
+  CellLayer,
   LayerRow,
   MapDim,
   MapFrame,
+  OrthoBasemap,
   ProfileChart,
   ProfileLine,
   RouteLine,
@@ -26,6 +28,10 @@ import {
   StatusChip,
 } from "@/components/marswalk/primitives";
 import { EVA, PASSES_EVA, type LayerId } from "@/data/mission";
+import { ORTHO } from "@/sim/load";
+import { MissionGate } from "@/sim/controls";
+import { useMission } from "@/sim/mission";
+import { evaView, fmtHM, layerCells } from "@/sim/view";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 
 const EVA_LAYERS: LayerId[] = ["slope", "dose", "link"];
@@ -45,26 +51,68 @@ function useSimulatedHeartRate(start: number) {
   return bpm;
 }
 
+const DESIGN = { width: 710, height: 938 };
+/** Route fitted between the search box and the profile card. */
+const ROUTE_BOX = { x0: 70, y0: 170, x1: 640, y1: 700 };
+
 /** 03 · EVA Map (During EVA): progress, live position, connectivity, telemetry. */
 export function EvaMapScreen() {
-  const [layers, setLayers] = useState<Record<string, boolean>>({ slope: true, dose: true, link: true });
+  return (
+    <MissionGate>
+      <EvaMapLoaded />
+    </MissionGate>
+  );
+}
+
+function EvaMapLoaded() {
+  const [layers, setLayers] = useState<Record<string, boolean>>({ slope: true, dose: false, link: false });
   const heartRate = useSimulatedHeartRate(92);
   const group = motionMs("stagger-group");
-  const profile = EVA.profile;
+  const { data, result, ev, evaT, setEvaT, playing, setPlaying } = useMission();
+  const view = useMemo(() => evaView(data!, result!, ev!, evaT, ROUTE_BOX), [data, result, ev, evaT]);
+  // layer cells depend on the route only, not on the clock
+  const routeKey = view ? `${view.walked.length + view.remaining.length}` : "";
+  const cells = useMemo(
+    () => (view ? layerCells(data!, result!, view.proj, [...view.walked, ...view.remaining], DESIGN, 60) : null),
+    [data, result, ev, routeKey],
+  );
+  if (!view || !ev?.end) return <p role="alert" className="p-xl t-body-m text-danger">No route: {ev?.error ?? "plan first"}</p>;
+  const end = ev.end;
+  const profile = view.profile;
+  const s = result!.s;
 
   return (
     <div className="flex min-h-full flex-col xl:h-full xl:min-h-[760px] xl:flex-row">
       <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
-        <ScreenHeading title="EVA progress" sub={EVA.subtitle} />
+        <ScreenHeading title="EVA progress" sub={`T+${fmtHM(evaT)} of ${fmtHM(s.evaLimitMin)} cap · simulated walk on the plan`} />
+        <div className="flex items-center gap-sm" role="group" aria-label="Simulated EVA clock">
+          <Button variant="secondary" aria-label="Back 10 minutes" onClick={() => setEvaT(Math.max(0, evaT - 10))}>
+            −10
+          </Button>
+          <Button className="min-w-0 flex-1" onClick={() => {
+            if (!playing && evaT >= end.t) setEvaT(0);
+            setPlaying(!playing);
+          }}>
+            {playing ? "Pause" : "Play walk"}
+          </Button>
+          <Button variant="secondary" aria-label="Forward 10 minutes" onClick={() => setEvaT(Math.min(end.t, evaT + 10))}>
+            +10
+          </Button>
+        </div>
+        {view.st.level !== "nominal" ? (
+          <p role="alert" className={view.st.level === "return" ? "t-label-m text-danger" : "t-label-m text-caution"}>
+            {view.st.level === "return" ? "Start your return now: O₂ or EVA time covers the walk home only." : "Reserve below plan margin."}
+          </p>
+        ) : null}
         <div className="grid grid-cols-2 gap-md sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-2">
-          {EVA.tiles.map((tile, i) => (
+          {view.tiles.map((tile, i) => (
             <MetricTile key={tile.label} {...tile} className="min-w-0" style={stagger(i, group)} />
           ))}
         </div>
         <Card className="shrink-0 rounded-sm">
-          <CardHeader title="Prediction" meta="vs plan" delay={group * 2} />
+          <CardHeader title="Prediction" meta="modelled" delay={group * 2} />
           <StatList className="px-md py-sm">
-            {EVA.prediction.map((row) => (
+            {view.prediction.map((row) => (
               <StatRow key={row.label} {...row} />
             ))}
           </StatList>
@@ -74,33 +122,38 @@ export function EvaMapScreen() {
       <section className="relative flex flex-col gap-lg p-lg xl:block xl:min-w-0 xl:flex-1 xl:p-0">
       <MapFrame
         className="h-[60vh] min-h-[380px] rounded-md xl:absolute xl:inset-0 xl:h-auto xl:min-h-0 xl:rounded-none"
-        design={{ width: 710, height: 938 }}
-        origin={{ x: EVA.you.x, y: EVA.you.y }}
+        design={DESIGN}
+        origin={{ x: view.you[0], y: view.you[1] }}
         controlsClassName="right-lg top-1/2 -translate-y-1/2"
         world={
           <>
-            <Basemap {...EVA.basemap} />
+            <OrthoBasemap src={ORTHO} {...view.proj.basemap} />
             <MapDim opacity={0.3} />
+            {cells && layers.slope ? <CellLayer cells={cells.slope} opacity={0.35} /> : null}
+            {cells && layers.dose ? <CellLayer cells={cells.dose} opacity={0.35} /> : null}
+            {cells ? <CellLayer cells={cells.noGo} opacity={0.45} /> : null}
+            <div aria-hidden="true" className="absolute inset-0">
+              {view.ring.map((c) => (
+                <span key={`${c.x}-${c.y}`} className="absolute size-[6px] rounded-pill" style={{ left: c.x, top: c.y, background: c.color }} />
+              ))}
+            </div>
             <RouteOverlay width={710} height={938}>
-              <RouteLine points={EVA.walked} variant="walked-dotted" />
-              <RouteLine points={EVA.remaining} />
+              <RouteLine points={view.walked} variant="walked-dotted" />
+              <RouteLine key={ev.end.dist} points={view.remaining} />
             </RouteOverlay>
-            {EVA.markers.map((m) => (
+            {view.markers.map((m) => (
               <WaypointMarker key={m.label} label={m.label} x={m.x} y={m.y} selected={m.next} />
             ))}
             <div
               role="img"
               aria-label="Your position"
               className="absolute flex size-control items-center justify-center rounded-pill border-3 border-brand bg-fg text-panel"
-              style={{ left: EVA.you.x - 18, top: EVA.you.y - 18 }}
+              style={{ left: view.you[0] - 18, top: view.you[1] - 18 }}
             >
               <Icon name="astronaut" size={20} />
             </div>
-            <MapTag className="absolute" style={{ left: EVA.you.x + 26, top: EVA.you.y + 10 }}>
-              {EVA.you.tag}
-            </MapTag>
-            <MapTag className="absolute" style={{ left: EVA.buddyTag.left, top: EVA.buddyTag.top }}>
-              {EVA.buddyTag.label}
+            <MapTag className="absolute" style={{ left: view.you[0] + 26, top: view.you[1] + 10 }}>
+              {view.youTag}
             </MapTag>
           </>
         }
@@ -118,14 +171,21 @@ export function EvaMapScreen() {
               key={id}
               layer={id}
               active={layers[id]}
-              onToggle={() => setLayers((s) => ({ ...s, [id]: !s[id] }))}
+              onToggle={() => setLayers((st) => ({ ...st, [id]: !st[id] }))}
+              low={id === "dose" && cells ? cells.doseRange[0].toFixed(2) : undefined}
+              high={id === "dose" && cells ? cells.doseRange[1].toFixed(2) : undefined}
+              note={id === "link" ? "not modelled yet" : id === "dose" ? "modelled · GCR × sky view" : "calculated · HiRISE DTM"}
             />
           ))}
+          <p className="t-data-telemetry text-fg-secondary">
+            <span className="text-danger">■</span> over the {s.maxSlopeDeg}° limit · <span className="text-danger">●</span> no-return ring
+            {view.ring.length ? "" : " (beyond this map)"}
+          </p>
         </div>
 
         <Card className="rounded-sm xl:absolute xl:inset-x-xl xl:bottom-xl xl:z-10">
           <CardHeader title="Route profile" meta={profile.meta} />
-          <Fit width={660} height={148} className="aspect-[660/148] w-full">
+          <Fit width={660} height={148} className="aspect-[660/148] w-full" key={ev.end.dist}>
             <ProfileChart width={660} height={148} baseline={130} area={[...profile.walked, ...profile.ahead.slice(1)]}>
               <ProfileLine points={profile.walked} tone="secondary" />
               <ProfileLine points={profile.ahead} draw />
@@ -147,7 +207,7 @@ export function EvaMapScreen() {
       </section>
 
       <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
-        <ScreenHeading title="Connectivity" sub="Tablet · HUD · relay · habitat" />
+        <ScreenHeading title="Connectivity" sub="Tablet · HUD · relay · habitat · simulated" />
         <ul className="flex flex-col gap-xs rounded-sm bg-panel px-md py-sm">
           {EVA.hops.map((hop, i) => (
             <li key={hop.name} className="mw-flash-in flex items-center gap-sm py-xs" style={stagger(i, group)}>
@@ -165,18 +225,19 @@ export function EvaMapScreen() {
           ))}
         </ul>
         <Card className="shrink-0 rounded-sm border-0">
-          <CardHeader title="Live telemetry" meta="1 Hz · simulated" delay={group * 3} />
+          <CardHeader title="Live telemetry" meta="model + MEDA · HR simulated" delay={group * 3} />
           <StatList className="px-md py-sm">
-            {EVA.telemetry.map((row) => (
-              <StatRow key={row.label} {...row} value={row.label === "Heart rate" ? String(heartRate) : row.value} />
+            <StatRow label="Heart rate (simulated)" value={String(heartRate)} unit="bpm" />
+            {view.telemetry.map((row) => (
+              <StatRow key={row.label} {...row} />
             ))}
           </StatList>
         </Card>
         <section className="flex flex-col gap-xs xl:min-h-px xl:flex-1 xl:overflow-hidden">
           <h2 className="t-data-telemetry text-fg-muted">System log</h2>
           <ul className="flex flex-col gap-xs">
-            {EVA.log.map((line, i) => (
-              <LogLine key={line.time} {...line} style={stagger(i, group * 3 + headerDelay())} />
+            {view.log.map((line, i) => (
+              <LogLine key={`${line.time}-${line.message}`} {...line} style={stagger(i, group * 3 + headerDelay())} />
             ))}
           </ul>
         </section>

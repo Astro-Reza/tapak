@@ -391,9 +391,9 @@ export function evaView(data: LoadedData, result: MissionResult, ev: Evaluation,
     remaining: thin(remainingPts),
     you,
     youTag: `You · ${(now.dist / 1000).toFixed(2)} km · ${now.dwelling ? "science stop" : `${now.slope.toFixed(0)}° slope`}`,
-    markers: arrivals.slice(1, -1).map((pi, k) => {
+    markers: arrivals.slice(0, -1).map((pi, k) => {
       const [x, y] = proj.px(prof[pi].x, prof[pi].z);
-      return { label: `WP${k + 2}`, x, y, next: k + 1 === next };
+      return { label: `WP${k + 1}`, x, y, next: k === next };
     }),
     ring,
     profile: {
