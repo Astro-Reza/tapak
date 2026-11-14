@@ -16,6 +16,8 @@ import { MissionStatusStrip } from "@/sim/status-strip";
 /** Track label column from the Figma frame; lanes stretch to fill (lane = 4 h). */
 const LABEL_W = 140;
 const COMMS_CHIP_W = 64;
+/** Panels stand clean on the page; only the resizable handles separate them. */
+const CARD = "text-fg";
 const pct = (minute: number) => `${(minute / TIMELINE.minutes) * 100}%`;
 
 /** The EVA checklist sheet has no During-EVA tab yet, so this list still comes from the mission plan. */
@@ -51,16 +53,17 @@ export function HubScreen() {
   const ticks = Array.from({ length: TIMELINE.minutes / TIMELINE.tickEvery + 1 }, (_, i) => i * TIMELINE.tickEvery);
 
   return (
-    <div className={cn("flex h-full flex-col gap-lg p-lg md:p-xl", wide ? "min-h-[720px]" : "min-h-[1280px]")}>
+    <div className="flex h-full min-h-0 flex-col gap-lg overflow-hidden p-lg md:p-xl">
       <MissionStatusStrip className="shrink-0" />
       <ResizablePanelGroup
         orientation="vertical"
-        className="min-h-0 flex-1 overflow-hidden rounded-md border border-line-subtle bg-panel text-fg"
+        className="min-h-0 flex-1"
       >
-        <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 240 : 480}>
+        <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 160 : 240}>
           <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
             <ResizablePanel id="hub-pre" defaultSize="34%" minSize="14%">
               <ChecklistPanel
+                className={CARD}
                 title="Pre-EVA checklist"
                 blocks={PRE_EVA_BLOCKS}
                 done={done.pre}
@@ -72,6 +75,7 @@ export function HubScreen() {
             <ResizableHandle withHandle />
             <ResizablePanel id="hub-during" defaultSize="18%" minSize="14%">
               <ChecklistPanel
+                className={CARD}
                 title="During-EVA checklist"
                 blocks={DURING_EVA_BLOCKS}
                 done={done.during}
@@ -83,6 +87,7 @@ export function HubScreen() {
             <ResizableHandle withHandle />
             <ResizablePanel id="hub-post" defaultSize="26%" minSize="14%">
               <ChecklistPanel
+                className={CARD}
                 title="Post-EVA checklist"
                 blocks={POST_EVA_BLOCKS}
                 done={done.post}
@@ -92,7 +97,7 @@ export function HubScreen() {
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel id="hub-hold" defaultSize="22%" minSize="14%">
-              <HoldPanel delay={group * 3} />
+              <HoldPanel className={CARD} delay={group * 3} />
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
@@ -100,7 +105,7 @@ export function HubScreen() {
         <ResizableHandle withHandle />
 
         <ResizablePanel id="hub-timeline" defaultSize="30%" minSize={96}>
-          <section className="flex size-full min-h-0 flex-col">
+          <section className={cn("flex size-full min-h-0 flex-col", CARD)}>
         <CardHeader
           title="During-EVA missions · timeline"
           meta={`Synthetic schedule · drag up for details · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
