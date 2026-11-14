@@ -3,21 +3,30 @@
 The FoV screen (`#/fov`) is the desktop/tablet first-person **simulation** of the planned EVA. This page covers how
 it moves, how the camera is built, and the seam a later Android/iOS AR app plugs into.
 
-| Follow route, next waypoint WP4 | Looking at the relay pass (heading 032°) while on route |
+| Follow route, next waypoint WP4 | Looking up at the relay pass (heading 030°, tilt +18°) |
 | --- | --- |
-| ![Follow route](screenshots/map-fov/fov-follow-route.jpg) | ![Relay pass](screenshots/map-fov/fov-relay-pass-heading-032.jpg) |
+| ![Follow route](screenshots/map-fov/fov-follow-route.jpg) | ![Relay pass](screenshots/map-fov/fov-relay-pass.jpg) |
 
 ## Layout
 
-The screen chrome keeps the design frame (1366 × 938) at the design's positions, scaled to fit: minimap top left,
-"Camera · heading · tilt · field of view 70°" tag, Elevation ruler, 0° horizon, azimuth ruler, relay pass with the
-MRS-L1 satellite marker and AOS / LOS tags, next-waypoint marker and tag ("WP4 · 180 m · +22 m · max 12°"), spot note,
-and source credit. What is live: heading and tilt in the camera tag, the azimuth ruler, the minimap (walked dotted,
-ahead solid, view cone), the waypoint marker and tag (projected from 3D; distance, height change and steepest slope to
-it), and the relay pass, which slides with the heading (satellite at az 022°). The pass, its times and the spot note
-(shown when WP4 is next) are still the design's simulated values. The 3D camera has a 70° horizontal field of view,
-so the 19.5 px/° azimuth ruler matches the view. The walk controls are not in the design; they sit in the open sky
-right of the camera tag, with less-used settings behind **More**.
+Built from the FoV design's parts and the brand rules in DESIGN.md (scrim panels with a hairline border, 16 px inside,
+`label-m` titles, stat rows, white map-control squares, glove-size targets), with everything anchored to the screen
+edges so wide and tall screens both work:
+
+- **Top left**: minimap ("Map · north up"; walked dotted, ahead solid, view cone), then the **Walk** panel: mode,
+  EVA clock, distance, O₂, next stop, progress, −5 / Walk / +5, speed, head bob, Restart in the header. Free explore
+  swaps the clock rows for "Off the plan" and explored distance.
+- **Top centre**: "Camera · heading · tilt · field of view 70°".
+- **Right**: Elevation ruler; beside it the map controls **Reset view** and **Mouse look** (desktop).
+- **Bottom**: source credit and the azimuth ruler (heading at the centre, satellite tick, walking tick); in Free
+  explore the walk pad (map-control squares, centre square = ×10 fast) sits above the ruler on the right.
+- **In the scene**, projected through the 3D camera every frame so they stay fixed in the world: the relay pass
+  (flown solid, predicted dashed) with the MRS-L1 satellite marker and brackets, AOS / LOS, the 0° horizon, the
+  next-waypoint marker and tag ("WP4 · 173 m · −19 m · max 13°"), and the spot note at WP4. When the satellite is out
+  of view its marker is pinned to the screen edge with an arrow pointing to it.
+
+The 3D camera has a 70° horizontal field of view, so the azimuth ruler spacing matches the view. The pass, its times and
+the spot note are the design's simulated values.
 
 ## Controls
 
@@ -85,6 +94,6 @@ calibration residual is within 2 m. Otherwise the app must warn and keep the com
 
 - Each frame is capped at 0.1 s so a stall never becomes a jump; in a throttled background tab the walk slows instead.
 - No pinch-zoom or field-of-view control; horizontal FoV fixed at 70°.
-- The design frame is an iPad landscape layout; on a phone in portrait the chrome scales down with it.
+- At 25° elevation the satellite sits above a 16:9 view when looking level; tilt up (or follow the edge marker) to see it.
 - Free explore has no collision with boulders (the DTM is the only obstacle model) and ignores slope limits.
 - The relay elevation ruler is still the simulated pass from the design.

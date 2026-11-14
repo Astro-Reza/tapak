@@ -11,7 +11,8 @@ import { TERRAIN_GLB } from "./load";
 export const FOV_H = 70;
 const vFov = (aspect: number) => (2 * Math.atan(Math.tan((FOV_H * Math.PI) / 360) / aspect) * 180) / Math.PI;
 
-export type Projected = { x: number; y: number; visible: boolean };
+/** `front`: in front of the camera (may still be off-screen); `visible`: inside the view. */
+export type Projected = { x: number; y: number; visible: boolean; front: boolean };
 
 /** Imperative handle: the FoV loop drives the camera every frame without React re-renders. */
 export type TerrainApi = {
@@ -97,7 +98,8 @@ export function TerrainView({
     const project = (points: { x: number; y: number; z: number }[]) =>
       points.map((p) => {
         v.set(p.x, p.y, p.z).project(camera);
-        return { x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, visible: v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1 };
+        const front = v.z < 1;
+        return { x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, front, visible: front && Math.abs(v.x) < 1 && Math.abs(v.y) < 1 };
       });
     const setRoute = (r: ProfileSample[]) => {
       routeGroup.children.forEach((m) => (m as THREE.Mesh).geometry.dispose());
