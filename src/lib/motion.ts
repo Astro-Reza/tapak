@@ -14,6 +14,7 @@ export type MotionToken =
   | "duration-wipe"
   | "duration-hold-confirm"
   | "duration-map-camera"
+  | "duration-camera-fly"
   | "duration-toast-hold"
   | "stagger-item"
   | "stagger-group";

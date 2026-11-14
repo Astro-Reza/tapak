@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 import { Button } from "@/components/ui/button";
 import { elevationDeg, latLonToVec, orbitPoint, type RelayOrbit } from "@/lib/orbit";
+import { flyMs, stepMs, tween } from "@/lib/camera";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
 import { SatelliteMarker, WaypointMarker } from "./map";
@@ -19,10 +20,10 @@ const ORBIT_SEGMENTS = 256;
 type GlobeSite = { latDeg: number; lonDeg: number; localSolarHour: number };
 
 /**
- * Mars and its relay constellation in 3D (three.js). Drag to turn the globe,
- * pinch or scroll to zoom. The scene is a snapshot at the screen's mission
- * time, so nothing moves on its own and a frame is drawn only when the view
- * changes. Labels are DOM markers placed over the canvas each frame.
+ * Mars and its relay constellation in 3D (three.js). Drag to turn the globe
+ * (it coasts to a stop), pinch or scroll to zoom, double-click to fly to a spot.
+ * The scene is a snapshot at the screen's mission time, so nothing moves on
+ * its own and a frame is drawn only while the view moves. Labels are DOM markers placed over the canvas each frame.
  */
 export default function MarsGlobe({
   site,
@@ -98,7 +99,8 @@ export default function MarsGlobe({
     scene.add(sun, new THREE.AmbientLight(token("--text-primary"), 0.45));
 
     const marsMaterial = own(new THREE.MeshStandardMaterial({ color: token("--surface-inset"), roughness: 1 }));
-    scene.add(new THREE.Mesh(own(new THREE.SphereGeometry(1, 128, 64)), marsMaterial));
+    const marsMesh = new THREE.Mesh(own(new THREE.SphereGeometry(1, 128, 64)), marsMaterial);
+    scene.add(marsMesh);
 
     const starsMaterial = own(
       new THREE.MeshBasicMaterial({ color: new THREE.Color().setScalar(0.5), side: THREE.BackSide, visible: false }),
@@ -211,25 +213,101 @@ export default function MarsGlobe({
     controls.enablePan = false;
     controls.minDistance = VIEW.min;
     controls.maxDistance = VIEW.max;
+    // Weighty, Earth-style feel: the globe coasts after a drag and the wheel eases in.
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.zoomSpeed = 0.7;
     controls.rotateSpeed = 0.6;
-    controls.addEventListener("change", render);
+    controls.addEventListener("change", () => {
+      // Turn slower the closer you are, so a drag moves the ground under the cursor about 1:1.
+      controls.rotateSpeed = THREE.MathUtils.clamp((camera.position.length() - 1) * 0.28, 0.08, 0.7);
+      render();
+    });
+
+    // Frames are drawn only while something moves: a drag or wheel coasting, or a flight.
+    let raf = 0;
+    let cancelFlight = () => {};
+    let flying = false;
+    const frame = () => {
+      raf = 0;
+      if (disposed) return;
+      const moved = controls.update();
+      if (moved || flying) raf = requestAnimationFrame(frame);
+    };
+    const wake = () => {
+      if (!raf && !disposed) raf = requestAnimationFrame(frame);
+    };
+    controls.addEventListener("start", () => {
+      cancelFlight(); // grabbing the globe always wins over a flight in progress
+      flying = false;
+      goal.distance = camera.position.length();
+      wake();
+    });
+    controls.addEventListener("end", wake);
+
+    /**
+     * Fly the camera to `to` (a position on the view sphere): turn along the great circle while the
+     * distance eases, lifting a little on long hops so the planet stays in view, like Google Earth.
+     */
+    const goal = { distance: camera.position.length() };
+    const flyTo = (to: THREE.Vector3, ms = flyMs()) => {
+      cancelFlight();
+      const from = camera.position.clone();
+      const d0 = from.length();
+      const d1 = THREE.MathUtils.clamp(to.length(), VIEW.min, VIEW.max);
+      goal.distance = d1;
+      const a = from.clone().normalize();
+      const b = to.clone().normalize();
+      const angle = a.angleTo(b);
+      const rotation = new THREE.Quaternion().setFromUnitVectors(a, b);
+      const none = new THREE.Quaternion();
+      const lift = Math.min(angle, Math.PI) * 0.45 * Math.max(d0, d1);
+      // Longer hops take longer (up to the full flight time); short nudges use the step time.
+      const time = angle < 0.02 && Math.abs(d1 - d0) < 0.02 ? 0 : Math.max(stepMs(), ms * Math.min(1, 0.35 + Math.max(angle / 1.6, Math.abs(d1 - d0) / (VIEW.max - VIEW.min))));
+      flying = true;
+      controls.target.set(0, 0, 0);
+      cancelFlight = tween(
+        time,
+        (t) => {
+          const q = none.clone().slerp(rotation, t);
+          const d = THREE.MathUtils.clamp(THREE.MathUtils.lerp(d0, d1, t) + Math.sin(Math.PI * t) * lift, VIEW.min, VIEW.max);
+          camera.position.copy(a).applyQuaternion(q).multiplyScalar(d);
+          camera.lookAt(0, 0, 0);
+          render();
+        },
+        () => {
+          flying = false;
+          camera.position.copy(to).setLength(d1);
+          controls.update();
+          render();
+        },
+      );
+    };
+
     // Home: the site a little left of center, so its panel has room to open to the right.
     const home = vec(latLonToVec(site.latDeg - 6, site.lonDeg + 20, VIEW.home));
-    const reset = () => {
-      camera.position.copy(home);
-      controls.target.set(0, 0, 0);
-      controls.update();
-      render();
-    };
+    const reset = () => flyTo(home);
     view.current = {
       reset,
+      // Repeated taps accumulate from the target distance, not the mid-flight one.
       zoom: (factor) => {
-        const distance = THREE.MathUtils.clamp(camera.position.length() * factor, VIEW.min, VIEW.max);
-        camera.position.setLength(distance);
-        controls.update();
-        render();
+        const distance = THREE.MathUtils.clamp(goal.distance * factor, VIEW.min, VIEW.max);
+        flyTo(camera.position.clone().setLength(distance), stepMs());
       },
     };
+
+    // Double-click: fly to that spot on the surface and move in on it.
+    const caster = new THREE.Raycaster();
+    const onDouble = (event: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const ndc = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+      caster.setFromCamera(ndc, camera);
+      const hit = caster.intersectObject(marsMesh, false)[0];
+      if (!hit) return;
+      const distance = THREE.MathUtils.clamp(Math.min(goal.distance, camera.position.length()) * 0.6, VIEW.min, VIEW.max);
+      flyTo(hit.point.clone().normalize().multiplyScalar(distance));
+    };
+    canvas.addEventListener("dblclick", onDouble);
 
     const resize = () => {
       const { clientWidth: width, clientHeight: height } = host;
@@ -245,14 +323,21 @@ export default function MarsGlobe({
     };
     const observer = new ResizeObserver(resize);
     observer.observe(host);
-    reset();
+    // Intro: start high above the home direction and settle in.
+    camera.position.copy(home).setLength(VIEW.max);
+    camera.lookAt(0, 0, 0);
+    goal.distance = VIEW.max;
     resize();
+    reset();
 
     return () => {
       disposed = true;
       view.current = null;
       observer.disconnect();
       canvas.removeEventListener("webglcontextlost", onContextLost);
+      cancelFlight();
+      cancelAnimationFrame(raf);
+      canvas.removeEventListener("dblclick", onDouble);
       controls.dispose();
       owned.forEach((item) => item.dispose());
       renderer.dispose();
@@ -271,7 +356,7 @@ export default function MarsGlobe({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="Mars with the relay orbits. Drag to rotate, pinch or scroll to zoom."
+        aria-label="Mars with the relay orbits. Drag to rotate, pinch or scroll to zoom, double-click to fly to a spot."
         className="absolute inset-0 block size-full cursor-grab touch-none active:cursor-grabbing"
       />
 

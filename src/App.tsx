@@ -9,7 +9,6 @@ import { StoreProvider } from "@/lib/store";
 import { MissionProvider } from "@/sim/mission";
 import { MissionTopBar } from "@/sim/top-bar";
 import { CommsLinkScreen } from "@/screens/comms-link";
-import { CommsPassesScreen } from "@/screens/comms-passes";
 import { DebriefScreen } from "@/screens/debrief";
 import { EvaMapScreen } from "@/screens/eva-map";
 import { HubScreen } from "@/screens/hub";
@@ -32,7 +31,6 @@ const CLOCK: Record<Route, string> = {
   eva: EVA.clock,
   fov: EVA.clock,
   comms: EVA.clock,
-  "comms/passes": EVA.clock,
   debrief: DEBRIEF.clock,
 };
 
@@ -42,7 +40,6 @@ const SCREENS: Record<Route, () => React.JSX.Element> = {
   eva: EvaMapScreen,
   fov: FovScreen,
   comms: CommsLinkScreen,
-  "comms/passes": CommsPassesScreen,
   debrief: DebriefScreen,
 };
 

@@ -4,6 +4,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import type { ProfileSample } from "@/engine";
+import { stepMs, tween } from "@/lib/camera";
 import { TERRAIN_GLB } from "./load";
 
 /** Astronaut eye height above ground, m (MARSWALK/app main.js EYE). */
@@ -116,21 +117,37 @@ export function TerrainView({
     if (ready) api.current!.setRoute(route);
   }, [ready, route]);
 
+  // The eye glides to each new position and the gaze turns with it, instead of cutting there.
+  const pose = useRef<{ ex: number; ez: number; lx: number; lz: number } | null>(null);
   useEffect(() => {
     const a = api.current;
     if (!ready || !a) return;
-    a.camera.position.set(eye.x, a.ground(eye.x, eye.z) + EYE, eye.z);
-    a.camera.lookAt(look.x, a.ground(look.x, look.z) + EYE, look.z);
-    a.render();
-    if (onProject) {
-      const { w, h } = a.size();
-      onProject(
-        marks.map((m) => {
-          const v = new THREE.Vector3(m.x, a.ground(m.x, m.z) + 1, m.z).project(a.camera);
-          return { x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, visible: v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1 };
-        }),
-      );
-    }
+    const to = { ex: eye.x, ez: eye.z, lx: look.x, lz: look.z };
+    const from = pose.current ?? to;
+    const draw = (p: typeof to) => {
+      pose.current = p;
+      a.camera.position.set(p.ex, a.ground(p.ex, p.ez) + EYE, p.ez);
+      a.camera.lookAt(p.lx, a.ground(p.lx, p.lz) + EYE, p.lz);
+      a.render();
+      if (onProject) {
+        const { w, h } = a.size();
+        onProject(
+          marks.map((m) => {
+            const v = new THREE.Vector3(m.x, a.ground(m.x, m.z) + 1, m.z).project(a.camera);
+            return { x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, visible: v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1 };
+          }),
+        );
+      }
+    };
+    const mix = (t: number) => ({
+      ex: from.ex + (to.ex - from.ex) * t,
+      ez: from.ez + (to.ez - from.ez) * t,
+      lx: from.lx + (to.lx - from.lx) * t,
+      lz: from.lz + (to.lz - from.lz) * t,
+    });
+    // First placement and tiny moves are not animated.
+    const far = Math.hypot(to.ex - from.ex, to.ez - from.ez) > 0.5;
+    return tween(far ? stepMs() : 0, (t) => draw(mix(t)));
   }, [ready, eye.x, eye.z, look.x, look.z, marks, onProject]);
 
   return (
