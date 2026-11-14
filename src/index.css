@@ -1,0 +1,237 @@
+@import "tailwindcss";
+@import "./styles/motion.css";
+
+/* ------------------------------------------------------------------
+   Marswalk design tokens. Source of truth: claude/DESIGN.md (project)
+   and the Figma variables of "Marswalk - Palatine". CSS variable names
+   match the YAML keys. Do not write raw hex values in components.
+------------------------------------------------------------------- */
+:root {
+  /* Surfaces */
+  --surface-base: #060606;
+  --surface-raised: #1e1e1e;
+  --surface-panel: #222222;
+  --surface-inset: #272727;
+  --surface-top-bar: #000000;
+  --surface-scrim: #060606cc;
+  /* Borders and text */
+  --border-default: #848484;
+  --border-subtle: #ffffff14;
+  --border-strong: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #bdbdbd;
+  --text-muted: #848484;
+  /* Brand */
+  --brand: #d9663a;
+  --brand-soft: #f2a47e;
+  --brand-deep: #8c3b20;
+  /* Status (safety meaning only) */
+  --status-safe: #1fe53a;
+  --status-caution: #ffd60a;
+  --status-danger: #ff2a1f;
+  --status-caution-tint: #ffd60a2e;
+  /* Route */
+  --route-path: #ffffff;
+  --route-waypoint: #d9663a;
+  --route-hazard: #ff2a1f;
+  /* Data layer ramps (low -> high) */
+  --data-slope-low: #1fe53a;
+  --data-slope-mid: #ffd60a;
+  --data-slope-high: #ff2a1f;
+  --data-mineral-low: #1a0b2e;
+  --data-mineral-high: #ff00e5;
+  --data-thermal-low: #00f0f0;
+  --data-thermal-mid: #ffffff;
+  --data-thermal-high: #ff2a1f;
+  --data-radiation-low: #2400ff;
+  --data-radiation-high: #ffd60a;
+  --data-link-low: #0e2240;
+  --data-link-high: #8fd3ff;
+  --data-budget-gain: #2eb872;
+  --data-budget-loss: #d9483f;
+
+  /* Strokes */
+  --stroke-hairline: 1px;
+  --stroke-default: 2px;
+  --stroke-emphasis: 3px;
+  --stroke-edge: 4px;
+
+  /* Size */
+  --size-top-bar: 86px;
+  --size-rail: 328px;
+  --size-touch-glove: 56px;
+  --size-control: 36px;
+  --size-stage-w: 1366px;
+  --size-stage-h: 1024px;
+  --size-bracket-arm: 10px;
+  --size-bracket-offset: 8px;
+}
+
+@theme inline {
+  /* Colors: semantic aliases (utility name on the right) */
+  --color-canvas: var(--surface-base); /* bg-canvas */
+  --color-raised: var(--surface-raised);
+  --color-panel: var(--surface-panel);
+  --color-inset: var(--surface-inset);
+  --color-top-bar: var(--surface-top-bar);
+  --color-scrim: var(--surface-scrim);
+  --color-line: var(--border-default); /* border-line */
+  --color-line-subtle: var(--border-subtle);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text-primary); /* text-fg */
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-deep: var(--brand-deep);
+  --color-safe: var(--status-safe);
+  --color-caution: var(--status-caution);
+  --color-danger: var(--status-danger);
+  --color-caution-tint: var(--status-caution-tint);
+  --color-route-path: var(--route-path);
+  --color-route-waypoint: var(--route-waypoint);
+  --color-route-hazard: var(--route-hazard);
+  --color-link-low: var(--data-link-low);
+  --color-link-high: var(--data-link-high);
+  --color-budget-gain: var(--data-budget-gain);
+  --color-budget-loss: var(--data-budget-loss);
+
+  /* shadcn/ui variable names, mapped onto the Marswalk tokens */
+  --color-background: var(--surface-base);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--surface-panel);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface-panel);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--brand);
+  --color-primary-foreground: var(--surface-base);
+  --color-secondary: var(--surface-inset);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--surface-inset);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--brand);
+  --color-accent-foreground: var(--surface-base);
+  --color-destructive: var(--status-danger);
+  --color-border: var(--border-subtle);
+  --color-input: var(--border-default);
+  --color-ring: var(--brand);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-pill: 999px;
+  --radius-candle: 2px;
+
+  /* Spacing scale: 4, 8, 12, 16, 24, 32, 40 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 40px;
+  --spacing-glove: var(--size-touch-glove);
+  --spacing-control: var(--size-control);
+  --spacing-top-bar: var(--size-top-bar);
+  --spacing-rail: var(--size-rail);
+
+  /* Fonts: two families only */
+  --font-sans: "Geologica", system-ui, sans-serif;
+  --font-data: "Urbanist", "Geologica", system-ui, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: var(--stroke-default) solid var(--brand);
+    outline-offset: var(--stroke-default);
+  }
+}
+
+/* Text styles. Names mirror the Figma text styles (Group/Name). */
+@layer components {
+  .t-wordmark {
+    font: 600 36px / normal var(--font-sans);
+  }
+  .t-display-readout {
+    font: 600 64px / normal var(--font-sans);
+  }
+  .t-display-metric {
+    font: 500 40px / normal var(--font-sans);
+  }
+  .t-heading-l {
+    font: 600 28px / normal var(--font-sans);
+  }
+  .t-heading-m {
+    font: 500 20px / normal var(--font-sans);
+  }
+  .t-heading-s,
+  .t-label-m {
+    font: 500 17px / normal var(--font-sans);
+  }
+  .t-body-l {
+    font: 400 20px / normal var(--font-sans);
+  }
+  .t-body-m,
+  .t-label-unit {
+    font: 400 16px / normal var(--font-sans);
+  }
+  .t-body-s {
+    font: 400 14px / normal var(--font-sans);
+  }
+  .t-caption {
+    font: 400 11px / normal var(--font-sans);
+  }
+  .t-data-coordinate {
+    font: 500 16px / normal var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+  .t-data-telemetry {
+    font: 500 14px / normal var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Data ramps, always drawn low -> high, left -> right */
+  .ramp-slope {
+    background: linear-gradient(
+      to right,
+      var(--data-slope-low),
+      var(--data-slope-mid) 50%,
+      var(--data-slope-high)
+    );
+  }
+  .ramp-minerals {
+    background: linear-gradient(to right, var(--data-mineral-low), var(--data-mineral-high));
+  }
+  .ramp-thermal {
+    background: linear-gradient(
+      to right,
+      var(--data-thermal-low),
+      var(--data-thermal-mid) 50%,
+      var(--data-thermal-high)
+    );
+  }
+  .ramp-dose {
+    background: linear-gradient(to right, var(--data-radiation-low), var(--data-radiation-high));
+  }
+  .ramp-link {
+    background: linear-gradient(to right, var(--data-link-low), var(--data-link-high));
+  }
+}

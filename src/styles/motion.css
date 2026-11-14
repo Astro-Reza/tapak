@@ -1,0 +1,537 @@
+/* ------------------------------------------------------------------
+   Marswalk motion. Source of truth: claude/DESIGN-MOTION.md (project).
+   Stepped "tactical HUD" motion: 50 ms ticks, flash-in builds, wipes,
+   faster reverse exits. The map camera is the only smooth motion.
+   Never hard-code a duration or easing in a component: add it here.
+------------------------------------------------------------------- */
+:root {
+  --motion-tick: 50ms;
+  --motion-duration-flash: 50ms;
+  --motion-duration-micro: 100ms;
+  --motion-duration-short: 150ms;
+  --motion-duration-build: 350ms;
+  --motion-duration-exit: 250ms;
+  --motion-duration-wipe: 200ms;
+  --motion-duration-hold-confirm: 1200ms;
+  --motion-duration-map-camera: 400ms;
+  --motion-stagger-item: 50ms;
+  --motion-stagger-group: 100ms;
+  --motion-easing-step-structural: steps(3, jump-end);
+  --motion-easing-step-fine: steps(6, jump-end);
+  --motion-easing-map: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Derived from the spec (multiples of the tick) */
+  --motion-duration-scan-in: calc(var(--motion-tick) * 6); /* layer scan reveal */
+  --motion-duration-scan-out: calc(var(--motion-tick) * 3);
+  --motion-duration-screen: calc(var(--motion-tick) * 6); /* screen change, each way */
+  --motion-duration-hazard: calc(var(--motion-tick) * 16); /* 2 flashes, 4 ticks off + 4 on */
+  --motion-duration-route-cap: 600ms; /* route draw upper bound */
+  --motion-duration-reduced: 100ms; /* reduced-motion fade */
+  --motion-duration-toast-hold: 2400ms; /* how long a status line stays readable */
+}
+
+/* Shared delay: --i = reading-order index, --d = extra group delay */
+.mw-flash-in,
+.mw-text-in,
+.mw-reveal {
+  animation-delay: calc(var(--d, 0ms) + var(--i, 0) * var(--motion-stagger-item));
+}
+
+@keyframes mw-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes mw-hide {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* 1. Flash-in: brand, then text-primary, then resting look with brand
+      text, then final. One tick each, hard cuts. */
+@layer components {
+  .mw-flash-in {
+    position: relative;
+  }
+}
+.mw-reveal {
+  animation: mw-reveal 1ms step-end both;
+  animation-delay: calc(var(--d, 0ms) + var(--i, 0) * var(--motion-stagger-item));
+}
+.mw-flash-in {
+  animation: mw-reveal 1ms step-end both;
+  animation-delay: calc(var(--d, 0ms) + var(--i, 0) * var(--motion-stagger-item));
+}
+.mw-flash-in::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  animation: mw-flash calc(var(--motion-duration-short) + var(--motion-duration-flash)) step-end
+    forwards;
+  animation-delay: calc(var(--d, 0ms) + var(--i, 0) * var(--motion-stagger-item));
+}
+@keyframes mw-flash {
+  0% {
+    opacity: 1;
+    background: var(--brand);
+    mix-blend-mode: normal;
+  }
+  25% {
+    opacity: 1;
+    background: var(--text-primary);
+    mix-blend-mode: normal;
+  }
+  50% {
+    /* resting look, text reads in brand for one tick */
+    opacity: 1;
+    background: var(--brand);
+    mix-blend-mode: multiply;
+  }
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Text arrives in brand and settles one tick later */
+.mw-text-in {
+  animation: mw-text-in var(--motion-duration-flash) step-end both;
+  animation-delay: calc(var(--d, 0ms) + var(--i, 0) * var(--motion-stagger-item));
+}
+@keyframes mw-text-in {
+  0% {
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+    color: var(--brand);
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 3. Header wipe: solid text-primary block left to right, a brand line
+      runs inside it, then the title flashes in. */
+@layer components {
+  .mw-header-wipe {
+    position: relative;
+  }
+}
+.mw-header-wipe::before,
+.mw-header-wipe::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  opacity: 0;
+  animation: mw-wipe var(--motion-duration-wipe) var(--motion-easing-step-fine) both;
+  animation-delay: var(--d, 0ms);
+}
+.mw-header-wipe::before {
+  top: 0;
+  bottom: 0;
+  background: var(--text-primary);
+}
+.mw-header-wipe::after {
+  top: calc(50% - var(--stroke-emphasis) / 2);
+  height: var(--stroke-emphasis);
+  background: var(--brand);
+  animation-delay: calc(var(--d, 0ms) + var(--motion-tick));
+}
+.mw-header-wipe > * {
+  animation: mw-text-in var(--motion-duration-flash) step-end both;
+  animation-delay: calc(var(--d, 0ms) + var(--motion-duration-wipe) + var(--motion-tick));
+}
+@keyframes mw-wipe {
+  0% {
+    opacity: 1;
+    clip-path: inset(0 100% 0 0);
+  }
+  99% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 9. Stepped readout ticker: the value is already correct; a brand bar
+      sweeps once under it. */
+.mw-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--stroke-default) * -1);
+  height: var(--stroke-default);
+  background: var(--brand);
+  pointer-events: none;
+  animation: mw-wipe calc(var(--motion-tick) * 6) var(--motion-easing-step-fine) both;
+}
+
+/* 13. Verdict stamp: the plate wipes in from the left; the word sits on
+       top and is readable on frame one. */
+.mw-wipe-in {
+  animation: mw-wipe-in var(--motion-duration-wipe) var(--motion-easing-step-fine) both;
+}
+@keyframes mw-wipe-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 4 / 16. Collapse exit, right to left, faster than the entry */
+.mw-collapse {
+  animation: mw-collapse var(--motion-duration-exit) steps(5, jump-end) both;
+}
+@keyframes mw-collapse {
+  0% {
+    clip-path: inset(0 0 0 0);
+    background: var(--brand);
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+    background: var(--brand);
+  }
+}
+
+/* 17. Selection brackets: four L corners snap in from outside in two steps */
+@layer components {
+  /* layered so position utilities can place a bracket box */
+  .mw-brackets {
+    position: absolute;
+    inset: 0;
+  }
+}
+.mw-brackets {
+  pointer-events: none;
+}
+.mw-brackets > i {
+  position: absolute;
+  width: var(--size-bracket-arm);
+  height: var(--size-bracket-arm);
+  border: 0 solid var(--brand);
+  animation: mw-bracket var(--motion-duration-micro) steps(2, jump-end) both;
+  animation-delay: var(--d, 0ms);
+}
+.mw-brackets > i:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-top-width: var(--stroke-default);
+  border-left-width: var(--stroke-default);
+  --bx: calc(var(--size-bracket-offset) * -1);
+  --by: calc(var(--size-bracket-offset) * -1);
+}
+.mw-brackets > i:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-top-width: var(--stroke-default);
+  border-right-width: var(--stroke-default);
+  --bx: var(--size-bracket-offset);
+  --by: calc(var(--size-bracket-offset) * -1);
+}
+.mw-brackets > i:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: var(--stroke-default);
+  border-left-width: var(--stroke-default);
+  --bx: calc(var(--size-bracket-offset) * -1);
+  --by: var(--size-bracket-offset);
+}
+.mw-brackets > i:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: var(--stroke-default);
+  border-right-width: var(--stroke-default);
+  --bx: var(--size-bracket-offset);
+  --by: var(--size-bracket-offset);
+}
+@keyframes mw-bracket {
+  from {
+    opacity: 0;
+    transform: translate(var(--bx), var(--by));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 12. Hazard interrupt: complete on frame one; the border then flashes
+       off and on twice (4 ticks each, under 3 flashes a second), then holds. */
+.mw-hazard {
+  animation: mw-hazard var(--motion-duration-hazard) step-end both;
+}
+@keyframes mw-hazard {
+  0%,
+  50%,
+  100% {
+    border-color: var(--status-danger);
+  }
+  25%,
+  75% {
+    border-color: transparent;
+  }
+}
+.mw-hazard-stroke {
+  animation: mw-hazard-stroke var(--motion-duration-hazard) step-end both;
+}
+@keyframes mw-hazard-stroke {
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0;
+  }
+}
+
+/* 10. Layer scan reveal: horizontal bands top to bottom in 6 steps; off
+       in 3 steps bottom to top. */
+.mw-scan-in {
+  animation: mw-scan-in var(--motion-duration-scan-in) steps(6, jump-end) both;
+}
+.mw-scan-out {
+  animation: mw-scan-out var(--motion-duration-scan-out) steps(3, jump-end) both;
+}
+@keyframes mw-scan-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes mw-scan-out {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+/* 11. Route draw: one segment per tick, capped. Needs pathLength="1"
+       and --route-steps on the path. */
+.mw-route-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mw-route-draw
+    min(calc(var(--route-steps, 8) * var(--motion-tick)), var(--motion-duration-route-cap))
+    steps(var(--route-steps, 8), jump-end) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes mw-route-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 15. Screen change: six surface-base columns snap in left to right,
+       then leave left to right. The top bar stays put. */
+.mw-cols {
+  position: absolute;
+  inset: var(--size-top-bar) 0 0 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  pointer-events: none;
+}
+.mw-cols > i {
+  background: var(--surface-base);
+  animation: mw-reveal 1ms step-end both;
+  animation-delay: calc(var(--i) * var(--motion-tick));
+}
+.mw-cols[data-phase="reveal"] > i {
+  animation-name: mw-hide;
+}
+
+/* 2. Lock-on open: reticle outline snaps from the target to the panel
+      frame, turns brand for one tick, then the panel builds. */
+.mw-lockon {
+  transform-origin: 0 0;
+  animation: mw-lockon calc(var(--motion-tick) * 3) step-end both;
+}
+@keyframes mw-lockon {
+  0% {
+    transform: scale(0.2);
+    border-color: var(--border-default);
+    background: transparent;
+  }
+  33% {
+    transform: scale(0.6);
+    border-color: var(--border-default);
+    background: transparent;
+  }
+  66% {
+    transform: none;
+    border-color: var(--brand);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* 5. Hover and press. Pointer: underline first, fill one tick later.
+      Touch: press inversion and focus underline only. */
+@layer components {
+  .mw-btn {
+    position: relative;
+  }
+}
+.mw-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--stroke-emphasis);
+  background: var(--brand);
+  opacity: 0;
+  pointer-events: none;
+}
+.mw-btn[data-variant="primary"]::before {
+  background: var(--text-primary);
+}
+.mw-btn:focus-visible::before {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .mw-btn:hover:not(:disabled)::before {
+    opacity: 1;
+  }
+  .mw-btn:hover:not(:disabled) {
+    background-color: var(--brand);
+    color: var(--surface-base);
+    transition:
+      background-color 0s var(--motion-tick),
+      color 0s var(--motion-tick);
+  }
+}
+.mw-btn:active:not(:disabled),
+.mw-btn[data-flash="true"] {
+  background-color: var(--text-primary);
+  color: var(--surface-base);
+  transition: none;
+}
+
+/* Nav tab: 3 px brand underline snaps in */
+.mw-tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--stroke-emphasis);
+  background: var(--brand);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-duration-micro) var(--motion-easing-step-structural);
+}
+.mw-tab[aria-current="page"]::after,
+.mw-tab:focus-visible::after {
+  transform: scaleX(1);
+}
+@media (hover: hover) {
+  .mw-tab:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* 7. Hold to confirm: a 4 px left edge bar fills top to bottom, linear.
+      Releasing early snaps it back in two steps. */
+.mw-hold-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--stroke-edge);
+  background: var(--hold-color, var(--text-primary));
+  clip-path: inset(0 0 100% 0);
+  pointer-events: none;
+}
+.mw-hold-bar[data-state="holding"] {
+  animation: mw-hold-fill var(--motion-duration-hold-confirm) linear forwards;
+}
+.mw-hold-bar[data-state="release"] {
+  animation: mw-hold-release var(--motion-duration-micro) steps(2, jump-end) forwards;
+}
+@keyframes mw-hold-fill {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes mw-hold-release {
+  from {
+    clip-path: inset(0 0 var(--hold-left, 50%) 0);
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+/* The map is the exception: camera moves stay smooth */
+.mw-map-camera {
+  transition: transform var(--motion-duration-map-camera) var(--motion-easing-map);
+  will-change: transform;
+}
+
+/* Reduced motion (OS setting, or ?motion=reduced): every sequence
+   collapses to a single 100 ms opacity fade. No flashes, stagger or scramble. */
+:root[data-motion="reduced"] .mw-flash-in,
+:root[data-motion="reduced"] .mw-text-in,
+:root[data-motion="reduced"] .mw-reveal,
+:root[data-motion="reduced"] .mw-header-wipe > *,
+:root[data-motion="reduced"] .mw-wipe-in,
+:root[data-motion="reduced"] .mw-scan-in,
+:root[data-motion="reduced"] .mw-lockon,
+:root[data-motion="reduced"] .mw-brackets > i {
+  animation: mw-reveal var(--motion-duration-reduced) linear both;
+  animation-delay: 0ms;
+}
+:root[data-motion="reduced"] .mw-flash-in::after,
+:root[data-motion="reduced"] .mw-header-wipe::before,
+:root[data-motion="reduced"] .mw-header-wipe::after,
+:root[data-motion="reduced"] .mw-sweep,
+:root[data-motion="reduced"] .mw-cols {
+  animation: none;
+  display: none;
+}
+:root[data-motion="reduced"] .mw-hazard,
+:root[data-motion="reduced"] .mw-hazard-stroke {
+  animation: none;
+}
+:root[data-motion="reduced"] .mw-route-draw {
+  animation: none;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+:root[data-motion="reduced"] .mw-scan-out,
+:root[data-motion="reduced"] .mw-collapse {
+  animation: mw-hide var(--motion-duration-reduced) linear both;
+}
+:root[data-motion="reduced"] .mw-tab::after,
+:root[data-motion="reduced"] .mw-map-camera {
+  transition: none;
+}
