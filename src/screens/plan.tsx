@@ -29,6 +29,7 @@ import { useStore } from "@/lib/store";
 import { ORTHO } from "@/sim/load";
 import { MissionGate, PlanControls } from "@/sim/controls";
 import { useMission } from "@/sim/mission";
+import { arPackageFileName, buildArPackage } from "@/sim/ar-package";
 import { layerCells, planView } from "@/sim/view";
 
 type PlanLayer = Exclude<LayerId, "link">;
@@ -55,7 +56,7 @@ export function PlanScreen() {
 function PlanScreenLoaded() {
   const toast = useToast();
   const { routeCommitted, commitRoute } = useStore();
-  const { data, result, ev, busy, link } = useMission();
+  const { data, result, ev, busy, link, settings } = useMission();
   const view = useMemo(() => planView(data!, result!, ev!, ROUTE_BOX), [data, result, ev]);
   const cells = useMemo(
     () => (view.ok ? layerCells(data!, result!, view.proj, view.route, DESIGN) : null),
@@ -144,6 +145,22 @@ function PlanScreenLoaded() {
           onShortPress={() => toast("Hold to commit route")}
           className="w-full"
         />
+        <Button
+          variant="secondary"
+          className="w-full"
+          disabled={!view.ok || busy}
+          onClick={() => {
+            // the phone AR app follows this file; it never re-plans (docs/AR_MISSION_PACKAGE.md)
+            const pkg = buildArPackage({ data: data!, result: result!, mode: settings.mode, settings });
+            const url = URL.createObjectURL(new Blob([JSON.stringify(pkg)], { type: "application/json" }));
+            const a = Object.assign(document.createElement("a"), { href: url, download: arPackageFileName(settings.mode, settings.startLmst) });
+            a.click();
+            URL.revokeObjectURL(url);
+            toast(`AR mission package saved · ${pkg.waypoints.length} waypoints · ${(pkg.route.distanceM / 1000).toFixed(2)} km`);
+          }}
+        >
+          Export AR package
+        </Button>
         <Button variant="secondary" className="w-full" onClick={() => toast("Stop editing is not in this prototype")}>
           Edit stops
         </Button>
