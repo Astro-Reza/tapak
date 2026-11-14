@@ -1,0 +1,328 @@
+{
+  "version": 1,
+  "reviewed": "2026-11-14",
+  "note": "Every value here was read in the original document at the page given. Pages: printed page (PDF page). 'permittedUse' is binding for the engine: values marked reference-only are never used in a calculation.",
+  "sources": [
+    {
+      "id": "STD3001-V2-F",
+      "title": "NASA Spaceflight Human-System Standard, Volume 2: Human Factors, Habitability, and Environmental Health, Revision F",
+      "authors": "NASA Office of the Chief Health and Medical Officer",
+      "year": 2026,
+      "docId": "NASA-STD-3001 Vol. 2 Rev. F (approved 2026-07-14)",
+      "url": "https://standards.nasa.gov/node/237",
+      "retrieved": true
+    },
+    {
+      "id": "OCHMO-TB-050",
+      "title": "NASA-STD-3001 Technical Brief OCHMO-TB-050: Spacesuits",
+      "authors": "NASA Office of the Chief Health and Medical Officer",
+      "year": 2025,
+      "docId": "OCHMO-TB-050 (dated 2025-09-08; references NASA-STD-3001 Vol. 2 Rev. E)",
+      "url": "https://www.nasa.gov/wp-content/uploads/2025/09/ochmo-tb-050-spacesuits.pdf",
+      "retrieved": true
+    },
+    {
+      "id": "CHAPPELL-2010",
+      "title": "Life Sciences Implications of Lunar Surface Operations",
+      "authors": "Chappell SP, Norcross JR, Abercromby AFJ, Gernhardt ML",
+      "year": 2010,
+      "docId": "NASA/TM-2010-216138",
+      "url": "https://ntrs.nasa.gov/api/citations/20110001417/downloads/20110001417.pdf",
+      "retrieved": true
+    },
+    {
+      "id": "NORCROSS-2010-216125",
+      "title": "Metabolic Costs and Biomechanics of Inclined Ambulation and Exploration Tasks in a Planetary Suit",
+      "authors": "Norcross J, Clowers K, Clark T, Harvill L, Morency R, Stroud L, et al.",
+      "year": 2010,
+      "docId": "NASA/TP-2010-216125 (NTRS 20110003409)",
+      "url": "https://ntrs.nasa.gov/citations/20110003409",
+      "retrieved": true
+    },
+    {
+      "id": "HOFFMANN-2021",
+      "title": "Chapter 5: Extravehicular Activity Metabolic Rate Model: Metabolic Rate Estimated from Heart Rate",
+      "authors": "Hoffmann (NTRS record lists no author metadata; attributed per the task brief)",
+      "year": 2021,
+      "docId": "NTRS 20210024317",
+      "url": "https://ntrs.nasa.gov/citations/20210024317",
+      "retrieved": true
+    },
+    {
+      "id": "KUZNETZ-1977",
+      "title": "Automatic Control of Human Thermal Comfort With a Liquid-Cooled Garment",
+      "authors": "Kuznetz LH",
+      "year": 1977,
+      "docId": "NASA TM-58205 (NTRS 19780003761)",
+      "url": "https://ntrs.nasa.gov/citations/19780003761",
+      "retrieved": true
+    },
+    {
+      "id": "NORCROSS-2010-216115",
+      "title": "Metabolic Costs and Biomechanics of Ambulation in a Planetary Suit",
+      "authors": "Norcross J, et al.",
+      "year": 2010,
+      "docId": "NASA/TP-2010-216115",
+      "url": null,
+      "retrieved": false,
+      "why": "Not retrieved; the IST-1 walking value is used only as quoted in CHAPPELL-2010 Table 4."
+    },
+    {
+      "id": "SP-368",
+      "title": "Biomedical Results of Apollo (incl. Waligora & Horrigan, Metabolism and heat dissipation during Apollo EVA periods)",
+      "authors": "Johnston RS, Dietlein LF, Berry CA (eds)",
+      "year": 1975,
+      "docId": "NASA SP-368",
+      "url": null,
+      "retrieved": false,
+      "why": "Chapter PDF not retrieved (only a scanned archive copy was found; companion TN D-7883 URL returned 404). Apollo rates are used only as summarised in OCHMO-TB-050 p.6."
+    },
+    {
+      "id": "CARR-NEWMAN-2007a",
+      "title": "Space suit bioenergetics: framework and analysis of unsuited and suited activity",
+      "authors": "Carr CE, Newman DJ",
+      "year": 2007,
+      "docId": "doi:10.3357/asem.1952.2007 (Aviat Space Environ Med 78(11):1013)",
+      "url": "https://doi.org/10.3357/asem.1952.2007",
+      "retrieved": false,
+      "why": "Publisher returned HTTP 403; not read, no values used."
+    },
+    {
+      "id": "CARR-NEWMAN-2007b",
+      "title": "Space suit bioenergetics: cost of transport during walking and running",
+      "authors": "Carr CE, Newman DJ",
+      "year": 2007,
+      "docId": "doi:10.3357/asem.1953.2007 (Aviat Space Environ Med 78(12):1093)",
+      "url": "https://doi.org/10.3357/asem.1953.2007",
+      "retrieved": false,
+      "why": "Publisher returned HTTP 403; not read, no values used."
+    },
+    {
+      "id": "OSDR",
+      "title": "NASA Open Science Data Repository",
+      "authors": "NASA",
+      "year": null,
+      "docId": "https://osdr.nasa.gov/bio/repo",
+      "url": "https://osdr.nasa.gov/bio/repo",
+      "retrieved": false,
+      "why": "Not queried in this phase; no suited-EVA metabolic dataset identified yet."
+    }
+  ],
+  "values": [
+    {
+      "id": "vo2.rover_rest",
+      "source": "CHAPPELL-2010",
+      "location": "Table 4, p.13 (PDF p.21)",
+      "variable": "O2 uptake, sitting in pressurized rover",
+      "value": 3.9, "unit": "mL/kg/min", "normalization": "per kg body mass (Table 4 kcal/h column reconciles with subject mass 80.7 kg)",
+      "uncertainty": "not reported",
+      "conditions": { "gravity": "not applicable (resting, cited literature)", "suit": "none (shirtsleeve)", "participants": null },
+      "activity": "rover_rest",
+      "limitations": "Taken by Chappell from a published resting-rate study (their ref. 10, Jeng et al. 2003, Earth, unsuited), not measured in the IST series.",
+      "marsApplicability": "low: Earth resting value, not suit-specific",
+      "permittedUse": "activity-model reference (experimental)"
+    },
+    {
+      "id": "vo2.walk",
+      "source": "CHAPPELL-2010",
+      "location": "Table 4, p.13 (PDF p.21); method p.17",
+      "variable": "O2 uptake, suited walking during EVA",
+      "value": 15.4, "unit": "mL/kg/min", "normalization": "per kg body mass",
+      "uncertainty": "not reported in Table 4 (scatter shown in Fig. 10)",
+      "conditions": { "gravity": "lunar (0.17 g) on POGO partial-gravity simulator", "suit": "MKIII, 121 kg, 29.6 kPa", "speed": "2.3-3.5 km/h", "participants": "IST-1 cohort (NASA/TP-2010-216115; count not verified here)" },
+      "activity": "walk",
+      "limitations": "Average over speeds 2.3-3.5 km/h at lunar gravity; one suit (MKIII); suited VO2 inferred from CO2 production.",
+      "marsApplicability": "low-medium: Mars 0.38 g is outside the tested range; Mars walking is expected to cost more per kg, magnitude unverified",
+      "permittedUse": "sensitivity comparison only; never replaces the slope-dependent walking model"
+    },
+    {
+      "id": "vo2.stationary_light",
+      "source": "CHAPPELL-2010",
+      "location": "Table 4, p.13 (PDF p.21)",
+      "variable": "O2 uptake, stationary EVA task - light work (observations, tool-free sample pickup, setup)",
+      "value": 13.2, "unit": "mL/kg/min", "normalization": "per kg body mass",
+      "uncertainty": "not reported in Table 4 (scatter shown in Fig. 11)",
+      "conditions": { "gravity": "lunar (0.17 g) on POGO", "suit": "MKIII, 121 kg, 29.6 kPa", "task": "IST-2 busy board", "participants": 6 },
+      "activity": "stationary_light",
+      "limitations": "Six male astronaut subjects; MKIII only; VO2 inferred from suit CO2 and each subject's VCO2-VO2 regression (NORCROSS-2010-216125 p.10).",
+      "marsApplicability": "medium: stationary work depends less on gravity than walking, but 0.38 g is outside the tested 0.12-0.32 g range",
+      "permittedUse": "activity-model reference (experimental)"
+    },
+    {
+      "id": "vo2.stationary_heavy",
+      "source": "CHAPPELL-2010",
+      "location": "Table 4, p.13 (PDF p.21)",
+      "variable": "O2 uptake, stationary EVA task - heavy work (hammering, trenching)",
+      "value": 17.0, "unit": "mL/kg/min", "normalization": "per kg body mass",
+      "uncertainty": "not reported in Table 4 (scatter shown in Fig. 12)",
+      "conditions": { "gravity": "lunar (0.17 g) on POGO", "suit": "MKIII, 121 kg, 29.6 kPa", "task": "IST-2 shoveling", "participants": 6 },
+      "activity": "stationary_heavy",
+      "limitations": "As stationary_light.",
+      "marsApplicability": "medium (see stationary_light)",
+      "permittedUse": "activity-model reference (experimental)"
+    },
+    {
+      "id": "vo2.mobile_heavy",
+      "source": "CHAPPELL-2010",
+      "location": "Table 4, p.13 (PDF p.21)",
+      "variable": "O2 uptake, mobile EVA task - heavy work (sample transfer)",
+      "value": 18.1, "unit": "mL/kg/min", "normalization": "per kg body mass",
+      "uncertainty": "not reported in Table 4 (scatter shown in Fig. 13)",
+      "conditions": { "gravity": "lunar (0.17 g) on POGO", "suit": "MKIII, 121 kg, 29.6 kPa", "task": "IST-2 rock transfer", "participants": 6 },
+      "activity": "mobile_heavy",
+      "limitations": "As stationary_light.",
+      "marsApplicability": "low-medium: includes carrying, which scales with gravity",
+      "permittedUse": "activity-model reference (experimental)"
+    },
+    {
+      "id": "cohort.ist2",
+      "source": "NORCROSS-2010-216125",
+      "location": "Table 1, p.3 (PDF p.18)",
+      "variable": "IST-2 subject characteristics (n=6 male astronauts)",
+      "value": { "bodyMassKg": { "mean": 80.7, "sd": 8.5, "min": 68.2, "max": 86.4 }, "vo2pkMlKgMin": { "mean": 50.8, "sd": 6.7, "min": 42.6, "max": 60.7 }, "ageYr": { "mean": 44.8, "sd": 6.9 } },
+      "unit": "kg; mL/kg/min; years",
+      "uncertainty": "SD given",
+      "conditions": { "participants": 6 },
+      "limitations": "Small, all-male cohort; no female astronauts fit the MKIII at the time.",
+      "marsApplicability": "cohort description only",
+      "permittedUse": "sensitivity ranges (body mass); demo crew VO2peak labelled ASSUMED"
+    },
+    {
+      "id": "method.suited_vo2",
+      "source": "NORCROSS-2010-216125",
+      "location": "Section 2.6, p.10 (PDF p.25); Section 3.6, p.77-78 (PDF p.92-93)",
+      "variable": "Suited metabolic measurement method",
+      "value": "Suit ventilation x exhaust CO2, converted with each subject's VCO2-VO2 regression; mL O2 per kg body mass per min",
+      "unit": null,
+      "uncertainty": "authors call for direct O2 measurement in future",
+      "limitations": "Only the MKIII suit tested; varied-weight trials changed weight, not mass.",
+      "permittedUse": "documentation"
+    },
+    {
+      "id": "conv.kcal_per_L_O2",
+      "source": "CHAPPELL-2010",
+      "location": "Table 4, p.13 (derived from the mL/kg/min and kcal/h columns at 80.7 kg)",
+      "variable": "Energy equivalent of O2 implied by Table 4",
+      "value": 4.82, "unit": "kcal/L O2",
+      "uncertainty": "derived; rows give 4.8197-4.8242 (rounding of the kcal/h column)",
+      "limitations": "Implied by the table, not stated in the text.",
+      "permittedUse": "unit-conversion cross-check (engine uses 20,100 J/L = 4.80 kcal/L)"
+    },
+    {
+      "id": "suit.pressure_emu",
+      "source": "STD3001-V2-F",
+      "location": "Section 6.2.1.2 rationale, p.50",
+      "variable": "EMU operating pressure and O2 fraction",
+      "value": { "psia": 4.3, "fio2": 1.0, "ppO2mmHg": 222, "pio2mmHg": 175 },
+      "unit": "psia; fraction; mmHg",
+      "uncertainty": null,
+      "conditions": { "suit": "ISS EMU" },
+      "limitations": "EMU heritage; a Mars suit set-point is not defined. CHAPPELL-2010 p.17 instead assumed 80% O2 at 4.3 psi for its consumables estimate.",
+      "marsApplicability": "assumed set-point for the demo",
+      "permittedUse": "ASSUMED suit set-point; DERIVED ppO2 and PIO2"
+    },
+    {
+      "id": "atm.pio2_formula",
+      "source": "OCHMO-TB-050",
+      "location": "p.4",
+      "variable": "Inspired O2 partial pressure",
+      "value": "PIO2 = (PB - 47) x FIO2", "unit": "mmHg",
+      "permittedUse": "DERIVED PIO2"
+    },
+    {
+      "id": "atm.pio2_ranges",
+      "source": "STD3001-V2-F",
+      "location": "Table 6.2-1, p.51",
+      "variable": "PIO2 exposure ranges",
+      "value": { "normoxiaTargetMmHg": [145, 155], "indefiniteHyperoxiaUpperMmHg": 356, "shortTermHyperoxiaUpperMmHg": 791, "mildHypoxiaLowerMmHg": 127 },
+      "unit": "mmHg",
+      "limitations": "Short-term hyperoxia 6-9 h; mild hypoxia limit is a 1-h time-weighted average with absolute floor 122 mmHg.",
+      "permittedUse": "reference comparison of DERIVED PIO2 (no alarm logic)"
+    },
+    {
+      "id": "atm.ppco2_emu_regression",
+      "source": "STD3001-V2-F",
+      "location": "[V2 11039] rationale, p.234",
+      "variable": "Historical EMU reference regression of suit ppCO2 on metabolic rate",
+      "value": { "coefficientMmHgPerBtuH": 0.0047, "residualMmHg": 0.65 },
+      "unit": "ppCO2 mmHg = MR(BTU/h) x 0.0047 + 0.65",
+      "limitations": "A verification reference for EMU-heritage hardware, not a prediction for any Mars suit; output is ppCO2, not PICO2.",
+      "permittedUse": "MODELLED, EXPERIMENTAL ppCO2 estimate for an EMU-like suit"
+    },
+    {
+      "id": "atm.pico2_limits",
+      "source": "STD3001-V2-F",
+      "location": "Table 11.3-1, p.235",
+      "variable": "Spacesuit PICO2 allowable cumulative duration",
+      "value": [ { "gtMmHg": 15.0, "hoursPerDay": 0 }, { "gtMmHg": 12.5, "hoursPerDay": 0.5 }, { "gtMmHg": 10.0, "hoursPerDay": 1.0 }, { "gtMmHg": 7.0, "hoursPerDay": 2.5 }, { "gtMmHg": 4.0, "hoursPerDay": 8.0 } ],
+      "unit": "mmHg; h/day",
+      "limitations": "Based on Shuttle/ISS EVA experience; applies to PICO2, not the ppCO2 regression output.",
+      "permittedUse": "reference only (not compared against modelled ppCO2)"
+    },
+    {
+      "id": "thermal.heat_storage_limit",
+      "source": "STD3001-V2-F",
+      "location": "[V2 11011], p.226 (also OCHMO-TB-050 p.6)",
+      "variable": "Suited crewmember heat storage design range",
+      "value": { "upperKJperKg": 3.0, "lowerKJperKg": -1.9 },
+      "unit": "kJ/kg",
+      "limitations": "Requires dQ computed with the 41-Node Man or Wissler model; a design requirement, not a live medical alarm.",
+      "permittedUse": "reference only until a validated thermal model exists"
+    },
+    {
+      "id": "thermal.mr_envelope",
+      "source": "STD3001-V2-F",
+      "location": "[V2 11011] rationale, p.226",
+      "variable": "Nominal suited metabolic-rate range the heat-storage limit is designed for",
+      "value": [528, 2220], "unit": "kJ/h",
+      "permittedUse": "reference comparison of MODELLED metabolic rate"
+    },
+    {
+      "id": "mr.suited_ops_table",
+      "source": "OCHMO-TB-050",
+      "location": "p.6, table 'Crewmember Metabolic Rates for Suited Operations'",
+      "variable": "Suited metabolic rates (min / average / max)",
+      "value": { "microgravityEVA": [575, 950, 2320], "apolloLunarSurfaceEVA": [517, 1030, 2607], "advancedWalkbackTest": [1767, 2505, 3167] },
+      "unit": "kJ/h",
+      "limitations": "Max values are transients < 15 min; walkback test n=6, simulated 10-km lunar walk. Apollo values are secondary (original SP-368 chapter not retrieved).",
+      "permittedUse": "plausibility range for validation tests"
+    },
+    {
+      "id": "hr.mr_relation",
+      "source": "HOFFMANN-2021",
+      "location": "Section 5.1 Summary, p.1; 5.3 Methodology, p.4-6",
+      "variable": "Heart-rate to metabolic-rate linear model",
+      "value": { "evas": 132, "groupR2": 0.402, "individualR2Min": 0.82, "acceptableRmseBtuH": 200 },
+      "unit": "dimensionless; BTU/h",
+      "conditions": { "gravity": "microgravity (Shuttle/ISS EVA 2006-2015)", "suit": "EMU (and Orlan data in the TB table)" },
+      "limitations": "Group regression explains 40% of variance; MR itself came from O2 tank pressure decay, which includes suit leakage. Individual calibration needed.",
+      "marsApplicability": "low without per-crew calibration in Mars-relevant conditions",
+      "permittedUse": "HR shown only with a per-crew calibration; no group coefficients used"
+    },
+    {
+      "id": "thermal.lcg_control",
+      "source": "KUZNETZ-1977",
+      "location": "Summary and Introduction, p.1-3",
+      "variable": "Liquid-cooled garment control concept (inlet temperature vs metabolic rate at comfort)",
+      "value": "qualitative",
+      "unit": null,
+      "limitations": "Shuttle EMU development test; controller relationships are hardware-specific.",
+      "permittedUse": "architecture rationale only (heat removal is an explicit input, never assumed equal to production)"
+    },
+    {
+      "id": "hydration.eva",
+      "source": "STD3001-V2-F",
+      "location": "[V2 11028] rationale (citing [V2 11030]), p.226-227",
+      "variable": "Added EVA suited hydration",
+      "value": 240, "unit": "mL/h",
+      "permittedUse": "documentation only (water consumable not modelled)"
+    }
+  ],
+  "activities": {
+    "rover_rest": { "value": "vo2.rover_rest", "label": "Rover rest" },
+    "walk": { "value": "vo2.walk", "label": "Walking" },
+    "stationary_light": { "value": "vo2.stationary_light", "label": "Light stationary work" },
+    "stationary_heavy": { "value": "vo2.stationary_heavy", "label": "Heavy stationary work" },
+    "mobile_heavy": { "value": "vo2.mobile_heavy", "label": "Heavy mobile work" }
+  }
+}
