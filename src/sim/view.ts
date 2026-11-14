@@ -177,6 +177,14 @@ export function arrivalIndices(ev: Evaluation): number[] {
   return [0, ...idx, prof.length - 1];
 }
 
+/** The next arrival (waypoint, or home) after EVA minute T. Shared by EVA Map and FoV so both name the same stop. */
+export function nextArrival(prof: ProfileSample[], arrivals: number[], T: number) {
+  const k = arrivals.findIndex((pi) => prof[pi].t - (prof[pi].dwell ?? 0) > T + 1e-6);
+  const index = k < 0 ? arrivals.length - 1 : k;
+  const point = prof[arrivals[index]];
+  return { index, point, label: index === arrivals.length - 1 ? "Home" : `WP${index + 1}`, minutes: Math.max(0, point.t - (point.dwell ?? 0) - T) };
+}
+
 export type PlanView = {
   ok: boolean;
   error?: string;
@@ -318,11 +326,7 @@ export function evaView(data: LoadedData, result: MissionResult, ev: Evaluation,
   const st = status(now as unknown as ProfileSample, end, s, result.env);
   const marginL = walkBackMargin(data.grid, result.field, now, s);
   const arrivals = arrivalIndices(ev);
-  const nextK = arrivals.findIndex((pi) => prof[pi].t - (prof[pi].dwell ?? 0) > T + 1e-6);
-  const next = nextK < 0 ? arrivals.length - 1 : nextK;
-  const nextP = prof[arrivals[next]];
-  const nextLabel = next === arrivals.length - 1 ? "Home" : `WP${next + 1}`;
-  const minToNext = Math.max(0, nextP.t - (nextP.dwell ?? 0) - T);
+  const { index: next, point: nextP, label: nextLabel, minutes: minToNext } = nextArrival(prof, arrivals, T);
   const lmstNow = result.env.startLmst + T / MARS_HOUR_MIN;
   const lmstEnd = result.env.startLmst + end.t / MARS_HOUR_MIN;
   const doseDay = (st.doseRateUSvH * 24) / 1000;
