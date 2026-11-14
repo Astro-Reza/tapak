@@ -448,6 +448,7 @@
   transition: transform var(--motion-duration-micro) var(--motion-easing-step-structural);
 }
 .mw-tab[aria-current="page"]::after,
+.mw-tab[aria-selected="true"]::after,
 .mw-tab:focus-visible::after {
   transform: scaleX(1);
 }

@@ -1,16 +1,18 @@
-import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SearchInput } from "@/components/ui/input";
 import { HazardAlert, VerdictBanner } from "@/components/marswalk/alerts";
 import { Fit } from "@/components/marswalk/fit";
 import { HoldButton } from "@/components/marswalk/hold-button";
 import {
   CellLayer,
+  EXTRA_LAYERS,
   LAYERS,
-  LayerRow,
+  LayerPanel,
+  type ExtraLayerId,
+  type PanelLayer,
   MapDim,
   MapFrame,
   OrthoBasemap,
@@ -34,7 +36,6 @@ import { arPackageFileName, buildArPackage } from "@/sim/ar-package";
 import { layerCells, planView } from "@/sim/view";
 
 type PlanLayer = Exclude<LayerId, "link">;
-type LayerState = "on" | "off" | "leaving";
 const PLAN_LAYERS: PlanLayer[] = ["slope", "minerals", "thermal", "dose"];
 /** Layer opacity over the basemap (Figma: 40 %). Opacity changes stay instant. */
 const LAYER_OPACITY = 0.4;
@@ -67,32 +68,31 @@ function PlanScreenLoaded() {
   const PLAN = view;
   const WAYPOINTS = view.waypoints;
   const [selected, setSelected] = useState("WP1");
-  const [query, setQuery] = useState("");
-  const [layers, setLayers] = useState<Record<PlanLayer, LayerState>>({
-    slope: "on",
-    minerals: "off",
-    thermal: "off",
-    dose: "on",
+  /** Opacity per layer; 0 hides it. Opacity changes stay instant. */
+  const [opacity, setOpacity] = useState<Record<string, number>>({
+    slope: LAYER_OPACITY,
+    minerals: 0,
+    thermal: 0,
+    dose: LAYER_OPACITY,
   });
-  const timers = useRef<Partial<Record<PlanLayer, number>>>({});
+  /** Layers the user added from the "+" list (no dataset yet) */
+  const [added, setAdded] = useState<ExtraLayerId[]>([]);
   const tick = motionMs("tick");
 
-  const toggleLayer = (id: PlanLayer) => {
-    window.clearTimeout(timers.current[id]);
-    setLayers((state) => {
-      if (state[id] !== "on") return { ...state, [id]: "on" };
-      // Off: scan out bottom to top in 3 steps, then unmount
-      timers.current[id] = window.setTimeout(
-        () => setLayers((s) => (s[id] === "leaving" ? { ...s, [id]: "off" } : s)),
-        tick * 3,
-      );
-      return { ...state, [id]: "leaving" };
-    });
-  };
-
-  const visibleLayers = PLAN_LAYERS.filter((id) =>
-    LAYERS[id].name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const panelLayers: PanelLayer[] = [
+    ...PLAN_LAYERS.map((id) => ({
+      id,
+      ...LAYERS[id],
+      low: id === "dose" && cells ? cells.doseRange[0].toFixed(2) : LAYERS[id].low,
+      high: id === "dose" && cells ? cells.doseRange[1].toFixed(2) : LAYERS[id].high,
+      note: SYNTHETIC.includes(id) ? "synthetic placeholder · no dataset yet" : id === "dose" ? "modelled · GCR × sky view" : "calculated · HiRISE DTM",
+      opacity: opacity[id] ?? 0,
+    })),
+    ...added.map((id) => ({ id, ...EXTRA_LAYERS[id], note: "no dataset yet · nothing drawn", opacity: opacity[id] ?? LAYER_OPACITY })),
+  ];
+  const addable = (Object.keys(EXTRA_LAYERS) as ExtraLayerId[])
+    .filter((id) => !added.includes(id))
+    .map((id) => ({ id, name: EXTRA_LAYERS[id].name, unit: EXTRA_LAYERS[id].unit }));
   const routeIndex = (i: number) => Math.round((i / Math.max(1, WAYPOINTS.length - 1)) * 8);
   const cellsFor = (id: PlanLayer) => (id === "slope" ? cells?.slope : id === "dose" ? cells?.dose : LAYER_CELLS[id]) ?? [];
 
@@ -174,41 +174,25 @@ function PlanScreenLoaded() {
       <section className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
         {/* Safety information: readable on the first frame, never behind a build */}
         <div className="flex flex-col gap-lg lg:pointer-events-none lg:absolute lg:inset-x-xl lg:top-xl lg:bottom-[296px] lg:z-10">
-          <VerdictBanner verdict={PLAN.verdict} reasons={PLAN.reasons} className="lg:pointer-events-auto lg:max-w-[990px]" />
-          <div className="flex flex-col gap-lg md:flex-row md:items-start md:justify-between lg:min-h-0 lg:flex-1">
+          <VerdictBanner verdict={PLAN.verdict} reasons={PLAN.reasons} className="lg:pointer-events-auto lg:mr-[320px] lg:max-w-[670px]" />
+          <div className="flex flex-col gap-lg md:flex-row md:items-start lg:min-h-0 lg:flex-1">
             {PLAN.hazard ? (
               <HazardAlert {...PLAN.hazard} className="md:w-[360px] md:min-w-0 md:shrink lg:pointer-events-auto" />
-            ) : (
-              <span className="hidden md:block" />
-            )}
-
-            <div className="mw-flash-in flex flex-col gap-sm rounded-sm border border-line-subtle bg-canvas px-lg py-md md:w-[304px] md:shrink-0 lg:pointer-events-auto lg:max-h-full lg:min-h-0">
-              <SearchInput
-                className="shrink-0"
-                placeholder="Search or add layer"
-                aria-label="Search layers"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
-              {visibleLayers.map((id) => (
-                <LayerRow
-                  key={id}
-                  layer={id}
-                  active={layers[id] === "on"}
-                  onToggle={() => toggleLayer(id)}
-                  low={id === "dose" && cells ? cells.doseRange[0].toFixed(2) : undefined}
-                  high={id === "dose" && cells ? cells.doseRange[1].toFixed(2) : undefined}
-                  note={SYNTHETIC.includes(id) ? "synthetic placeholder · no dataset yet" : id === "dose" ? "modelled · GCR × sky view" : "calculated · HiRISE DTM"}
-                />
-              ))}
-              {visibleLayers.length === 0 ? (
-                <p className="py-sm t-body-s text-fg-secondary">No layer matches “{query}”</p>
-              ) : null}
-              </ScrollArea>
-            </div>
+            ) : null}
           </div>
         </div>
+
+        {/* Overlay control: snapped to the map's top-right */}
+        <LayerPanel
+          layers={panelLayers}
+          addable={addable}
+          onOpacity={(id, v) => setOpacity((o) => ({ ...o, [id]: v }))}
+          onAdd={(id) => {
+            setAdded((a) => [...a, id as ExtraLayerId]);
+            setOpacity((o) => ({ ...o, [id]: LAYER_OPACITY }));
+          }}
+          className="lg:absolute lg:top-xl lg:right-xl lg:z-10 lg:max-h-[calc(100%_-_352px)] lg:w-[296px]"
+        />
 
       <MapFrame
         className="h-[60vh] min-h-[360px] rounded-md lg:absolute lg:inset-0 lg:h-auto lg:min-h-0 lg:rounded-none"
@@ -219,9 +203,7 @@ function PlanScreenLoaded() {
             <OrthoBasemap src={ORTHO} {...view.proj.basemap} />
             <MapDim opacity={0.35} />
             {PLAN_LAYERS.map((id) =>
-              layers[id] === "off" ? null : (
-                <CellLayer key={id} cells={cellsFor(id)} opacity={LAYER_OPACITY} leaving={layers[id] === "leaving"} />
-              ),
+              (opacity[id] ?? 0) <= 0 ? null : <CellLayer key={id} cells={cellsFor(id)} opacity={opacity[id]} />,
             )}
             <RouteOverlay width={1038} height={938}>
               {PLAN.route.length > 1 ? <RouteLine key={PLAN.route.length} points={PLAN.route} /> : null}

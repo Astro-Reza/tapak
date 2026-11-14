@@ -1,4 +1,4 @@
-import { type CSSProperties } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 
 import { CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -88,6 +88,8 @@ export function ChecklistPanel({
   onToggle,
   className,
   delay = 0,
+  header,
+  emptyText,
 }: {
   title: string;
   blocks: ChecklistBlock[];
@@ -99,6 +101,10 @@ export function ChecklistPanel({
   onToggle: (id: string) => void;
   className?: string;
   delay?: number;
+  /** replaces the card header (e.g. a tab bar); receives the progress meta */
+  header?: (meta: string) => ReactNode;
+  /** shown in the scroll area when the list has no items */
+  emptyText?: string;
 }) {
   const { done: count, total } = progressOf(flattenBlocks(blocks), done);
   const activeId = current ? nextOpenItem(blocks, done)?.id : undefined;
@@ -108,7 +114,7 @@ export function ChecklistPanel({
 
   return (
     <section className={cn("flex size-full min-h-0 min-w-0 flex-col", className)}>
-      <CardHeader title={title} meta={meta} delay={delay} />
+      {header ? header(meta) : <CardHeader title={title} meta={meta} delay={delay} />}
       <div className="flex shrink-0 px-lg py-md">
         <div
           role="progressbar"
@@ -124,6 +130,7 @@ export function ChecklistPanel({
       </div>
 
       <ScrollArea className="min-h-0 flex-1" aria-label={title}>
+        {total === 0 && emptyText ? <p className="px-lg py-md t-body-s text-fg-muted">{emptyText}</p> : null}
         {blocks.map((block, b) => {
           const part = progressOf(block.items, done);
           return (

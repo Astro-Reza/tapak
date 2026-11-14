@@ -1,3 +1,4 @@
+import tapakWordmark from "@/icon/TAPAK_LOGO_WORDMARK.svg";
 import { cn } from "@/lib/utils";
 import type { Route } from "@/lib/router";
 import { MISSION } from "@/data/mission";
@@ -35,7 +36,7 @@ function Tabs({
             aria-current={active ? "page" : undefined}
             onClick={() => onNavigate(tab.route)}
             className={cn(
-              "mw-tab relative flex shrink-0 items-center justify-center t-label-m text-[16px] whitespace-nowrap",
+              "mw-tab relative flex shrink-0 items-center justify-center t-label-m text-[20px] whitespace-nowrap",
               active ? "text-fg" : "text-fg-secondary",
               tabClassName,
             )}
@@ -68,10 +69,12 @@ export function TopBar({
     <header className="relative z-50 shrink-0 border-b border-line-subtle bg-top-bar">
       <div className="flex h-[60px] items-center justify-between gap-md px-md lg:h-[80px] lg:gap-lg lg:px-lg">
         <div className="flex min-w-0 items-center gap-md whitespace-nowrap">
-          <p className="t-wordmark text-[25px] text-fg sm:text-[28px] xl:text-[34px]">
-            MARS<span className="text-brand">WALK</span>
-          </p>
-          <p className="hidden t-data-telemetry text-[14px] text-fg-secondary min-[1366px]:block">
+          <img
+            src={tapakWordmark}
+            alt="TAPAK"
+            className="h-[22px] w-auto sm:h-[26px] xl:h-[32px]"
+          />
+          <p className="hidden t-data-telemetry text-[17.5px] text-fg-secondary min-[1366px]:block">
             {MISSION.id} · {MISSION.site}
           </p>
         </div>
@@ -82,7 +85,7 @@ export function TopBar({
           tabClassName="h-full px-sm xl:px-md"
         />
         <div className="flex shrink-0 items-center gap-sm xl:gap-md">
-          <p className="whitespace-nowrap t-data-coordinate text-[15px] text-fg">
+          <p className="whitespace-nowrap t-data-coordinate text-[18.75px] text-fg">
             <span className="hidden sm:inline">SOL {MISSION.sol} · </span>
             {clock} LMST
           </p>
@@ -90,7 +93,7 @@ export function TopBar({
             <span className="hidden text-fg sm:inline">
               <Icon name="signal" size={19} />
             </span>
-            <p className="hidden whitespace-nowrap t-data-telemetry text-[14px] text-fg-secondary xl:block">{MISSION.relay}</p>
+            <p className="hidden whitespace-nowrap t-data-telemetry text-[17.5px] text-fg-secondary xl:block">{MISSION.relay}</p>
             <span className="origin-right scale-[0.94]"><StatusChip status={linkStatus} /></span>
           </div>
         </div>

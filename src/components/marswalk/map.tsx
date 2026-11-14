@@ -2,6 +2,7 @@ import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { LayerId } from "@/data/mission";
 import { FitLayer, useFit, type Size } from "./fit";
@@ -437,6 +438,169 @@ export function LayerRow({
         <span>{def.high}</span>
       </div>
       {note ? <p className="t-data-telemetry text-fg-muted">{note}</p> : null}
+    </div>
+  );
+}
+
+/* ---------- Layer panel (search · add · per-layer opacity) ---------- */
+
+/** Opacity steps the pie cycles through. 0 hides the layer. */
+export const OPACITY_STEPS = [0, 0.2, 0.4, 0.6, 0.8, 1] as const;
+
+/** Layers the user can add later. No dataset behind them yet: they list but draw nothing. */
+export const EXTRA_LAYERS = {
+  ph: { name: "Soil pH", unit: "scale", low: "5.5", high: "7.0", gradient: "linear-gradient(to right, #00ff1a, #ff1a00)" },
+  moisture: { name: "Moisture Content", unit: "percent", low: "10", high: "25", gradient: "linear-gradient(to right, #00ff1a, #ff1a00)" },
+  nutrient: { name: "Nutrient Density", unit: "index", low: "0.8", high: "1.5", gradient: "linear-gradient(to right, #2a1a4a, #ff00cc)" },
+} as const;
+export type ExtraLayerId = keyof typeof EXTRA_LAYERS;
+
+export type PanelLayer = {
+  id: string;
+  name: string;
+  unit: string;
+  low: string;
+  high: string;
+  /** Tailwind ramp class, or a css gradient for added layers */
+  ramp?: string;
+  gradient?: string;
+  note?: string;
+  opacity: number;
+};
+
+/** Pie showing a layer's opacity: filled clockwise from the top. Click steps it. */
+function OpacityPie({ value, label, onChange }: { value: number; label: string; onChange: (v: number) => void }) {
+  const r = 8;
+  const a = Math.min(1, Math.max(0, value)) * Math.PI * 2;
+  const x = 10 + r * Math.sin(a);
+  const y = 10 - r * Math.cos(a);
+  const next = OPACITY_STEPS.find((s) => s > value + 1e-6) ?? 0;
+  return (
+    <button
+      type="button"
+      aria-label={`${label} opacity ${Math.round(value * 100)}%, change to ${Math.round(next * 100)}%`}
+      title={`${Math.round(value * 100)}% · click to change`}
+      onClick={() => onChange(next)}
+      className="flex size-glove shrink-0 items-center justify-center -ml-xs"
+    >
+      <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" className="text-fg">
+        <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+        {value >= 0.999 ? (
+          <circle cx="10" cy="10" r={r} fill="currentColor" />
+        ) : value > 0 ? (
+          <path d={`M10 10V2A${r} ${r} 0 ${value > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)}Z`} fill="currentColor" />
+        ) : null}
+      </svg>
+    </button>
+  );
+}
+
+/**
+ * Overlay control, snapped to the map's top-right. Search filters the active layers,
+ * "+" lists more layers to add (no data behind them yet), the pie sets each layer's opacity.
+ */
+export function LayerPanel({
+  layers,
+  addable,
+  onOpacity,
+  onAdd,
+  className,
+  footer,
+}: {
+  layers: readonly PanelLayer[];
+  addable: readonly { id: string; name: string; unit: string }[];
+  onOpacity: (id: string, v: number) => void;
+  onAdd: (id: string) => void;
+  className?: string;
+  footer?: ReactNode;
+}) {
+  const [query, setQuery] = useState("");
+  const [adding, setAdding] = useState(false);
+  const q = query.trim().toLowerCase();
+  const shown = layers.filter((l) => l.name.toLowerCase().includes(q));
+  const options = addable.filter((l) => l.name.toLowerCase().includes(q));
+  return (
+    <div
+      className={cn(
+        "mw-flash-in flex flex-col gap-sm rounded-sm border border-line-subtle bg-scrim px-lg py-md",
+        className,
+      )}
+    >
+      <div className="flex shrink-0 items-center gap-sm">
+        <label className="flex h-control min-w-px flex-1 items-center gap-sm rounded-pill bg-fg px-lg text-panel focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand">
+          <input
+            type="search"
+            placeholder="Search"
+            aria-label="Search layers"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="min-w-px flex-1 appearance-none bg-transparent t-body-m text-panel outline-none placeholder:text-panel [&::-webkit-search-cancel-button]:hidden"
+          />
+          <Icon name="search" size={18} />
+        </label>
+        <button
+          type="button"
+          aria-label="Add layer"
+          aria-expanded={adding}
+          onClick={() => setAdding((a) => !a)}
+          className={cn(
+            "flex size-control shrink-0 items-center justify-center rounded-pill",
+            adding ? "bg-brand text-panel" : "bg-fg text-panel",
+          )}
+        >
+          <Icon name="plus" size={18} />
+        </button>
+      </div>
+
+      {adding ? (
+        <div role="group" aria-label="Add a layer" className="flex shrink-0 flex-col rounded-sm bg-panel p-xs">
+          {options.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => {
+                onAdd(o.id);
+                setAdding(false);
+                setQuery("");
+              }}
+              className="flex min-h-glove items-center gap-sm rounded-sm px-sm text-left hover:bg-raised"
+            >
+              <Icon name="plus" size={16} />
+              <span className="min-w-px flex-1 t-label-m text-fg">{o.name}</span>
+              <span className="shrink-0 t-label-unit text-fg-secondary">{o.unit}</span>
+            </button>
+          ))}
+          {options.length === 0 ? (
+            <p className="px-sm py-sm t-body-s text-fg-secondary">
+              {addable.length === 0 ? "Every available layer is already on the map" : `No layer matches “${query}”`}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
+        {shown.map((l) => (
+          <div key={l.id} className="flex flex-col gap-xs py-sm">
+            <div className="flex w-full items-center gap-sm">
+              <OpacityPie value={l.opacity} label={l.name} onChange={(v) => onOpacity(l.id, v)} />
+              <span className="min-w-px flex-1 text-left t-label-m text-fg">{l.name}</span>
+              <span className="shrink-0 whitespace-nowrap t-label-unit text-fg-secondary">{l.unit}</span>
+            </div>
+            <div className={cn("h-md w-full rounded-pill", l.ramp)} style={l.gradient ? { background: l.gradient } : undefined} />
+            <div className="flex w-full justify-between t-data-telemetry text-fg-secondary">
+              <span>{l.low}</span>
+              <span>{l.high}</span>
+            </div>
+            {l.note ? <p className="t-data-telemetry text-fg-muted">{l.note}</p> : null}
+          </div>
+        ))}
+        {shown.length === 0 ? (
+          <p className="py-sm t-body-s text-fg-secondary">
+            {layers.length === 0 ? "No layers on the map" : `No layer matches “${query}”`}
+          </p>
+        ) : null}
+        {footer}
+      </ScrollArea>
     </div>
   );
 }

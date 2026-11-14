@@ -9,7 +9,11 @@ import { Fit } from "@/components/marswalk/fit";
 import { Icon } from "@/components/marswalk/icons";
 import {
   CellLayer,
-  LayerRow,
+  EXTRA_LAYERS,
+  LAYERS,
+  LayerPanel,
+  type ExtraLayerId,
+  type PanelLayer,
   MapDim,
   MapFrame,
   OrthoBasemap,
@@ -67,7 +71,9 @@ export function EvaMapScreen() {
 }
 
 function EvaMapLoaded() {
-  const [layers, setLayers] = useState<Record<string, boolean>>({ slope: true, dose: false, link: false });
+  /** Opacity per layer; 0 hides it. The pie in the layer panel steps it. */
+  const [opacity, setOpacity] = useState<Record<string, number>>({ slope: 0.4, dose: 0, link: 0 });
+  const [added, setAdded] = useState<ExtraLayerId[]>([]);
   const heartRate = useSimulatedHeartRate(92);
   const group = motionMs("stagger-group");
   const { data, result, ev, evaT, setEvaT, playing, setPlaying } = useMission();
@@ -79,6 +85,20 @@ function EvaMapLoaded() {
     [data, result, ev, routeKey],
   );
   if (!view || !ev?.end) return <p role="alert" className="p-xl t-body-m text-danger">No route: {ev?.error ?? "plan first"}</p>;
+  const panelLayers: PanelLayer[] = [
+    ...EVA_LAYERS.map((id) => ({
+      id,
+      ...LAYERS[id],
+      low: id === "dose" && cells ? cells.doseRange[0].toFixed(2) : LAYERS[id].low,
+      high: id === "dose" && cells ? cells.doseRange[1].toFixed(2) : LAYERS[id].high,
+      note: id === "link" ? "not modelled yet" : id === "dose" ? "modelled · GCR × sky view" : "calculated · HiRISE DTM",
+      opacity: opacity[id] ?? 0,
+    })),
+    ...added.map((id) => ({ id, ...EXTRA_LAYERS[id], note: "no dataset yet · nothing drawn", opacity: opacity[id] ?? 0.35 })),
+  ];
+  const addable = (Object.keys(EXTRA_LAYERS) as ExtraLayerId[])
+    .filter((id) => !added.includes(id))
+    .map((id) => ({ id, name: EXTRA_LAYERS[id].name, unit: EXTRA_LAYERS[id].unit }));
   const end = ev.end;
   const profile = view.profile;
   const s = result!.s;
@@ -133,8 +153,8 @@ function EvaMapLoaded() {
           <>
             <OrthoBasemap src={ORTHO} {...view.proj.basemap} />
             <MapDim opacity={0.3} />
-            {cells && layers.slope ? <CellLayer cells={cells.slope} opacity={0.35} /> : null}
-            {cells && layers.dose ? <CellLayer cells={cells.dose} opacity={0.35} /> : null}
+            {cells && opacity.slope > 0 ? <CellLayer cells={cells.slope} opacity={opacity.slope} /> : null}
+            {cells && opacity.dose > 0 ? <CellLayer cells={cells.dose} opacity={opacity.dose} /> : null}
             {cells ? <CellLayer cells={cells.noGo} opacity={0.45} /> : null}
             <div aria-hidden="true" className="absolute inset-0">
               {view.ring.map((c) => (
@@ -169,27 +189,22 @@ function EvaMapLoaded() {
         />
       </MapFrame>
 
-        <div className="mw-flash-in flex flex-col rounded-sm border border-line-subtle bg-scrim xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:max-h-[calc(100%_-_352px)] xl:w-[296px]">
-        <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
-        <div className="flex flex-col gap-xs px-lg py-sm">
-          {EVA_LAYERS.map((id) => (
-            <LayerRow
-              key={id}
-              layer={id}
-              active={layers[id]}
-              onToggle={() => setLayers((st) => ({ ...st, [id]: !st[id] }))}
-              low={id === "dose" && cells ? cells.doseRange[0].toFixed(2) : undefined}
-              high={id === "dose" && cells ? cells.doseRange[1].toFixed(2) : undefined}
-              note={id === "link" ? "not modelled yet" : id === "dose" ? "modelled · GCR × sky view" : "calculated · HiRISE DTM"}
-            />
-          ))}
-          <p className="t-data-telemetry text-fg-secondary">
-            <span className="text-danger">■</span> over the {s.maxSlopeDeg}° limit · <span className="text-danger">●</span> no-return ring
-            {view.ring.length ? "" : " (beyond this map)"}
-          </p>
-        </div>
-        </ScrollArea>
-        </div>
+        <LayerPanel
+          layers={panelLayers}
+          addable={addable}
+          onOpacity={(id, v) => setOpacity((o) => ({ ...o, [id]: v }))}
+          onAdd={(id) => {
+            setAdded((a) => [...a, id as ExtraLayerId]);
+            setOpacity((o) => ({ ...o, [id]: 0.35 }));
+          }}
+          className="xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:max-h-[calc(100%_-_352px)] xl:w-[296px]"
+          footer={
+            <p className="py-sm t-data-telemetry text-fg-secondary">
+              <span className="text-danger">■</span> over the {s.maxSlopeDeg}° limit · <span className="text-danger">●</span> no-return ring
+              {view.ring.length ? "" : " (beyond this map)"}
+            </p>
+          }
+        />
 
         <Card className="rounded-sm xl:absolute xl:inset-x-xl xl:bottom-xl xl:z-10">
           <CardHeader title="Route profile" meta={profile.meta} />
