@@ -42,7 +42,7 @@ src/screens/  the leader's screens, now reading view models instead of src/data/
 | Hub | Status strip: verdict, EVA window (LMST), duration vs cap, distance, O₂ at return, walk-back margin, rules in force | Crew timeline (two-person schedule); checklists are the team sheet, unchanged |
 | Plan | Route (A*), waypoints at real stops, verdict + reasons, steep-stretch hazard card, slope and dose layers, elevation profile, summary; mode, rules, suit and start-time controls; Commit sends the plan over the link | Hydrated-minerals and thermal-inertia layers; "Edit stops" |
 | EVA Map | Simulated walk on the plan (Play, ±10 min): position, tiles, prediction, profile, no-return ring, cells over the slope limit, log, MEDA temperatures/pressure, O₂ rate, dose rate | Heart rate, power, connectivity hops, relay passes, relay-link layer |
-| FoV | three.js view of the HiRISE DTM from the astronaut's eye at the EVA clock, looking 30 m ahead; minimap, heading, azimuth ruler, next-stop tag | Relay elevation ruler |
+| FoV | three.js walk along the computed route on the shared EVA clock (delta-time, 1–240×, pause/restart), free look independent of walking direction, head bob, Free explore off-plan; minimap, look/walk headings, next-stop tag, O₂ and progress. See [FOV_WALKING.md](FOV_WALKING.md) | Relay elevation ruler |
 | Comms | Mission-control link card: light-time delay presets, Send plan, message log (engine `createLink`) | Link budget and pass prediction: the leader's UI and values, unchanged |
 | Debrief | Plan outcome, per-leg walking O₂ predicted vs simulated playback, calibrated k_suit (Apply → next plan), EVA dose, events from the plan | "Measured" values are a seeded simulation (no suit telemetry); samples list; no walked GPS track |
 

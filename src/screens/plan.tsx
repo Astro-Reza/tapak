@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchInput } from "@/components/ui/input";
 import { HazardAlert, VerdictBanner } from "@/components/marswalk/alerts";
 import { Fit } from "@/components/marswalk/fit";
@@ -37,6 +38,7 @@ type LayerState = "on" | "off" | "leaving";
 const PLAN_LAYERS: PlanLayer[] = ["slope", "minerals", "thermal", "dose"];
 /** Layer opacity over the basemap (Figma: 40 %). Opacity changes stay instant. */
 const LAYER_OPACITY = 0.4;
+
 
 const DESIGN = { width: 1038, height: 938 };
 /** Where the route is fitted on the map: clear of the verdict, hazard and layer panels and the profile card. */
@@ -95,9 +97,10 @@ function PlanScreenLoaded() {
   const cellsFor = (id: PlanLayer) => (id === "slope" ? cells?.slope : id === "dose" ? cells?.dose : LAYER_CELLS[id]) ?? [];
 
   return (
-    <div className="flex min-h-full flex-col lg:h-full lg:min-h-[800px] lg:flex-row">
+    <div className="flex min-h-full flex-col lg:h-full lg:flex-row">
       {/* Left rail (below the map on narrow screens) */}
-      <aside className="order-last flex flex-col gap-lg bg-raised px-lg py-xl lg:order-none lg:w-rail lg:shrink-0 lg:overflow-y-auto">
+      <ScrollArea className="order-last shrink-0 bg-raised lg:order-none lg:w-rail" fill aria-label="Route plan">
+      <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="Route plan" sub={PLAN.subtitle} />
         <Trace>
           {WAYPOINTS.map((wp, i) => {
@@ -165,26 +168,29 @@ function PlanScreenLoaded() {
           Edit stops
         </Button>
       </aside>
+      </ScrollArea>
 
       {/* Map. Panels float over it on wide screens and stack around it on narrow ones. */}
       <section className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
         {/* Safety information: readable on the first frame, never behind a build */}
-        <div className="flex flex-col gap-lg lg:pointer-events-none lg:absolute lg:inset-x-xl lg:top-xl lg:z-10">
+        <div className="flex flex-col gap-lg lg:pointer-events-none lg:absolute lg:inset-x-xl lg:top-xl lg:bottom-[296px] lg:z-10">
           <VerdictBanner verdict={PLAN.verdict} reasons={PLAN.reasons} className="lg:pointer-events-auto lg:max-w-[990px]" />
-          <div className="flex flex-col gap-lg md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-lg md:flex-row md:items-start md:justify-between lg:min-h-0 lg:flex-1">
             {PLAN.hazard ? (
               <HazardAlert {...PLAN.hazard} className="md:w-[360px] md:min-w-0 md:shrink lg:pointer-events-auto" />
             ) : (
               <span className="hidden md:block" />
             )}
 
-            <div className="mw-flash-in flex flex-col gap-sm rounded-sm border border-line-subtle bg-canvas px-lg py-md md:w-[304px] md:shrink-0 lg:pointer-events-auto">
+            <div className="mw-flash-in flex flex-col gap-sm rounded-sm border border-line-subtle bg-canvas px-lg py-md md:w-[304px] md:shrink-0 lg:pointer-events-auto lg:max-h-full lg:min-h-0">
               <SearchInput
+                className="shrink-0"
                 placeholder="Search or add layer"
                 aria-label="Search layers"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+              <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
               {visibleLayers.map((id) => (
                 <LayerRow
                   key={id}
@@ -199,6 +205,7 @@ function PlanScreenLoaded() {
               {visibleLayers.length === 0 ? (
                 <p className="py-sm t-body-s text-fg-secondary">No layer matches “{query}”</p>
               ) : null}
+              </ScrollArea>
             </div>
           </div>
         </div>

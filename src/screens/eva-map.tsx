@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchInput } from "@/components/ui/input";
 import { PassRow } from "@/components/marswalk/comms";
 import { Fit } from "@/components/marswalk/fit";
@@ -53,6 +54,7 @@ function useSimulatedHeartRate(start: number) {
 
 const DESIGN = { width: 710, height: 938 };
 /** Route fitted between the search box and the profile card. */
+
 const ROUTE_BOX = { x0: 30, y0: 200, x1: 450, y1: 680 };
 
 /** 03 · EVA Map (During EVA): progress, live position, connectivity, telemetry. */
@@ -82,8 +84,9 @@ function EvaMapLoaded() {
   const s = result!.s;
 
   return (
-    <div className="flex min-h-full flex-col xl:h-full xl:min-h-[760px] xl:flex-row">
-      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
+    <div className="flex min-h-full flex-col xl:h-full xl:flex-row">
+      <ScrollArea className="shrink-0 bg-raised xl:w-rail" fill aria-label="EVA progress">
+      <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="EVA progress" sub={`T+${fmtHM(evaT)} of ${fmtHM(s.evaLimitMin)} cap · simulated walk on the plan`} />
         <div className="flex items-center gap-sm" role="group" aria-label="Simulated EVA clock">
           <Button variant="secondary" aria-label="Back 10 minutes" onClick={() => setEvaT(Math.max(0, evaT - 10))}>
@@ -118,13 +121,14 @@ function EvaMapLoaded() {
           </StatList>
         </Card>
       </aside>
+      </ScrollArea>
 
       <section className="relative flex flex-col gap-lg p-lg xl:block xl:min-w-0 xl:flex-1 xl:p-0">
       <MapFrame
         className="h-[60vh] min-h-[380px] rounded-md xl:absolute xl:inset-0 xl:h-auto xl:min-h-0 xl:rounded-none"
         design={DESIGN}
         origin={{ x: view.you[0], y: view.you[1] }}
-        controlsClassName="right-lg top-1/2 -translate-y-1/2"
+        controlsClassName="right-lg top-1/2 -translate-y-1/2 xl:top-xl xl:right-[344px] xl:translate-y-0"
         world={
           <>
             <OrthoBasemap src={ORTHO} {...view.proj.basemap} />
@@ -165,7 +169,9 @@ function EvaMapLoaded() {
         />
       </MapFrame>
 
-        <div className="mw-flash-in flex flex-col gap-xs rounded-sm border border-line-subtle bg-scrim px-lg py-sm xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:w-[296px]">
+        <div className="mw-flash-in flex flex-col rounded-sm border border-line-subtle bg-scrim xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:max-h-[calc(100%_-_352px)] xl:w-[296px]">
+        <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
+        <div className="flex flex-col gap-xs px-lg py-sm">
           {EVA_LAYERS.map((id) => (
             <LayerRow
               key={id}
@@ -181,6 +187,8 @@ function EvaMapLoaded() {
             <span className="text-danger">■</span> over the {s.maxSlopeDeg}° limit · <span className="text-danger">●</span> no-return ring
             {view.ring.length ? "" : " (beyond this map)"}
           </p>
+        </div>
+        </ScrollArea>
         </div>
 
         <Card className="rounded-sm xl:absolute xl:inset-x-xl xl:bottom-xl xl:z-10">
@@ -206,7 +214,8 @@ function EvaMapLoaded() {
         </Card>
       </section>
 
-      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
+      <ScrollArea className="shrink-0 bg-raised xl:w-rail" fill aria-label="Connectivity">
+      <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="Connectivity" sub="Tablet · HUD · relay · habitat · simulated" />
         <ul className="flex flex-col gap-xs rounded-sm bg-panel px-md py-sm">
           {EVA.hops.map((hop, i) => (
@@ -242,6 +251,7 @@ function EvaMapLoaded() {
           </ul>
         </section>
       </aside>
+      </ScrollArea>
     </div>
   );
 }
