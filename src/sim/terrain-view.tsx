@@ -7,8 +7,9 @@ import type { ProfileSample } from "@/engine";
 import type { CameraPose } from "./fov/camera-rig";
 import { TERRAIN_GLB } from "./load";
 
-/** Vertical field of view, degrees. */
-export const FOV_V = 50;
+/** Horizontal field of view, degrees (the design's "field of view 70°": 1366 px / 70° = the 19.5 px/° azimuth ruler). */
+export const FOV_H = 70;
+const vFov = (aspect: number) => (2 * Math.atan(Math.tan((FOV_H * Math.PI) / 360) / aspect) * 180) / Math.PI;
 
 export type Projected = { x: number; y: number; visible: boolean };
 
@@ -65,7 +66,7 @@ export function TerrainView({
     const sun = new THREE.DirectionalLight(0xffffff, 2.0);
     sun.position.set(-600, 500, -300);
     scene.add(sun);
-    const camera = new THREE.PerspectiveCamera(FOV_V, 1, 0.3, 9000);
+    const camera = new THREE.PerspectiveCamera(vFov(1366 / 938), 1, 0.3, 9000);
     camera.rotation.order = "YXZ"; // yaw, then pitch: no roll creeps in while looking around
     const routeGroup = new THREE.Group();
     scene.add(routeGroup);
@@ -81,6 +82,7 @@ export function TerrainView({
       renderer.domElement.style.width = `${w}px`;
       renderer.domElement.style.height = `${h}px`;
       camera.aspect = w / h || 1;
+      camera.fov = vFov(camera.aspect);
       camera.updateProjectionMatrix();
     };
     const draw = (pose: CameraPose) => {

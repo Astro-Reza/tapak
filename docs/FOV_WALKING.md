@@ -3,7 +3,21 @@
 The FoV screen (`#/fov`) is the desktop/tablet first-person **simulation** of the planned EVA. This page covers how
 it moves, how the camera is built, and the seam a later Android/iOS AR app plugs into.
 
-![Follow route](screenshots/map-fov/fov-follow-route.jpg)
+| Follow route, next waypoint WP4 | Looking at the relay pass (heading 032°) while on route |
+| --- | --- |
+| ![Follow route](screenshots/map-fov/fov-follow-route.jpg) | ![Relay pass](screenshots/map-fov/fov-relay-pass-heading-032.jpg) |
+
+## Layout
+
+The screen chrome keeps the design frame (1366 × 938) at the design's positions, scaled to fit: minimap top left,
+"Camera · heading · tilt · field of view 70°" tag, Elevation ruler, 0° horizon, azimuth ruler, relay pass with the
+MRS-L1 satellite marker and AOS / LOS tags, next-waypoint marker and tag ("WP4 · 180 m · +22 m · max 12°"), spot note,
+and source credit. What is live: heading and tilt in the camera tag, the azimuth ruler, the minimap (walked dotted,
+ahead solid, view cone), the waypoint marker and tag (projected from 3D; distance, height change and steepest slope to
+it), and the relay pass, which slides with the heading (satellite at az 022°). The pass, its times and the spot note
+(shown when WP4 is next) are still the design's simulated values. The 3D camera has a 70° horizontal field of view,
+so the 19.5 px/° azimuth ruler matches the view. The walk controls are not in the design; they sit in the open sky
+right of the camera tag, with less-used settings behind **More**.
 
 ## Controls
 
@@ -11,6 +25,7 @@ it moves, how the camera is built, and the seam a later Android/iOS AR app plugs
 | --- | --- | --- |
 | Look around (head) | Drag on the view, or **Mouse look** (pointer lock, Esc releases), or arrow keys | Drag on the view |
 | Reset view | **Reset view** eases the head back to the walking direction | same |
+| More | Restart, −5 / +5 min, speed, head bob, Mouse look | same |
 | Follow route | **Walk / Pause**, **Restart**, **−5 / +5 min**, speed **1× 10× 60× 240×** (simulated s per real s) | same, 56 px glove targets |
 | Free explore | W A S D, Shift = fast (12 m/s fly-over) | press-and-hold arrow pad, **Fast** toggle |
 | Head bob | **Off / Reduced / Normal**; defaults to Off with reduced motion | same |
@@ -69,6 +84,7 @@ calibration residual is within 2 m. Otherwise the app must warn and keep the com
 ## Known limitations
 
 - Each frame is capped at 0.1 s so a stall never becomes a jump; in a throttled background tab the walk slows instead.
-- No pinch-zoom or field-of-view control; vertical FoV fixed at 50°.
+- No pinch-zoom or field-of-view control; horizontal FoV fixed at 70°.
+- The design frame is an iPad landscape layout; on a phone in portrait the chrome scales down with it.
 - Free explore has no collision with boulders (the DTM is the only obstacle model) and ignores slope limits.
 - The relay elevation ruler is still the simulated pass from the design.
