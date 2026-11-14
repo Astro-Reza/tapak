@@ -1,0 +1,1498 @@
+{
+ "source": "Perseverance MEDA, PDS Atmospheres node (mars2020_meda: CAL_TIRS, DER_PS)",
+ "credit": "NASA/JPL-Caltech/CAB(CSIC-INTA)",
+ "sols": [
+  1349,
+  1351,
+  1354,
+  1357,
+  1360,
+  1362,
+  1366,
+  1368
+ ],
+ "hourly": [
+  {
+   "lmst_hour": 0,
+   "air_K": {
+    "median": 210.21,
+    "min": 208.37,
+    "max": 212.59,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 198.78,
+    "min": 190.41,
+    "max": 206.05,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 696.68,
+    "min": 689.17,
+    "max": 700.08,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 1,
+   "air_K": {
+    "median": 208.01,
+    "min": 203.35,
+    "max": 208.68,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 196.98,
+    "min": 188.69,
+    "max": 204.48,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 698.99,
+    "min": 692.86,
+    "max": 701.74,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 2,
+   "air_K": {
+    "median": 205.03,
+    "min": 202.03,
+    "max": 206.03,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 195.5,
+    "min": 187.28,
+    "max": 203.08,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 695.47,
+    "min": 690.8,
+    "max": 700.46,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 3,
+   "air_K": {
+    "median": 203.37,
+    "min": 200.34,
+    "max": 203.87,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 194.0,
+    "min": 185.75,
+    "max": 201.7,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 693.54,
+    "min": 687.82,
+    "max": 697.86,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 4,
+   "air_K": {
+    "median": 201.87,
+    "min": 197.21,
+    "max": 203.37,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 192.62,
+    "min": 184.2,
+    "max": 200.57,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 693.99,
+    "min": 686.74,
+    "max": 697.41,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 5,
+   "air_K": {
+    "median": 199.36,
+    "min": 197.88,
+    "max": 200.44,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 191.46,
+    "min": 182.87,
+    "max": 199.4,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 693.95,
+    "min": 686.94,
+    "max": 697.69,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 6,
+   "air_K": {
+    "median": 198.0,
+    "min": 197.06,
+    "max": 199.17,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 192.02,
+    "min": 182.39,
+    "max": 199.23,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 694.6,
+    "min": 686.26,
+    "max": 699.13,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 7,
+   "air_K": {
+    "median": 197.92,
+    "min": 197.32,
+    "max": 200.57,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 198.25,
+    "min": 188.16,
+    "max": 205.92,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 698.67,
+    "min": 690.78,
+    "max": 703.56,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 8,
+   "air_K": {
+    "median": 202.57,
+    "min": 201.32,
+    "max": 203.62,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 207.83,
+    "min": 204.69,
+    "max": 229.09,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 703.88,
+    "min": 695.7,
+    "max": 705.93,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 9,
+   "air_K": {
+    "median": 207.08,
+    "min": 205.62,
+    "max": 235.05,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 226.84,
+    "min": 218.8,
+    "max": 248.65,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 699.88,
+    "min": 695.69,
+    "max": 702.9,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 10,
+   "air_K": {
+    "median": 213.34,
+    "min": 208.45,
+    "max": 263.74,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 243.33,
+    "min": 225.16,
+    "max": 256.98,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 693.33,
+    "min": 685.62,
+    "max": 696.5,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 11,
+   "air_K": {
+    "median": 216.66,
+    "min": 213.01,
+    "max": 221.03,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 258.18,
+    "min": 239.06,
+    "max": 270.41,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 690.09,
+    "min": 683.69,
+    "max": 692.25,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 12,
+   "air_K": {
+    "median": 222.46,
+    "min": 218.84,
+    "max": 228.82,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 265.04,
+    "min": 249.28,
+    "max": 276.03,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 691.26,
+    "min": 685.57,
+    "max": 693.44,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 13,
+   "air_K": {
+    "median": 226.88,
+    "min": 222.52,
+    "max": 232.53,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 269.35,
+    "min": 256.16,
+    "max": 276.95,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 691.86,
+    "min": 685.43,
+    "max": 694.83,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 14,
+   "air_K": {
+    "median": 231.56,
+    "min": 225.16,
+    "max": 270.48,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 267.25,
+    "min": 259.23,
+    "max": 278.36,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 689.15,
+    "min": 683.14,
+    "max": 692.95,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 15,
+   "air_K": {
+    "median": 233.8,
+    "min": 228.34,
+    "max": 297.52,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 262.25,
+    "min": 255.07,
+    "max": 276.38,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 685.94,
+    "min": 679.56,
+    "max": 690.53,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 16,
+   "air_K": {
+    "median": 236.1,
+    "min": 231.37,
+    "max": 259.3,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 251.66,
+    "min": 242.38,
+    "max": 268.69,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 684.01,
+    "min": 677.54,
+    "max": 688.54,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 17,
+   "air_K": {
+    "median": 230.34,
+    "min": 227.89,
+    "max": 269.94,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 241.18,
+    "min": 227.95,
+    "max": 253.76,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 683.72,
+    "min": 677.65,
+    "max": 686.8,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 18,
+   "air_K": {
+    "median": 223.38,
+    "min": 222.06,
+    "max": 227.68,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 226.66,
+    "min": 215.2,
+    "max": 232.49,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 683.09,
+    "min": 678.89,
+    "max": 687.45,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 19,
+   "air_K": {
+    "median": 219.93,
+    "min": 219.19,
+    "max": 220.86,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 212.53,
+    "min": 206.56,
+    "max": 221.83,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 687.3,
+    "min": 683.86,
+    "max": 690.55,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 20,
+   "air_K": {
+    "median": 217.94,
+    "min": 215.96,
+    "max": 219.88,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 205.94,
+    "min": 201.16,
+    "max": 216.72,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 696.64,
+    "min": 693.1,
+    "max": 700.64,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 21,
+   "air_K": {
+    "median": 216.99,
+    "min": 213.58,
+    "max": 218.33,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 201.43,
+    "min": 197.2,
+    "max": 213.12,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 697.57,
+    "min": 689.96,
+    "max": 701.1,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 22,
+   "air_K": {
+    "median": 213.68,
+    "min": 212.81,
+    "max": 215.34,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 197.92,
+    "min": 194.13,
+    "max": 210.42,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 691.15,
+    "min": 685.0,
+    "max": 694.7,
+    "n_sols": 8
+   }
+  },
+  {
+   "lmst_hour": 23,
+   "air_K": {
+    "median": 211.31,
+    "min": 209.69,
+    "max": 211.83,
+    "n_sols": 8
+   },
+   "ground_K": {
+    "median": 195.0,
+    "min": 191.45,
+    "max": 208.09,
+    "n_sols": 8
+   },
+   "pressure_Pa": {
+    "median": 691.75,
+    "min": 688.32,
+    "max": 693.81,
+    "n_sols": 8
+   }
+  }
+ ],
+ "per_sol": {
+  "1349": {
+   "0": {
+    "air_K": 212.59,
+    "ground_K": 191.95,
+    "pressure_Pa": 698.65
+   },
+   "1": {
+    "air_K": 208.5,
+    "ground_K": 189.92,
+    "pressure_Pa": 700.83
+   },
+   "2": {
+    "air_K": 205.62,
+    "ground_K": 188.16,
+    "pressure_Pa": 697.51
+   },
+   "3": {
+    "air_K": 203.59,
+    "ground_K": 186.48,
+    "pressure_Pa": 694.74
+   },
+   "4": {
+    "air_K": 201.13,
+    "ground_K": 184.94,
+    "pressure_Pa": 694.68
+   },
+   "5": {
+    "air_K": 198.41,
+    "ground_K": 183.45,
+    "pressure_Pa": 694.5
+   },
+   "6": {
+    "air_K": 197.06,
+    "ground_K": 182.93,
+    "pressure_Pa": 693.9
+   },
+   "7": {
+    "air_K": 197.34,
+    "ground_K": 189.37,
+    "pressure_Pa": 697.12
+   },
+   "8": {
+    "air_K": 202.67,
+    "ground_K": 211.53,
+    "pressure_Pa": 704.16
+   },
+   "9": {
+    "air_K": 208.03,
+    "ground_K": 234.97,
+    "pressure_Pa": 702.62
+   },
+   "10": {
+    "air_K": 212.78,
+    "ground_K": 253.82,
+    "pressure_Pa": 693.03
+   },
+   "11": {
+    "air_K": 219.28,
+    "ground_K": 268.83,
+    "pressure_Pa": 689.35
+   },
+   "12": {
+    "air_K": 225.9,
+    "ground_K": 274.55,
+    "pressure_Pa": 690.3
+   },
+   "13": {
+    "air_K": 228.17,
+    "ground_K": 275.04,
+    "pressure_Pa": 688.7
+   },
+   "14": {
+    "air_K": 231.44,
+    "ground_K": 265.29,
+    "pressure_Pa": 684.75
+   },
+   "15": {
+    "air_K": 234.14,
+    "ground_K": 259.58,
+    "pressure_Pa": 681.94
+   },
+   "16": {
+    "air_K": 235.11,
+    "ground_K": 245.83,
+    "pressure_Pa": 680.75
+   },
+   "17": {
+    "air_K": 227.96,
+    "ground_K": 229.17,
+    "pressure_Pa": 680.71
+   },
+   "18": {
+    "air_K": 222.06,
+    "ground_K": 215.2,
+    "pressure_Pa": 681.17
+   },
+   "19": {
+    "air_K": 219.49,
+    "ground_K": 206.7,
+    "pressure_Pa": 689.3
+   },
+   "20": {
+    "air_K": 216.79,
+    "ground_K": 201.16,
+    "pressure_Pa": 699.29
+   },
+   "21": {
+    "air_K": 215.37,
+    "ground_K": 197.88,
+    "pressure_Pa": 695.76
+   },
+   "22": {
+    "air_K": 214.67,
+    "ground_K": 194.22,
+    "pressure_Pa": 689.21
+   },
+   "23": {
+    "air_K": 211.34,
+    "ground_K": 191.66,
+    "pressure_Pa": 693.45
+   }
+  },
+  "1351": {
+   "0": {
+    "air_K": 210.17,
+    "ground_K": 190.7,
+    "pressure_Pa": 696.33
+   },
+   "1": {
+    "air_K": 208.52,
+    "ground_K": 189.24,
+    "pressure_Pa": 698.86
+   },
+   "2": {
+    "air_K": 205.44,
+    "ground_K": 187.83,
+    "pressure_Pa": 694.17
+   },
+   "3": {
+    "air_K": 202.48,
+    "ground_K": 186.24,
+    "pressure_Pa": 691.79
+   },
+   "4": {
+    "air_K": 202.57,
+    "ground_K": 185.21,
+    "pressure_Pa": 691.24
+   },
+   "5": {
+    "air_K": 200.36,
+    "ground_K": 183.95,
+    "pressure_Pa": 690.73
+   },
+   "6": {
+    "air_K": 198.77,
+    "ground_K": 183.33,
+    "pressure_Pa": 691.02
+   },
+   "7": {
+    "air_K": 197.32,
+    "ground_K": 191.0,
+    "pressure_Pa": 695.11
+   },
+   "8": {
+    "air_K": 202.06,
+    "ground_K": 213.58,
+    "pressure_Pa": 701.18
+   },
+   "9": {
+    "air_K": 205.74,
+    "ground_K": 237.41,
+    "pressure_Pa": 700.13
+   },
+   "10": {
+    "air_K": 213.56,
+    "ground_K": 256.04,
+    "pressure_Pa": 692.2
+   },
+   "11": {
+    "air_K": 217.62,
+    "ground_K": 270.41,
+    "pressure_Pa": 688.1
+   },
+   "12": {
+    "air_K": 226.94,
+    "ground_K": 276.03,
+    "pressure_Pa": 689.41
+   },
+   "13": {
+    "air_K": 228.18,
+    "ground_K": 276.95,
+    "pressure_Pa": 688.56
+   },
+   "14": {
+    "air_K": 231.69,
+    "ground_K": 264.79,
+    "pressure_Pa": 683.99
+   },
+   "15": {
+    "air_K": 234.07,
+    "ground_K": 255.07,
+    "pressure_Pa": 681.52
+   },
+   "16": {
+    "air_K": 234.67,
+    "ground_K": 242.38,
+    "pressure_Pa": 680.54
+   },
+   "17": {
+    "air_K": 227.89,
+    "ground_K": 227.95,
+    "pressure_Pa": 680.06
+   },
+   "18": {
+    "air_K": 223.05,
+    "ground_K": 216.38,
+    "pressure_Pa": 679.56
+   },
+   "19": {
+    "air_K": 219.91,
+    "ground_K": 208.7,
+    "pressure_Pa": 687.45
+   },
+   "20": {
+    "air_K": 218.57,
+    "ground_K": 203.94,
+    "pressure_Pa": 695.77
+   },
+   "21": {
+    "air_K": 214.0,
+    "ground_K": 200.0,
+    "pressure_Pa": 691.88
+   },
+   "22": {
+    "air_K": 212.86,
+    "ground_K": 197.17,
+    "pressure_Pa": 687.52
+   },
+   "23": {
+    "air_K": 211.22,
+    "ground_K": 194.83,
+    "pressure_Pa": 690.42
+   }
+  },
+  "1354": {
+   "0": {
+    "air_K": 211.93,
+    "ground_K": 193.48,
+    "pressure_Pa": 694.43
+   },
+   "1": {
+    "air_K": 207.45,
+    "ground_K": 191.42,
+    "pressure_Pa": 694.79
+   },
+   "2": {
+    "air_K": 206.03,
+    "ground_K": 189.84,
+    "pressure_Pa": 690.91
+   },
+   "3": {
+    "air_K": 203.52,
+    "ground_K": 188.2,
+    "pressure_Pa": 689.18
+   },
+   "4": {
+    "air_K": 201.55,
+    "ground_K": 186.82,
+    "pressure_Pa": 689.73
+   },
+   "5": {
+    "air_K": 199.95,
+    "ground_K": 185.82,
+    "pressure_Pa": 690.98
+   },
+   "6": {
+    "air_K": 199.17,
+    "ground_K": 187.82,
+    "pressure_Pa": 693.68
+   },
+   "7": {
+    "air_K": 199.06,
+    "ground_K": 205.92,
+    "pressure_Pa": 698.86
+   },
+   "8": {
+    "air_K": 203.62,
+    "ground_K": 229.09,
+    "pressure_Pa": 703.61
+   },
+   "9": {
+    "air_K": 208.04,
+    "ground_K": 248.65,
+    "pressure_Pa": 697.82
+   },
+   "10": {
+    "air_K": 213.12,
+    "ground_K": 252.74,
+    "pressure_Pa": 695.24
+   },
+   "11": {
+    "air_K": 214.33,
+    "ground_K": 266.33,
+    "pressure_Pa": 690.4
+   },
+   "12": {
+    "air_K": 218.84,
+    "ground_K": 270.97,
+    "pressure_Pa": 692.33
+   },
+   "13": {
+    "air_K": 223.1,
+    "ground_K": 271.31,
+    "pressure_Pa": 692.58
+   },
+   "14": {
+    "air_K": 225.16,
+    "ground_K": 269.06,
+    "pressure_Pa": 689.74
+   },
+   "15": {
+    "air_K": 228.34,
+    "ground_K": 264.8,
+    "pressure_Pa": 685.95
+   },
+   "16": {
+    "air_K": 259.3,
+    "ground_K": 249.01,
+    "pressure_Pa": 684.25
+   },
+   "17": {
+    "air_K": 230.65,
+    "ground_K": 237.48,
+    "pressure_Pa": 683.34
+   },
+   "18": {
+    "air_K": 223.28,
+    "ground_K": 221.45,
+    "pressure_Pa": 682.02
+   },
+   "19": {
+    "air_K": 219.19,
+    "ground_K": 209.43,
+    "pressure_Pa": 683.86
+   },
+   "20": {
+    "air_K": 217.31,
+    "ground_K": 202.89,
+    "pressure_Pa": 694.96
+   },
+   "21": {
+    "air_K": 213.58,
+    "ground_K": 198.12,
+    "pressure_Pa": 696.93
+   },
+   "22": {
+    "air_K": 214.73,
+    "ground_K": 194.28,
+    "pressure_Pa": 690.72
+   },
+   "23": {
+    "air_K": 211.64,
+    "ground_K": 191.52,
+    "pressure_Pa": 690.37
+   }
+  },
+  "1357": {
+   "0": {
+    "air_K": 211.85,
+    "ground_K": 190.41,
+    "pressure_Pa": 689.17
+   },
+   "1": {
+    "air_K": 207.53,
+    "ground_K": 188.69,
+    "pressure_Pa": 692.86
+   },
+   "2": {
+    "air_K": 202.03,
+    "ground_K": 187.28,
+    "pressure_Pa": 690.8
+   },
+   "3": {
+    "air_K": 202.22,
+    "ground_K": 185.75,
+    "pressure_Pa": 687.82
+   },
+   "4": {
+    "air_K": 197.21,
+    "ground_K": 184.2,
+    "pressure_Pa": 686.74
+   },
+   "5": {
+    "air_K": 197.88,
+    "ground_K": 182.87,
+    "pressure_Pa": 686.94
+   },
+   "6": {
+    "air_K": 197.73,
+    "ground_K": 182.39,
+    "pressure_Pa": 686.26
+   },
+   "7": {
+    "air_K": 197.55,
+    "ground_K": 188.16,
+    "pressure_Pa": 690.78
+   },
+   "8": {
+    "air_K": 202.0,
+    "ground_K": 209.43,
+    "pressure_Pa": 695.7
+   },
+   "9": {
+    "air_K": 206.07,
+    "ground_K": 234.21,
+    "pressure_Pa": 695.69
+   },
+   "10": {
+    "air_K": 214.07,
+    "ground_K": 256.98,
+    "pressure_Pa": 685.62
+   },
+   "11": {
+    "air_K": 221.03,
+    "ground_K": 269.9,
+    "pressure_Pa": 683.69
+   },
+   "12": {
+    "air_K": 228.82,
+    "ground_K": 274.51,
+    "pressure_Pa": 685.57
+   },
+   "13": {
+    "air_K": 232.53,
+    "ground_K": 273.91,
+    "pressure_Pa": 685.43
+   },
+   "14": {
+    "air_K": 270.48,
+    "ground_K": 269.09,
+    "pressure_Pa": 683.14
+   },
+   "15": {
+    "air_K": 297.52,
+    "ground_K": 259.71,
+    "pressure_Pa": 679.56
+   },
+   "16": {
+    "air_K": 249.13,
+    "ground_K": 246.39,
+    "pressure_Pa": 677.54
+   },
+   "17": {
+    "air_K": 230.69,
+    "ground_K": 230.13,
+    "pressure_Pa": 677.65
+   },
+   "18": {
+    "air_K": 223.24,
+    "ground_K": 215.76,
+    "pressure_Pa": 678.89
+   },
+   "19": {
+    "air_K": 220.86,
+    "ground_K": 206.56,
+    "pressure_Pa": 686.27
+   },
+   "20": {
+    "air_K": 219.06,
+    "ground_K": 201.33,
+    "pressure_Pa": 693.1
+   },
+   "21": {
+    "air_K": 217.18,
+    "ground_K": 197.2,
+    "pressure_Pa": 689.96
+   },
+   "22": {
+    "air_K": 213.63,
+    "ground_K": 194.13,
+    "pressure_Pa": 685.0
+   },
+   "23": {
+    "air_K": 211.83,
+    "ground_K": 191.45,
+    "pressure_Pa": 688.32
+   }
+  },
+  "1360": {
+   "0": {
+    "air_K": 210.26,
+    "ground_K": 206.05,
+    "pressure_Pa": 697.03
+   },
+   "1": {
+    "air_K": 203.35,
+    "ground_K": 204.48,
+    "pressure_Pa": 697.76
+   },
+   "2": {
+    "air_K": 203.17,
+    "ground_K": 203.07,
+    "pressure_Pa": 693.95
+   },
+   "3": {
+    "air_K": 200.34,
+    "ground_K": 201.66,
+    "pressure_Pa": 693.18
+   },
+   "4": {
+    "air_K": 201.51,
+    "ground_K": 200.45,
+    "pressure_Pa": 694.85
+   },
+   "5": {
+    "air_K": 198.77,
+    "ground_K": 199.21,
+    "pressure_Pa": 695.39
+   },
+   "6": {
+    "air_K": 197.76,
+    "ground_K": 199.12,
+    "pressure_Pa": 697.64
+   },
+   "7": {
+    "air_K": 197.78,
+    "ground_K": 201.52,
+    "pressure_Pa": 701.65
+   },
+   "8": {
+    "air_K": 202.52,
+    "ground_K": 204.69,
+    "pressure_Pa": 704.32
+   },
+   "9": {
+    "air_K": 206.14,
+    "ground_K": 218.8,
+    "pressure_Pa": 698.51
+   },
+   "10": {
+    "air_K": 210.34,
+    "ground_K": 231.75,
+    "pressure_Pa": 691.02
+   },
+   "11": {
+    "air_K": 213.54,
+    "ground_K": 239.06,
+    "pressure_Pa": 689.77
+   },
+   "12": {
+    "air_K": 222.37,
+    "ground_K": 249.64,
+    "pressure_Pa": 690.68
+   },
+   "13": {
+    "air_K": 226.98,
+    "ground_K": 256.16,
+    "pressure_Pa": 691.13
+   },
+   "14": {
+    "air_K": 232.93,
+    "ground_K": 259.23,
+    "pressure_Pa": 688.57
+   },
+   "15": {
+    "air_K": 234.86,
+    "ground_K": 258.57,
+    "pressure_Pa": 685.93
+   },
+   "16": {
+    "air_K": 244.88,
+    "ground_K": 254.32,
+    "pressure_Pa": 683.77
+   },
+   "17": {
+    "air_K": 269.94,
+    "ground_K": 244.88,
+    "pressure_Pa": 684.1
+   },
+   "18": {
+    "air_K": 227.68,
+    "ground_K": 231.87,
+    "pressure_Pa": 684.3
+   },
+   "19": {
+    "air_K": 220.13,
+    "ground_K": 221.83,
+    "pressure_Pa": 687.14
+   },
+   "20": {
+    "air_K": 219.88,
+    "ground_K": 216.72,
+    "pressure_Pa": 696.9
+   },
+   "21": {
+    "air_K": 218.33,
+    "ground_K": 213.12,
+    "pressure_Pa": 698.22
+   },
+   "22": {
+    "air_K": 215.34,
+    "ground_K": 210.42,
+    "pressure_Pa": 691.59
+   },
+   "23": {
+    "air_K": 211.29,
+    "ground_K": 208.09,
+    "pressure_Pa": 690.5
+   }
+  },
+  "1362": {
+   "0": {
+    "air_K": 209.55,
+    "ground_K": 205.77,
+    "pressure_Pa": 700.08
+   },
+   "1": {
+    "air_K": 207.46,
+    "ground_K": 204.36,
+    "pressure_Pa": 700.58
+   },
+   "2": {
+    "air_K": 205.91,
+    "ground_K": 203.08,
+    "pressure_Pa": 697.38
+   },
+   "3": {
+    "air_K": 203.22,
+    "ground_K": 201.7,
+    "pressure_Pa": 696.52
+   },
+   "4": {
+    "air_K": 203.37,
+    "ground_K": 200.57,
+    "pressure_Pa": 696.5
+   },
+   "5": {
+    "air_K": 198.91,
+    "ground_K": 199.4,
+    "pressure_Pa": 697.04
+   },
+   "6": {
+    "air_K": 198.77,
+    "ground_K": 199.23,
+    "pressure_Pa": 697.94
+   },
+   "7": {
+    "air_K": 198.06,
+    "ground_K": 201.78,
+    "pressure_Pa": 703.56
+   },
+   "8": {
+    "air_K": 202.62,
+    "ground_K": 205.44,
+    "pressure_Pa": 705.93
+   },
+   "9": {
+    "air_K": 205.62,
+    "ground_K": 219.15,
+    "pressure_Pa": 700.06
+   },
+   "10": {
+    "air_K": 208.45,
+    "ground_K": 225.16,
+    "pressure_Pa": 695.8
+   },
+   "11": {
+    "air_K": 213.01,
+    "ground_K": 239.17,
+    "pressure_Pa": 692.25
+   },
+   "12": {
+    "air_K": 221.48,
+    "ground_K": 249.28,
+    "pressure_Pa": 693.44
+   },
+   "13": {
+    "air_K": 222.52,
+    "ground_K": 267.39,
+    "pressure_Pa": 694.83
+   },
+   "14": {
+    "air_K": 232.45,
+    "ground_K": 278.36,
+    "pressure_Pa": 692.95
+   },
+   "15": {
+    "air_K": 233.52,
+    "ground_K": 276.38,
+    "pressure_Pa": 690.53
+   },
+   "16": {
+    "air_K": 237.08,
+    "ground_K": 268.69,
+    "pressure_Pa": 688.54
+   },
+   "17": {
+    "air_K": 238.39,
+    "ground_K": 253.76,
+    "pressure_Pa": 686.8
+   },
+   "18": {
+    "air_K": 226.28,
+    "ground_K": 232.18,
+    "pressure_Pa": 687.45
+   },
+   "19": {
+    "air_K": 219.94,
+    "ground_K": 215.64,
+    "pressure_Pa": 690.55
+   },
+   "20": {
+    "air_K": 219.76,
+    "ground_K": 207.95,
+    "pressure_Pa": 700.64
+   },
+   "21": {
+    "air_K": 217.64,
+    "ground_K": 202.85,
+    "pressure_Pa": 701.1
+   },
+   "22": {
+    "air_K": 213.33,
+    "ground_K": 198.66,
+    "pressure_Pa": 694.17
+   },
+   "23": {
+    "air_K": 209.69,
+    "ground_K": 195.18,
+    "pressure_Pa": 693.81
+   }
+  },
+  "1366": {
+   "0": {
+    "air_K": 208.37,
+    "ground_K": 204.09,
+    "pressure_Pa": 696.22
+   },
+   "1": {
+    "air_K": 208.56,
+    "ground_K": 202.54,
+    "pressure_Pa": 699.12
+   },
+   "2": {
+    "air_K": 204.58,
+    "ground_K": 201.15,
+    "pressure_Pa": 696.76
+   },
+   "3": {
+    "air_K": 203.84,
+    "ground_K": 199.8,
+    "pressure_Pa": 693.9
+   },
+   "4": {
+    "air_K": 202.19,
+    "ground_K": 198.43,
+    "pressure_Pa": 693.31
+   },
+   "5": {
+    "air_K": 199.8,
+    "ground_K": 197.1,
+    "pressure_Pa": 693.4
+   },
+   "6": {
+    "air_K": 197.11,
+    "ground_K": 196.22,
+    "pressure_Pa": 695.29
+   },
+   "7": {
+    "air_K": 198.83,
+    "ground_K": 198.07,
+    "pressure_Pa": 698.48
+   },
+   "8": {
+    "air_K": 202.74,
+    "ground_K": 205.99,
+    "pressure_Pa": 701.01
+   },
+   "9": {
+    "air_K": 234.68,
+    "ground_K": 219.17,
+    "pressure_Pa": 699.7
+   },
+   "10": {
+    "air_K": 263.74,
+    "ground_K": 233.8,
+    "pressure_Pa": 693.63
+   },
+   "11": {
+    "air_K": 218.45,
+    "ground_K": 249.96,
+    "pressure_Pa": 690.73
+   },
+   "12": {
+    "air_K": 222.55,
+    "ground_K": 259.11,
+    "pressure_Pa": 691.85
+   },
+   "13": {
+    "air_K": 226.78,
+    "ground_K": 264.05,
+    "pressure_Pa": 693.08
+   },
+   "14": {
+    "air_K": 228.47,
+    "ground_K": 267.36,
+    "pressure_Pa": 691.55
+   },
+   "15": {
+    "air_K": 231.52,
+    "ground_K": 266.3,
+    "pressure_Pa": 688.48
+   },
+   "16": {
+    "air_K": 231.68,
+    "ground_K": 259.89,
+    "pressure_Pa": 685.38
+   },
+   "17": {
+    "air_K": 229.87,
+    "ground_K": 247.9,
+    "pressure_Pa": 684.39
+   },
+   "18": {
+    "air_K": 224.2,
+    "ground_K": 232.49,
+    "pressure_Pa": 684.15
+   },
+   "19": {
+    "air_K": 219.43,
+    "ground_K": 221.64,
+    "pressure_Pa": 686.8
+   },
+   "20": {
+    "air_K": 216.59,
+    "ground_K": 215.81,
+    "pressure_Pa": 696.39
+   },
+   "21": {
+    "air_K": 218.01,
+    "ground_K": 211.81,
+    "pressure_Pa": 698.92
+   },
+   "22": {
+    "air_K": 213.73,
+    "ground_K": 208.67,
+    "pressure_Pa": 694.7
+   },
+   "23": {
+    "air_K": 211.35,
+    "ground_K": 206.13,
+    "pressure_Pa": 692.99
+   }
+  },
+  "1368": {
+   "0": {
+    "air_K": 209.06,
+    "ground_K": 204.27,
+    "pressure_Pa": 698.14
+   },
+   "1": {
+    "air_K": 208.68,
+    "ground_K": 202.75,
+    "pressure_Pa": 701.74
+   },
+   "2": {
+    "air_K": 204.63,
+    "ground_K": 201.17,
+    "pressure_Pa": 700.46
+   },
+   "3": {
+    "air_K": 203.87,
+    "ground_K": 199.93,
+    "pressure_Pa": 697.86
+   },
+   "4": {
+    "air_K": 202.29,
+    "ground_K": 198.59,
+    "pressure_Pa": 697.41
+   },
+   "5": {
+    "air_K": 200.44,
+    "ground_K": 197.38,
+    "pressure_Pa": 697.69
+   },
+   "6": {
+    "air_K": 198.23,
+    "ground_K": 196.44,
+    "pressure_Pa": 699.13
+   },
+   "7": {
+    "air_K": 200.57,
+    "ground_K": 198.44,
+    "pressure_Pa": 702.08
+   },
+   "8": {
+    "air_K": 201.32,
+    "ground_K": 206.23,
+    "pressure_Pa": 704.27
+   },
+   "9": {
+    "air_K": 235.05,
+    "ground_K": 219.48,
+    "pressure_Pa": 702.9
+   },
+   "10": {
+    "air_K": 263.3,
+    "ground_K": 233.93,
+    "pressure_Pa": 696.5
+   },
+   "11": {
+    "air_K": 215.69,
+    "ground_K": 250.02,
+    "pressure_Pa": 692.09
+   },
+   "12": {
+    "air_K": 220.46,
+    "ground_K": 258.98,
+    "pressure_Pa": 693.01
+   },
+   "13": {
+    "air_K": 225.17,
+    "ground_K": 263.93,
+    "pressure_Pa": 693.35
+   },
+   "14": {
+    "air_K": 227.6,
+    "ground_K": 267.13,
+    "pressure_Pa": 691.94
+   },
+   "15": {
+    "air_K": 230.47,
+    "ground_K": 266.42,
+    "pressure_Pa": 688.64
+   },
+   "16": {
+    "air_K": 231.37,
+    "ground_K": 260.17,
+    "pressure_Pa": 685.64
+   },
+   "17": {
+    "air_K": 230.04,
+    "ground_K": 248.0,
+    "pressure_Pa": 685.21
+   },
+   "18": {
+    "air_K": 223.47,
+    "ground_K": 232.42,
+    "pressure_Pa": 684.88
+   },
+   "19": {
+    "air_K": 220.08,
+    "ground_K": 221.56,
+    "pressure_Pa": 687.96
+   },
+   "20": {
+    "air_K": 215.96,
+    "ground_K": 215.74,
+    "pressure_Pa": 697.59
+   },
+   "21": {
+    "air_K": 216.8,
+    "ground_K": 211.86,
+    "pressure_Pa": 699.17
+   },
+   "22": {
+    "air_K": 212.81,
+    "ground_K": 208.68,
+    "pressure_Pa": 694.18
+   },
+   "23": {
+    "air_K": 210.63,
+    "ground_K": 206.2,
+    "pressure_Pa": 693.02
+   }
+  }
+ }
+}
