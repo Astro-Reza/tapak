@@ -111,6 +111,12 @@ engine in `src/engine/` on real Jezero data (HiRISE DTM and orthoimage, MEDA wea
 npm test           # engine tests + regression and integration tests
 ```
 
+## Backend
+
+`backend/` is a Flask API that serves `GET /comms/passes` and `GET /comms/link`, computed from relay orbits and a UHF
+link budget. Start it, then set `VITE_MARSWALK_API_URL=http://localhost:5000` in `.env.local` (see `.env.example`).
+Without it, the Comms screens use their dummy data. See [backend/README.md](backend/README.md).
+
 ## Data honesty
 
 Terrain, MEDA temperatures and pressure, and stop positions are measurements. Routes, slope and sky view are calculated

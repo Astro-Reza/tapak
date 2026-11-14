@@ -1,0 +1,4 @@
+flask>=3.0,<4
+numpy>=1.26
+waitress>=3.0  # production WSGI server (works on Windows)
+pytest>=8.0
