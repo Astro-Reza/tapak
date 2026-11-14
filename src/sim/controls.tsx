@@ -20,7 +20,7 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
         className="flex w-full"
       >
         {options.map((o) => (
-          <ToggleGroupItem key={o.value} value={o.value} className="h-glove min-w-0 flex-1 px-sm whitespace-normal">
+          <ToggleGroupItem key={o.value} value={o.value} className="h-auto min-h-control min-w-0 flex-1 px-sm py-xs whitespace-normal">
             {o.label}
           </ToggleGroupItem>
         ))}
@@ -36,7 +36,7 @@ export function PlanControls() {
   const hours = win?.opts.map((o) => o.hour) ?? [];
   const i = hours.indexOf(settings.startLmst);
   return (
-    <div className={cn("flex flex-col gap-md", busy && "opacity-60")} aria-busy={busy}>
+    <div className={cn("flex flex-col gap-sm", busy && "opacity-60")} aria-busy={busy}>
       <Segmented<Mode>
         label="Route mode"
         value={settings.mode}
@@ -64,11 +64,11 @@ export function PlanControls() {
           EVA start · MEDA daylight window{win?.best != null ? ` · warmest ${fmtLmst(win.best)}` : ""}
         </p>
         <div className="flex items-center gap-sm">
-          <Button variant="secondary" size="glove" aria-label="Earlier start" disabled={i <= 0} onClick={() => update({ startLmst: hours[i - 1] })}>
+          <Button variant="secondary" aria-label="Earlier start" disabled={i <= 0} onClick={() => update({ startLmst: hours[i - 1] })}>
             −1 h
           </Button>
           <p className="min-w-0 flex-1 text-center t-data-coordinate text-fg">{fmtLmst(settings.startLmst)} LMST</p>
-          <Button variant="secondary" size="glove" aria-label="Later start" disabled={i < 0 || i >= hours.length - 1} onClick={() => update({ startLmst: hours[i + 1] })}>
+          <Button variant="secondary" aria-label="Later start" disabled={i < 0 || i >= hours.length - 1} onClick={() => update({ startLmst: hours[i + 1] })}>
             +1 h
           </Button>
         </div>

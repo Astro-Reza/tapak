@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchInput } from "@/components/ui/input";
 import { PassRow } from "@/components/marswalk/comms";
 import { Fit } from "@/components/marswalk/fit";
@@ -53,6 +54,9 @@ function useSimulatedHeartRate(start: number) {
 
 const DESIGN = { width: 710, height: 938 };
 /** Route fitted between the search box and the profile card. */
+/** Rail content fills the scroll viewport (Hub scroll styling). */
+const RAIL_VIEWPORT = "[&>div]:!flex [&>div]:min-h-full [&>div]:flex-col";
+
 const ROUTE_BOX = { x0: 30, y0: 200, x1: 450, y1: 680 };
 
 /** 03 · EVA Map (During EVA): progress, live position, connectivity, telemetry. */
@@ -82,8 +86,9 @@ function EvaMapLoaded() {
   const s = result!.s;
 
   return (
-    <div className="flex min-h-full flex-col xl:h-full xl:min-h-[760px] xl:flex-row">
-      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
+    <div className="flex min-h-full flex-col xl:h-full xl:flex-row">
+      <ScrollArea className="shrink-0 bg-raised xl:w-rail" viewportClassName={RAIL_VIEWPORT} aria-label="EVA progress">
+      <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="EVA progress" sub={`T+${fmtHM(evaT)} of ${fmtHM(s.evaLimitMin)} cap · simulated walk on the plan`} />
         <div className="flex items-center gap-sm" role="group" aria-label="Simulated EVA clock">
           <Button variant="secondary" aria-label="Back 10 minutes" onClick={() => setEvaT(Math.max(0, evaT - 10))}>
@@ -118,6 +123,7 @@ function EvaMapLoaded() {
           </StatList>
         </Card>
       </aside>
+      </ScrollArea>
 
       <section className="relative flex flex-col gap-lg p-lg xl:block xl:min-w-0 xl:flex-1 xl:p-0">
       <MapFrame
@@ -206,7 +212,8 @@ function EvaMapLoaded() {
         </Card>
       </section>
 
-      <aside className="flex flex-col gap-lg bg-raised px-lg py-xl xl:w-rail xl:shrink-0 xl:overflow-y-auto">
+      <ScrollArea className="shrink-0 bg-raised xl:w-rail" viewportClassName={RAIL_VIEWPORT} aria-label="Connectivity">
+      <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
         <ScreenHeading title="Connectivity" sub="Tablet · HUD · relay · habitat · simulated" />
         <ul className="flex flex-col gap-xs rounded-sm bg-panel px-md py-sm">
           {EVA.hops.map((hop, i) => (
@@ -242,6 +249,7 @@ function EvaMapLoaded() {
           </ul>
         </section>
       </aside>
+      </ScrollArea>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,7 @@ export function OrthoBasemap({ src, left, top, width, height }: { src: string; l
 /* ---------- Map frame with a smooth camera ---------- */
 
 const ZOOM_STEPS = [1, 1.25, 1.6] as const;
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 /**
  * Map viewport. `world` (imagery, layers, route, markers) is drawn in design
@@ -127,25 +128,78 @@ export function MapFrame({
 }) {
   const [zoom, setZoom] = useState(0);
   const [ref, box] = useFit(design, "contain", origin, { min: 0.55, max: 1.25 });
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ id: number; sx: number; sy: number; px: number; py: number; moved: boolean } | null>(null);
+  // ponytail: keeps at least half the frame on the world; tighten to real image bounds if users get lost
+  const limX = (box.width / 2) * ZOOM_STEPS[zoom];
+  const limY = (box.height / 2) * ZOOM_STEPS[zoom];
+  const clampPan = (x: number, y: number) => ({ x: clamp(x, -limX, limX), y: clamp(y, -limY, limY) });
+  // re-clamped every render, so zooming out or resizing never strands the world off-frame
+  const shown = clampPan(pan.x, pan.y);
+  const recenter = () => {
+    setZoom(0);
+    setPan({ x: 0, y: 0 });
+  };
   return (
     <div ref={ref} className={cn("relative overflow-hidden bg-canvas", className)}>
-      <FitLayer design={design} box={box}>
-        <div
-          className="mw-map-camera absolute inset-0"
-          style={{
-            transform: `scale(${ZOOM_STEPS[zoom]})`,
-            transformOrigin: `${origin.x}px ${origin.y}px`,
-          }}
-        >
-          {world}
-        </div>
-      </FitLayer>
+      <div
+        data-testid="map-pan"
+        className={cn("absolute inset-0 touch-none select-none", dragging ? "cursor-grabbing" : "mw-map-camera cursor-grab")}
+        style={{ transform: `translate(${shown.x}px, ${shown.y}px)` }}
+        onPointerDown={(e) => {
+          if (e.button !== 0 || dragging) return; // a second finger mid-drag doesn't restart it
+          drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, px: shown.x, py: shown.y, moved: false };
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current;
+          if (!d || d.id !== e.pointerId) return;
+          const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+          // under 4 px is a tap, so waypoint buttons still get their click
+          if (!d.moved && Math.hypot(dx, dy) < 4) return;
+          if (!d.moved) {
+            d.moved = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging(true);
+          }
+          setPan(clampPan(d.px + dx, d.py + dy));
+        }}
+        onPointerUp={(e) => {
+          if (drag.current?.id !== e.pointerId) return;
+          setDragging(false);
+          // leave `moved` set until the click that follows, then drop it
+          if (!drag.current.moved) drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+          setDragging(false);
+        }}
+        onClickCapture={(e) => {
+          if (drag.current?.moved) {
+            e.stopPropagation();
+            e.preventDefault();
+          }
+          drag.current = null;
+        }}
+      >
+        <FitLayer design={design} box={box}>
+          <div
+            className="mw-map-camera absolute inset-0"
+            style={{
+              transform: `scale(${ZOOM_STEPS[zoom]})`,
+              transformOrigin: `${origin.x}px ${origin.y}px`,
+            }}
+          >
+            {world}
+          </div>
+        </FitLayer>
+      </div>
       {children}
       <div className={cn("absolute z-10 flex flex-col gap-sm", controlsClassName)}>
-        <Button variant="map" size="icon" className="size-glove" aria-label="North up" onClick={() => setZoom(0)}>
+        <Button variant="map" size="icon" className="size-glove" aria-label="North up" onClick={recenter}>
           <Icon name="north" size={20} />
         </Button>
-        <Button variant="map" size="icon" className="size-glove" aria-label="Center on position" onClick={() => setZoom(0)}>
+        <Button variant="map" size="icon" className="size-glove" aria-label="Center on position" onClick={recenter}>
           <Icon name="locate" size={20} />
         </Button>
         <Button
