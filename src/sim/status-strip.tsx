@@ -16,7 +16,7 @@ export function MissionStatusStrip({ className }: { className?: string }) {
         ["Window", `${fmtLmst(settings.startLmst)} → ${fmtLmst(settings.startLmst + end.t / MARS_HOUR_MIN)} LMST`],
         ["Duration", `${fmtHM(end.t)} of ${fmtHM(s.evaLimitMin)}`],
         ["Distance", `${(end.dist / 1000).toFixed(2)} km`],
-        ["O₂ at return", `${((100 * (s.o2CapacityL - end.o2)) / s.o2CapacityL).toFixed(0)} %`],
+        ["O₂ at return (model)", `${((100 * (s.o2CapacityL - end.o2)) / s.o2CapacityL).toFixed(0)} %`],
         ["Walk-back", `${ev.wb && ev.wb.minMarginL >= 0 ? "+" : ""}${ev.wb?.minMarginL.toFixed(0)} L`],
         ["Rules", result.policy.label],
       ]

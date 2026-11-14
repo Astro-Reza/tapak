@@ -1,19 +1,28 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { ToastProvider } from "@/components/marswalk/toaster";
-import { TopBar } from "@/components/marswalk/top-bar";
 import { DEBRIEF, EVA, PLAN } from "@/data/mission";
 import { isReducedMotion, motionMs } from "@/lib/motion";
 import { useHashRoute, type Route } from "@/lib/router";
 import { StoreProvider } from "@/lib/store";
 import { MissionProvider } from "@/sim/mission";
+import { MissionTopBar } from "@/sim/top-bar";
 import { CommsLinkScreen } from "@/screens/comms-link";
 import { CommsPassesScreen } from "@/screens/comms-passes";
 import { DebriefScreen } from "@/screens/debrief";
 import { EvaMapScreen } from "@/screens/eva-map";
-import { FovScreen } from "@/screens/fov";
 import { HubScreen } from "@/screens/hub";
 import { PlanScreen } from "@/screens/plan";
+
+/** FoV pulls in three.js (~600 kB); load it only when the screen opens. */
+const FovLazy = lazy(() => import("@/screens/fov").then((m) => ({ default: m.FovScreen })));
+function FovScreen() {
+  return (
+    <Suspense fallback={<p role="status" className="p-xl t-body-m text-fg-secondary">Loading 3D view…</p>}>
+      <FovLazy />
+    </Suspense>
+  );
+}
 
 /** Each Figma screen is a snapshot at a mission time (LMST). */
 const CLOCK: Record<Route, string> = {
@@ -86,7 +95,7 @@ export default function App() {
       <MissionProvider>
       <ToastProvider>
         <div className="flex h-full flex-col bg-canvas">
-          <TopBar route={route} clock={CLOCK[shown]} onNavigate={navigate} />
+          <MissionTopBar route={route} fallback={CLOCK[shown]} onNavigate={navigate} />
           <div className="relative min-h-0 flex-1">
             <main key={shown} className="absolute inset-0 overflow-x-hidden overflow-y-auto">
               <Screen />
