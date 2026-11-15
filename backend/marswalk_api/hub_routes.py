@@ -1,4 +1,4 @@
-"""Hub page routes, backed by the SQLite layer in hub_db.py.
+"""Hub page routes, backed by hub_db.py (Turso, or a local SQLite file).
 
   GET  /hub/presets                  ?search=&status=
   GET  /hub/presets/<id>
@@ -22,10 +22,12 @@ hub_bp = Blueprint("hub", __name__, url_prefix="/hub")
 STATUSES = {"active": "Active", "ready": "Ready", "planned": "Planned"}
 
 
-def get_db() -> sqlite3.Connection:
-    """One connection per request. Config HUB_DB_PATH overrides the default file."""
+def get_db() -> hub_db.Connection:
+    """Config HUB_DB_PATH (a SQLite file) wins; otherwise Turso when
+    TURSO_DATABASE_URL is set, else the bundled marswalk_hub.db.
+    SQLite opens one connection per request; Turso reuses a shared one."""
     if "hub_db" not in g:
-        g.hub_db = hub_db.get_connection(current_app.config.get("HUB_DB_PATH"))
+        g.hub_db = hub_db.connect(current_app.config.get("HUB_DB_PATH"))
     return g.hub_db
 
 
@@ -80,7 +82,7 @@ def toggle_item(preset_id: str, item_id: str):
     found = hub_db.get_preset_by_id(conn, preset_id)
     if found is None:
         return _not_found("preset")
-    if conn.execute("SELECT 1 FROM checklist_items WHERE id = ?", (item_id,)).fetchone() is None:
+    if not hub_db.checklist_item_exists(conn, item_id):
         return _not_found("checklist item")
 
     body = request.get_json(silent=True) or {}
@@ -89,11 +91,7 @@ def toggle_item(preset_id: str, item_id: str):
             return jsonify(error="'isDone' must be true or false"), 400
         is_done = body["isDone"]
     else:
-        row = conn.execute(
-            "SELECT is_done FROM mission_checklist_state WHERE preset_id = ? AND item_id = ?",
-            (found["id"], item_id),
-        ).fetchone()
-        is_done = not (row and row["is_done"])
+        is_done = not hub_db.get_item_done(conn, found["id"], item_id)
 
     hub_db.set_item_done(conn, found["id"], item_id, is_done)
     return jsonify(presetId=found["id"], itemId=item_id, isDone=is_done)

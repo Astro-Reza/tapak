@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { POLICY_PROFILES, SCIENCE_PROFILES, windowOptions, type Mode, type PolicyId, type ScienceId } from "@/engine";
+import { windowOptions, type Mode } from "@/engine";
 import { cn } from "@/lib/utils";
 import { useMission } from "./mission";
 import { fmtLmst } from "./view";
@@ -29,12 +29,19 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
   );
 }
 
-/** Route mode, rules and suit profile, EVA start. Every assumption the plan depends on is visible here. */
+/** Route mode and EVA start. MARSWALK app rules and 60 kg suit model are fixed. */
 export function PlanControls() {
   const { settings, update, busy, data, ev } = useMission();
   const win = data ? windowOptions(data.hourly, ev?.end?.t ?? 217) : null;
   const hours = win?.opts.map((o) => o.hour) ?? [];
   const i = hours.indexOf(settings.startLmst);
+
+  useEffect(() => {
+    if (settings.policyId !== "engine" || settings.scienceId !== "app-60kg") {
+      update({ policyId: "engine", scienceId: "app-60kg" });
+    }
+  }, [settings.policyId, settings.scienceId, update]);
+
   return (
     <div className={cn("flex flex-col gap-sm", busy && "opacity-60")} aria-busy={busy}>
       <Segmented<Mode>
@@ -46,18 +53,6 @@ export function PlanControls() {
           { value: "safest", label: "Safest" },
         ]}
         onChange={(mode) => update({ mode })}
-      />
-      <Segmented<PolicyId>
-        label="Mission rules (not yet agreed)"
-        value={settings.policyId}
-        options={Object.entries(POLICY_PROFILES).map(([value, p]) => ({ value: value as PolicyId, label: p.label }))}
-        onChange={(policyId) => update({ policyId })}
-      />
-      <Segmented<ScienceId>
-        label="Suit model (not yet agreed)"
-        value={settings.scienceId}
-        options={Object.entries(SCIENCE_PROFILES).map(([value, p]) => ({ value: value as ScienceId, label: p.label }))}
-        onChange={(scienceId) => update({ scienceId })}
       />
       <div className="flex flex-col gap-xs">
         <p className="t-data-telemetry text-fg-muted">

@@ -43,6 +43,26 @@ backend". If the front-end is served by this backend (`npm run build`, then open
 | `MARSWALK_SERVE_DIST` | `1` | `0` = API only |
 | `MARSWALK_DIST_DIR` | `../dist` | |
 | `FLASK_DEBUG` | unset | `1` = debugger and reload |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | unset | Hub data in Turso; unset = local `marswalk_hub.db` |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | unset | Upstash Redis cache for the Hub catalogue; unset = no cache |
+| `MARSWALK_CACHE` | `1` | `0` = bypass Redis |
+
+`python app.py` and `init_hub_db.py` also read `backend/.env` and the repo-root `.env` (never overriding real env vars).
+
+## Hub data: Turso + Upstash Redis
+
+The `/hub/*` routes read from Turso when `TURSO_DATABASE_URL` is set (`marswalk_api/turso.py`, plain HTTPS, no native
+driver). Presets, checklist structure and hold criteria are cached in Upstash Redis under `marswalk:hub:v1:*` (6 h TTL);
+per-preset checklist state is always read live from Turso, so toggles show up immediately everywhere.
+
+```bash
+python init_hub_db.py --turso         # create tables + upsert hub_dummy_data.json, clears the Redis cache
+python init_hub_db.py --flush-cache   # after editing catalogue rows by hand
+python init_hub_db.py                 # rebuild the local SQLite fallback
+MARSWALK_LIVE_TESTS=1 python -m pytest tests/test_turso.py   # compare Turso with a local seed
+```
+
+Re-running the seed puts the items listed in `mission_checklist_states` back to their seed values; other toggles stay.
 
 ## What is modelled
 

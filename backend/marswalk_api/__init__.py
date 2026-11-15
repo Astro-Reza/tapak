@@ -30,10 +30,13 @@ def create_app(test_config: dict | None = None) -> Flask:
     if test_config:
         app.config.update(test_config)
 
-    # Vercel's filesystem is read-only except /tmp: work on a copy of the
-    # bundled Hub database. Writes (checklist toggles) last as long as the
-    # function instance stays warm; use a hosted DB for real persistence.
-    if os.environ.get("VERCEL") and "HUB_DB_PATH" not in app.config:
+    # Hub data lives in Turso when TURSO_DATABASE_URL is set (see hub_db.py).
+    # Without it on Vercel, whose filesystem is read-only except /tmp, fall
+    # back to a copy of the bundled SQLite file; toggles then last only while
+    # the function instance stays warm.
+    if os.environ.get("VERCEL") and "HUB_DB_PATH" not in app.config and not os.environ.get(
+        "TURSO_DATABASE_URL"
+    ):
         import shutil
 
         from .hub_db import DEFAULT_DB_PATH

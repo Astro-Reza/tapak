@@ -8,6 +8,11 @@
 import os
 
 from marswalk_api import create_app
+from marswalk_api.env import load_dotenv
+
+# Local dev: pick up TURSO_* / KV_* from backend/.env or the repo-root .env.
+# Never overrides variables that are already set (e.g. on Vercel).
+load_dotenv()
 
 app = create_app()
 

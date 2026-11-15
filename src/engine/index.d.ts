@@ -90,7 +90,7 @@ export interface Evaluation {
 export interface ReturnField { cost: Float64Array; start: number }
 
 export interface ProfileDef<P> { label: string; params: P; source: Record<keyof P & string, string> }
-export type ScienceId = "app-50kg" | "model-40kg";
+export type ScienceId = "app-60kg" | "app-50kg" | "model-40kg";
 export type PolicyId = "engine" | "hold-sheet";
 export interface PolicyParams {
   maxSlopeDeg: number; cautionSlopeDeg: number; reserveFrac: number; reserveFactor: number; evaLimitMin: number;

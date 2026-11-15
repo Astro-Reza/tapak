@@ -121,6 +121,7 @@ export function MetricTile({
   unit,
   sub,
   size = "s",
+  variant = "card",
   className,
   style,
 }: {
@@ -129,6 +130,7 @@ export function MetricTile({
   unit: string;
   sub: string;
   size?: "s" | "l";
+  variant?: "card" | "grid";
   className?: string;
   style?: CSSProperties;
 }) {
@@ -136,7 +138,8 @@ export function MetricTile({
   return (
     <div
       className={cn(
-        "mw-flash-in flex flex-col items-start gap-xs rounded-sm border border-line-subtle bg-panel p-md",
+        "mw-flash-in flex flex-col items-start gap-xs bg-panel p-md",
+        variant === "card" && "rounded-sm border border-line-subtle",
         className,
       )}
       style={style}
