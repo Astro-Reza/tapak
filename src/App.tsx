@@ -97,7 +97,7 @@ export default function App() {
             <div className="flex h-full flex-col bg-canvas">
               <MissionTopBar route={route} fallback={CLOCK[shown]} onNavigate={navigate} />
               <div className="relative min-h-0 flex-1">
-                <main key={shown} className={cn("absolute inset-0 overflow-x-hidden", shown === "hub" ? "overflow-y-hidden" : "overflow-y-auto")}>
+                <main key={shown} className={cn("absolute inset-0 overflow-x-hidden", shown === "hub" || shown === "debrief" ? "overflow-y-hidden" : "overflow-y-auto")}>
                   <Screen />
                 </main>
                 {phase === "idle" ? null : (
