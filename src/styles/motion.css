@@ -642,8 +642,26 @@
   animation: mw-slide-in-right var(--motion-duration-short) var(--motion-easing-step-structural) both;
 }
 
+/* Tactical skeleton loader: 4-step pulse (1000 ms, 4 ticks) */
+@keyframes mw-skeleton-pulse {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.mw-skeleton {
+  animation: mw-skeleton-pulse 1000ms steps(4, jump-end) infinite;
+}
+
 /* Reduced motion (OS setting, or ?motion=reduced): every sequence
    collapses to a single 100 ms opacity fade. No flashes, stagger or scramble. */
+:root[data-motion="reduced"] .mw-skeleton {
+  animation: none;
+  opacity: 0.5;
+}
 :root[data-motion="reduced"] .mw-slide-in-right,
 :root[data-motion="reduced"] .mw-flash-in,
 :root[data-motion="reduced"] .mw-text-in,

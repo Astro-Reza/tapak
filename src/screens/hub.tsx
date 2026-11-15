@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SimpleTooltip, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChecklistPanel } from "@/components/marswalk/checklist-panel";
 import { HoldPanel } from "@/components/marswalk/hold-panel";
+import { ChecklistSkeleton, HoldPanelSkeleton, TimelineSkeleton } from "@/components/marswalk/hub-skeletons";
 import { Icon } from "@/components/marswalk/icons";
 import { Brackets, TimelineBar } from "@/components/marswalk/primitives";
 import { useToast } from "@/components/marswalk/toaster";
@@ -448,9 +449,11 @@ function PresetSettingsDialog({
 function HubSidebar({
   onToggle,
   onOpenSettings,
+  onOpenPreset,
 }: {
   onToggle?: () => void;
   onOpenSettings?: () => void;
+  onOpenPreset?: (preset: MissionPreset) => void;
 }) {
   const { update } = useMission();
   const toast = useToast();
@@ -491,7 +494,7 @@ function HubSidebar({
       scienceId: preset.scienceId,
       startLmst: preset.startLmst,
     });
-    toast(`Preset opened: ${preset.id} · ${preset.name}`);
+    onOpenPreset?.(preset);
   };
 
   const handleDeletePreset = (preset: MissionPreset) => {
@@ -655,7 +658,7 @@ function HubSidebar({
                       <button
                         type="button"
                         onClick={() => openPreset(preset)}
-                        className="flex flex-1 items-center justify-center border-b border-line-subtle bg-brand text-canvas font-semibold t-label-s transition-colors hover:brightness-110 active:brightness-95 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
+                        className="flex flex-1 items-center justify-center border-b border-line-subtle bg-brand text-canvas font-normal t-body-s transition-colors hover:brightness-110 active:brightness-95 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
                         aria-label={`Open ${preset.id}`}
                       >
                         Open
@@ -665,7 +668,7 @@ function HubSidebar({
                       <button
                         type="button"
                         onClick={() => setEditingPreset(preset)}
-                        className="flex flex-1 items-center justify-center border-b border-line-subtle bg-transparent text-fg-secondary font-medium t-label-s transition-colors hover:text-fg hover:bg-inset active:bg-inset/80 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
+                        className="flex flex-1 items-center justify-center border-b border-line-subtle bg-transparent text-fg-secondary font-normal t-body-s transition-colors hover:text-fg hover:bg-inset active:bg-inset/80 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
                         aria-label={`Settings for ${preset.id}`}
                       >
                         Settings
@@ -675,7 +678,7 @@ function HubSidebar({
                       <button
                         type="button"
                         onClick={() => handleDeletePreset(preset)}
-                        className="flex flex-1 items-center justify-center bg-transparent text-danger font-medium t-label-s transition-colors hover:bg-danger/10 active:bg-danger/20 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-danger"
+                        className="flex flex-1 items-center justify-center bg-transparent text-danger font-normal t-body-s transition-colors hover:bg-danger/10 active:bg-danger/20 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-danger"
                         aria-label={`Delete ${preset.id}`}
                       >
                         Delete
@@ -726,8 +729,16 @@ export function HubScreen() {
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isDragging, setIsDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isLoadingPreset, setIsLoadingPreset] = useState(false);
   const group = motionMs("stagger-group");
   const ticks = Array.from({ length: TIMELINE.minutes / TIMELINE.tickEvery + 1 }, (_, i) => i * TIMELINE.tickEvery);
+
+  const handleOpenPreset = (_preset: MissionPreset) => {
+    setIsLoadingPreset(true);
+    setTimeout(() => {
+      setIsLoadingPreset(false);
+    }, 750);
+  };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -810,6 +821,7 @@ export function HubScreen() {
           <HubSidebar
             onToggle={() => setSidebarOpen(false)}
             onOpenSettings={() => setSettingsOpen(true)}
+            onOpenPreset={handleOpenPreset}
           />
         </div>
 
@@ -831,11 +843,11 @@ export function HubScreen() {
             <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 160 : 240}>
               <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
                 <ResizablePanel id="hub-lists" defaultSize="72%" minSize="30%">
-                  <ChecklistTabs delay={group} />
+                  {isLoadingPreset ? <ChecklistSkeleton /> : <ChecklistTabs delay={group} />}
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel id="hub-hold" defaultSize="28%" minSize="14%">
-                  <HoldPanel className={CARD} delay={group * 2} />
+                  {isLoadingPreset ? <HoldPanelSkeleton /> : <HoldPanel className={CARD} delay={group * 2} />}
                 </ResizablePanel>
               </ResizablePanelGroup>
             </ResizablePanel>
@@ -843,110 +855,114 @@ export function HubScreen() {
             <ResizableHandle withHandle />
 
             <ResizablePanel id="hub-timeline" defaultSize="30%" minSize={96}>
-              <section className={cn("flex size-full min-h-0 flex-col", CARD)}>
-                <CardHeader
-                  title="During-EVA missions · timeline"
-                  meta={`Synthetic schedule · drag up for details · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
-                  delay={group * 3}
-                />
-                <ScrollArea className="min-h-0 flex-1" aria-label="Mission timeline">
-                  <div className="shrink-0 overflow-x-auto overflow-y-hidden">
-                    <div className="relative flex min-w-[760px] flex-col gap-sm px-lg py-md">
-                      <div className="flex gap-md">
-                        <div className="h-lg shrink-0" style={{ width: LABEL_W }} />
-                        <div className="relative h-lg min-w-0 flex-1 t-data-telemetry text-fg-muted">
-                          {ticks.map((minute, i) => (
-                            <span
-                              key={minute}
-                              className="absolute top-0 whitespace-nowrap"
-                              style={i === ticks.length - 1 ? { right: 0 } : { left: pct(minute) }}
-                            >
-                              {clockAfter(TIMELINE.startLabel, minute)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {TIMELINE.tracks.map((track, row) => (
-                        <div key={track.name} className="flex items-center gap-md">
-                          <p className="shrink-0 t-body-s text-fg-secondary" style={{ width: LABEL_W }}>
-                            {track.name}
-                          </p>
-                          <div className="relative h-2xl min-w-0 flex-1 overflow-hidden rounded-sm bg-inset">
-                            {ticks.slice(1, -1).map((minute) => (
+              {isLoadingPreset ? (
+                <TimelineSkeleton />
+              ) : (
+                <section className={cn("flex size-full min-h-0 flex-col", CARD)}>
+                  <CardHeader
+                    title="During-EVA missions · timeline"
+                    meta={`Synthetic schedule · drag up for details · ${TIMELINE.tracks.length} tracks · ${TIMELINE.startLabel} → ${TIMELINE.endLabel}`}
+                    delay={group * 3}
+                  />
+                  <ScrollArea className="min-h-0 flex-1" aria-label="Mission timeline">
+                    <div className="shrink-0 overflow-x-auto overflow-y-hidden">
+                      <div className="relative flex min-w-[760px] flex-col gap-sm px-lg py-md">
+                        <div className="flex gap-md">
+                          <div className="h-lg shrink-0" style={{ width: LABEL_W }} />
+                          <div className="relative h-lg min-w-0 flex-1 t-data-telemetry text-fg-muted">
+                            {ticks.map((minute, i) => (
                               <span
                                 key={minute}
-                                className="absolute top-0 h-full w-px bg-line opacity-25"
-                                style={{ left: pct(minute) }}
-                              />
-                            ))}
-                            {track.events.map((event, i) => (
-                              <SimpleTooltip
-                                key={`${event.label}-${event.start}`}
-                                content={
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="font-semibold text-fg">{event.label}</span>
-                                    <span className="t-data-telemetry text-fg-muted">
-                                      {clockAfter(TIMELINE.startLabel, event.start)}
-                                      {event.duration ? ` · ${event.duration} min` : ""}
-                                      {` · track: ${track.name}`}
-                                    </span>
-                                  </div>
-                                }
-                                side="top"
+                                className="absolute top-0 whitespace-nowrap"
+                                style={i === ticks.length - 1 ? { right: 0 } : { left: pct(minute) }}
                               >
-                                <TimelineBar
-                                  kind={event.kind}
-                                  label={event.label}
-                                  style={
-                                    {
-                                      left: pct(event.start),
-                                      width: event.duration ? pct(event.duration) : COMMS_CHIP_W,
-                                      ...stagger(row + i, group * 3 + headerDelay()),
-                                    } as CSSProperties
-                                  }
-                                />
-                              </SimpleTooltip>
+                                {clockAfter(TIMELINE.startLabel, minute)}
+                              </span>
                             ))}
                           </div>
                         </div>
-                      ))}
 
-                      {/* T-0 marker: brand marks "now" */}
-                      <span
-                        aria-hidden="true"
-                        className="absolute top-md bottom-md w-(--stroke-default) bg-brand"
-                        style={{ left: 16 + LABEL_W + 12 }}
-                      />
-                    </div>
+                        {TIMELINE.tracks.map((track, row) => (
+                          <div key={track.name} className="flex items-center gap-md">
+                            <p className="shrink-0 t-body-s text-fg-secondary" style={{ width: LABEL_W }}>
+                              {track.name}
+                            </p>
+                            <div className="relative h-2xl min-w-0 flex-1 overflow-hidden rounded-sm bg-inset">
+                              {ticks.slice(1, -1).map((minute) => (
+                                <span
+                                  key={minute}
+                                  className="absolute top-0 h-full w-px bg-line opacity-25"
+                                  style={{ left: pct(minute) }}
+                                />
+                              ))}
+                              {track.events.map((event, i) => (
+                                <SimpleTooltip
+                                  key={`${event.label}-${event.start}`}
+                                  content={
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-semibold text-fg">{event.label}</span>
+                                      <span className="t-data-telemetry text-fg-muted">
+                                        {clockAfter(TIMELINE.startLabel, event.start)}
+                                        {event.duration ? ` · ${event.duration} min` : ""}
+                                        {` · track: ${track.name}`}
+                                      </span>
+                                    </div>
+                                  }
+                                  side="top"
+                                >
+                                  <TimelineBar
+                                    kind={event.kind}
+                                    label={event.label}
+                                    style={
+                                      {
+                                        left: pct(event.start),
+                                        width: event.duration ? pct(event.duration) : COMMS_CHIP_W,
+                                        ...stagger(row + i, group * 3 + headerDelay()),
+                                      } as CSSProperties
+                                    }
+                                  />
+                                </SimpleTooltip>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
 
-                    <div className="grid grid-cols-1 gap-xl border-t border-line-subtle px-lg py-lg sm:grid-cols-2 lg:grid-cols-5">
-                      {TIMELINE.tracks.map((track, col) => (
-                        <section key={track.name} className="flex flex-col gap-sm">
-                          <h3 className="mw-text-in t-label-m text-fg" style={stagger(col)}>
-                            {track.name}
-                          </h3>
-                          <ul className="flex flex-col gap-xs">
-                            {track.events.map((event, i) => (
-                              <li
-                                key={`${event.label}-${event.start}`}
-                                className={cn("mw-text-in flex items-baseline justify-between gap-sm")}
-                                style={stagger(col + i + 1)}
-                              >
-                                <span className="t-body-s text-fg-secondary">{event.label}</span>
-                                <span className="shrink-0 t-data-telemetry text-fg">
-                                  {clockAfter(TIMELINE.startLabel, event.start)}
-                                  {event.duration ? ` · ${event.duration} min` : ""}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </section>
-                      ))}
+                        {/* T-0 marker: brand marks "now" */}
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-md bottom-md w-(--stroke-default) bg-brand"
+                          style={{ left: 16 + LABEL_W + 12 }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-xl border-t border-line-subtle px-lg py-lg sm:grid-cols-2 lg:grid-cols-5">
+                        {TIMELINE.tracks.map((track, col) => (
+                          <section key={track.name} className="flex flex-col gap-sm">
+                            <h3 className="mw-text-in t-label-m text-fg" style={stagger(col)}>
+                              {track.name}
+                            </h3>
+                            <ul className="flex flex-col gap-xs">
+                              {track.events.map((event, i) => (
+                                <li
+                                  key={`${event.label}-${event.start}`}
+                                  className={cn("mw-text-in flex items-baseline justify-between gap-sm")}
+                                  style={stagger(col + i + 1)}
+                                >
+                                  <span className="t-body-s text-fg-secondary">{event.label}</span>
+                                  <span className="shrink-0 t-data-telemetry text-fg">
+                                    {clockAfter(TIMELINE.startLabel, event.start)}
+                                    {event.duration ? ` · ${event.duration} min` : ""}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </ScrollArea>
-              </section>
+                  </ScrollArea>
+                </section>
+              )}
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>
