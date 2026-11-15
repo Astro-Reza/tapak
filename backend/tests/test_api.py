@@ -56,7 +56,7 @@ def test_link_shape(client):
     assert d["passCount"] > 100
     assert len(d["budgets"]) == 2
     for b in d["budgets"]:
-        assert [s["label"] for s in b["stages"]] == ["Pt", "Gt", "FSPL", "Dust", "Point", "Gr", "E[Pr]"]
+        assert [s["label"] for s in b["stages"]] == ["Pt", "Gt", "FSPL", "Atmos", "Dust", "Point", "Gr", "E[Pr]"]
         assert b["status"] in {"safe", "caution", "danger"}
         assert all(s["height"] >= 0 for s in b["stages"])
 

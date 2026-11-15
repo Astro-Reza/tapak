@@ -28,9 +28,10 @@ STAGES = [
     ("Pt", 89.5, 84, 82.5),
     ("Gt", 132, 128, 126.5),
     ("FSPL", 169, 172, 202),
-    ("Dust", 214, 216, 214.5),
-    ("Point", 257, 260, 260),
-    ("Gr", 348, 344, 342.5),
+    ("Atmos", 205, 208, 206.5),
+    ("Dust", 242, 244, 242.5),
+    ("Point", 277, 280, 278.5),
+    ("Gr", 356, 352, 350.5),
 ]
 
 
@@ -63,6 +64,7 @@ def budget_chart(res: SideResult) -> dict:
         ("gain", s.pt_dbw),
         ("gain", s.gt_dbi),
         ("loss", -res.fspl_db),
+        ("loss", -res.atmos_loss_db),
         ("loss", -s.dust_db),
         ("loss", -s.pointing_db),
         ("gain", s.gr_dbi),
@@ -130,3 +132,8 @@ def budget_chart(res: SideResult) -> dict:
         ],
         "status": _status(res.margin_db),
     }
+
+
+def layout_waterfall(res: SideResult, side: LinkSide | None = None) -> dict:
+    """Waterfall chart layout coordinate generator."""
+    return budget_chart(res)

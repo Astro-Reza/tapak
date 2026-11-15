@@ -51,6 +51,7 @@ class LinkSide:
     dust_db: float
     pointing_db: float
     threshold_dbw: float
+    atmos_zenith_db: float = 0.3
 
 
 DEFAULT_RELAYS: tuple[Relay, ...] = (
