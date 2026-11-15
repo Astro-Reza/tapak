@@ -42,7 +42,7 @@ function CardHeader({
       {...props}
     >
       <h2 className="min-w-px flex-1 t-label-m text-fg">{title}</h2>
-      {meta ? <p className="shrink-0 whitespace-nowrap t-data-telemetry text-fg-muted">{meta}</p> : null}
+      {meta ? <div className="shrink-0 whitespace-nowrap t-data-telemetry text-fg-muted">{meta}</div> : null}
     </header>
   );
 }
