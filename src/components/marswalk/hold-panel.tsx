@@ -1,5 +1,6 @@
 import { CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SimpleTooltip } from "@/components/ui/tooltip";
 import { HOLD_CRITERIA, type HoldCriterion, type HoldStatus } from "@/data/eva-checklist";
 import { headerDelay, stagger } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -48,20 +49,29 @@ export function HoldPanel({
             </header>
             <ul className="flex flex-col gap-xs p-sm">
               {group.items.map((criterion) => (
-                <li
+                <SimpleTooltip
                   key={criterion.id}
-                  className="mw-flash-in flex min-h-glove items-start gap-md rounded-sm px-md py-md"
-                  style={stagger(row++, delay + headerDelay())}
-                  title={criterion.source}
+                  content={
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-fg">Rule source:</span>
+                      <span className="text-fg-secondary">{criterion.source}</span>
+                    </div>
+                  }
+                  side="left"
                 >
-                  <div className="flex min-w-px flex-1 flex-col gap-xs">
-                    <span className="t-body-m text-fg">{criterion.title}</span>
-                    <span className="t-body-s text-fg-secondary">{criterion.limit}</span>
-                  </div>
-                  <span className="shrink-0 whitespace-nowrap pt-[2px] t-data-telemetry text-fg-muted">
-                    {criterion.codes.join(" · ")}
-                  </span>
-                </li>
+                  <li
+                    className="mw-flash-in flex min-h-glove items-start gap-md rounded-sm px-md py-md transition-colors hover:bg-inset/40 select-none"
+                    style={stagger(row++, delay + headerDelay())}
+                  >
+                    <div className="flex min-w-px flex-1 flex-col gap-xs">
+                      <span className="t-body-m text-fg">{criterion.title}</span>
+                      <span className="t-body-s text-fg-secondary">{criterion.limit}</span>
+                    </div>
+                    <span className="shrink-0 whitespace-nowrap pt-[2px] t-data-telemetry text-fg-muted">
+                      {criterion.codes.join(" · ")}
+                    </span>
+                  </li>
+                </SimpleTooltip>
               ))}
             </ul>
           </section>

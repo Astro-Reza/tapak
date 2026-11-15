@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { ToastProvider } from "@/components/marswalk/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { DEBRIEF, EVA, PLAN } from "@/data/mission";
 import { isReducedMotion, motionMs } from "@/lib/motion";
 import { useHashRoute, type Route } from "@/lib/router";
@@ -91,23 +92,25 @@ export default function App() {
   return (
     <StoreProvider>
       <MissionProvider>
-      <ToastProvider>
-        <div className="flex h-full flex-col bg-canvas">
-          <MissionTopBar route={route} fallback={CLOCK[shown]} onNavigate={navigate} />
-          <div className="relative min-h-0 flex-1">
-            <main key={shown} className={cn("absolute inset-0 overflow-x-hidden", shown === "hub" ? "overflow-y-hidden" : "overflow-y-auto")}>
-              <Screen />
-            </main>
-            {phase === "idle" ? null : (
-              <div className="mw-cols" data-phase={phase} aria-hidden="true">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <i key={i} style={{ "--i": i } as CSSProperties} />
-                ))}
+        <ToastProvider>
+          <TooltipProvider delayDuration={200}>
+            <div className="flex h-full flex-col bg-canvas">
+              <MissionTopBar route={route} fallback={CLOCK[shown]} onNavigate={navigate} />
+              <div className="relative min-h-0 flex-1">
+                <main key={shown} className={cn("absolute inset-0 overflow-x-hidden", shown === "hub" ? "overflow-y-hidden" : "overflow-y-auto")}>
+                  <Screen />
+                </main>
+                {phase === "idle" ? null : (
+                  <div className="mw-cols" data-phase={phase} aria-hidden="true">
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <i key={i} style={{ "--i": i } as CSSProperties} />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      </ToastProvider>
+            </div>
+          </TooltipProvider>
+        </ToastProvider>
       </MissionProvider>
     </StoreProvider>
   );

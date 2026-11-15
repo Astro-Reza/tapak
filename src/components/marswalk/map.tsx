@@ -481,7 +481,7 @@ function OpacityPie({ value, label, onChange }: { value: number; label: string; 
       aria-label={`${label} opacity ${Math.round(value * 100)}%, change to ${Math.round(next * 100)}%`}
       title={`${Math.round(value * 100)}% · click to change`}
       onClick={() => onChange(next)}
-      className="flex size-glove shrink-0 items-center justify-center -ml-xs"
+      className="flex size-9 shrink-0 items-center justify-center rounded-pill text-fg hover:bg-raised/70 active:scale-95 transition-[background-color,transform] duration-75 focus-visible:outline-2 focus-visible:outline-brand"
     >
       <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" className="text-fg">
         <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -579,21 +579,33 @@ export function LayerPanel({
       ) : null}
 
       <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
-        {shown.map((l) => (
-          <div key={l.id} className="flex flex-col gap-xs py-sm">
-            <div className="flex w-full items-center gap-sm">
-              <OpacityPie value={l.opacity} label={l.name} onChange={(v) => onOpacity(l.id, v)} />
-              <span className="min-w-px flex-1 text-left t-label-m text-fg">{l.name}</span>
-              <span className="shrink-0 whitespace-nowrap t-label-unit text-fg-secondary">{l.unit}</span>
+        <div className="flex flex-col gap-sm py-xs">
+          {shown.map((l) => (
+            <div key={l.id} className="flex items-center gap-md py-xs">
+              {/* Left div: overlay name, units, color heatmap, number, note */}
+              <div className="flex min-w-0 flex-1 flex-col gap-xs">
+                <div className="flex items-baseline justify-between gap-sm">
+                  <span className="truncate t-label-m text-fg">{l.name}</span>
+                  <span className="shrink-0 whitespace-nowrap t-label-unit text-fg-secondary">{l.unit}</span>
+                </div>
+                <div
+                  className={cn("h-2.5 w-full rounded-pill", l.ramp)}
+                  style={l.gradient ? { background: l.gradient } : undefined}
+                />
+                <div className="flex w-full justify-between t-data-telemetry text-fg-secondary">
+                  <span>{l.low}</span>
+                  <span>{l.high}</span>
+                </div>
+                {l.note ? <p className="t-data-telemetry text-fg-muted">{l.note}</p> : null}
+              </div>
+
+              {/* Right div: circular graphic that controls map opacity */}
+              <div className="flex shrink-0 items-center justify-center">
+                <OpacityPie value={l.opacity} label={l.name} onChange={(v) => onOpacity(l.id, v)} />
+              </div>
             </div>
-            <div className={cn("h-md w-full rounded-pill", l.ramp)} style={l.gradient ? { background: l.gradient } : undefined} />
-            <div className="flex w-full justify-between t-data-telemetry text-fg-secondary">
-              <span>{l.low}</span>
-              <span>{l.high}</span>
-            </div>
-            {l.note ? <p className="t-data-telemetry text-fg-muted">{l.note}</p> : null}
-          </div>
-        ))}
+          ))}
+        </div>
         {shown.length === 0 ? (
           <p className="py-sm t-body-s text-fg-secondary">
             {layers.length === 0 ? "No layers on the map" : `No layer matches “${query}”`}

@@ -434,6 +434,23 @@
   transition: none;
 }
 
+/* Nav tab: equal width sharp rectangle HUD tab */
+.mw-tab {
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--text-secondary);
+  transition:
+    background-color var(--motion-duration-micro) var(--motion-easing-step-structural),
+    color var(--motion-duration-micro) var(--motion-easing-step-structural);
+}
+
+/* When chosen or opened: brighter black than the others */
+.mw-tab[aria-current="page"],
+.mw-tab[aria-selected="true"] {
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
+}
+
 /* Nav tab: 3 px brand underline snaps in */
 .mw-tab::after {
   content: "";
@@ -446,16 +463,30 @@
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--motion-duration-micro) var(--motion-easing-step-structural);
+  pointer-events: none;
 }
+
 .mw-tab[aria-current="page"]::after,
 .mw-tab[aria-selected="true"]::after,
 .mw-tab:focus-visible::after {
   transform: scaleX(1);
 }
+
+/* When hover: that rectangle turns into the main site color red */
 @media (hover: hover) {
+  .mw-tab:hover {
+    background-color: var(--brand);
+    color: var(--surface-base);
+  }
+
   .mw-tab:hover::after {
     transform: scaleX(1);
   }
+}
+
+.mw-tab:active {
+  background-color: var(--text-primary);
+  color: var(--surface-base);
 }
 
 /* 7. Hold to confirm: a 4 px left edge bar fills top to bottom, linear.
@@ -499,8 +530,121 @@
   will-change: transform;
 }
 
+/* Tooltip and floating popover animation (shadcn style with Marswalk tick timings) */
+@keyframes mw-tooltip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mw-tooltip-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes mw-slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes mw-slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes mw-slide-in-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes mw-slide-in-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+[data-slot="tooltip-content"][data-state="delayed-open"],
+[data-slot="tooltip-content"][data-state="instant-open"] {
+  animation: mw-tooltip-enter var(--motion-duration-micro) ease-out both;
+}
+
+[data-slot="tooltip-content"][data-side="top"][data-state="delayed-open"],
+[data-slot="tooltip-content"][data-side="top"][data-state="instant-open"] {
+  animation: mw-slide-in-from-bottom var(--motion-duration-micro) ease-out both;
+}
+
+[data-slot="tooltip-content"][data-side="bottom"][data-state="delayed-open"],
+[data-slot="tooltip-content"][data-side="bottom"][data-state="instant-open"] {
+  animation: mw-slide-in-from-top var(--motion-duration-micro) ease-out both;
+}
+
+[data-slot="tooltip-content"][data-side="left"][data-state="delayed-open"],
+[data-slot="tooltip-content"][data-side="left"][data-state="instant-open"] {
+  animation: mw-slide-in-from-right var(--motion-duration-micro) ease-out both;
+}
+
+[data-slot="tooltip-content"][data-side="right"][data-state="delayed-open"],
+[data-slot="tooltip-content"][data-side="right"][data-state="instant-open"] {
+  animation: mw-slide-in-from-left var(--motion-duration-micro) ease-out both;
+}
+
+[data-slot="tooltip-content"][data-state="closed"] {
+  animation: mw-tooltip-exit var(--motion-duration-flash) ease-in both;
+}
+
+/* Preset slide-in control bar: stepped slide-in from right (3 ticks, 150 ms) */
+@keyframes mw-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mw-slide-in-right {
+  animation: mw-slide-in-right var(--motion-duration-short) var(--motion-easing-step-structural) both;
+}
+
 /* Reduced motion (OS setting, or ?motion=reduced): every sequence
    collapses to a single 100 ms opacity fade. No flashes, stagger or scramble. */
+:root[data-motion="reduced"] .mw-slide-in-right,
 :root[data-motion="reduced"] .mw-flash-in,
 :root[data-motion="reduced"] .mw-text-in,
 :root[data-motion="reduced"] .mw-reveal,
@@ -508,6 +652,7 @@
 :root[data-motion="reduced"] .mw-wipe-in,
 :root[data-motion="reduced"] .mw-scan-in,
 :root[data-motion="reduced"] .mw-lockon,
+:root[data-motion="reduced"] [data-slot="tooltip-content"],
 :root[data-motion="reduced"] .mw-brackets > i {
   animation: mw-reveal var(--motion-duration-reduced) linear both;
   animation-delay: 0ms;
@@ -533,6 +678,7 @@
 :root[data-motion="reduced"] .mw-collapse {
   animation: mw-hide var(--motion-duration-reduced) linear both;
 }
+:root[data-motion="reduced"] .mw-tab,
 :root[data-motion="reduced"] .mw-tab::after,
 :root[data-motion="reduced"] .mw-map-camera {
   transition: none;

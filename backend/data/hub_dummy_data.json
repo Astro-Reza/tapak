@@ -1,0 +1,914 @@
+{
+  "mission_presets": [
+    {
+      "id": "EVA-07",
+      "name": "Jezero West Delta",
+      "site": "Jezero Crater West",
+      "sol": 412,
+      "coordinates": "18.44° N, 77.43° E",
+      "mode": "efficient",
+      "policy_id": "engine",
+      "science_id": "app-50kg",
+      "start_lmst": 9.0,
+      "distance_km": 3.4,
+      "duration_label": "3 h 10 min",
+      "stops_count": 6,
+      "summary": "Primary geological traverse from lander egress to delta front. Outcrop cores and regolith collection.",
+      "status": "Active",
+      "tags": ["Delta", "Sampling", "Primary"]
+    },
+    {
+      "id": "EVA-08",
+      "name": "Belva Impact Rim",
+      "site": "Belva Crater",
+      "sol": 415,
+      "coordinates": "18.51° N, 77.38° E",
+      "mode": "safest",
+      "policy_id": "hold-sheet",
+      "science_id": "app-50kg",
+      "start_lmst": 10.0,
+      "distance_km": 2.85,
+      "duration_label": "3 h 45 min",
+      "stops_count": 5,
+      "summary": "High-elevation impact rim survey with strict 16° slope hold margins and boulder avoidance.",
+      "status": "Ready",
+      "tags": ["Impact", "Rim", "High-Slope"]
+    },
+    {
+      "id": "EVA-09",
+      "name": "Neretva Vallis Channel",
+      "site": "Neretva Riverbed",
+      "sol": 421,
+      "coordinates": "18.48° N, 77.49° E",
+      "mode": "balanced",
+      "policy_id": "engine",
+      "science_id": "model-40kg",
+      "start_lmst": 9.0,
+      "distance_km": 3.1,
+      "duration_label": "2 h 50 min",
+      "stops_count": 5,
+      "summary": "Fluvial inlet channel transect to map ancient braided river gravels and fine mudstone deposits.",
+      "status": "Planned",
+      "tags": ["Fluvial", "Mudstone", "Biosignature"]
+    },
+    {
+      "id": "EVA-10",
+      "name": "Séítah Dune Crossing",
+      "site": "South Séítah",
+      "sol": 428,
+      "coordinates": "18.42° N, 77.45° E",
+      "mode": "safest",
+      "policy_id": "hold-sheet",
+      "science_id": "model-40kg",
+      "start_lmst": 11.0,
+      "distance_km": 1.95,
+      "duration_label": "2 h 30 min",
+      "stops_count": 4,
+      "summary": "Navigating layered olivine-rich cumulate rocks across active ripple and sand dune corridors.",
+      "status": "Planned",
+      "tags": ["Dunes", "Olivine", "Caution"]
+    },
+    {
+      "id": "EVA-11",
+      "name": "Three Forks Cache",
+      "site": "Three Forks Delta",
+      "sol": 434,
+      "coordinates": "18.46° N, 77.41° E",
+      "mode": "efficient",
+      "policy_id": "engine",
+      "science_id": "app-50kg",
+      "start_lmst": 8.0,
+      "distance_km": 1.6,
+      "duration_label": "1 h 45 min",
+      "stops_count": 3,
+      "summary": "Sample return depot route. Inspect tube drop orientation and verify witness cylinder seal integrity.",
+      "status": "Ready",
+      "tags": ["Depot", "Cache", "Recovery"]
+    },
+    {
+      "id": "EVA-12",
+      "name": "Margin Carbonates",
+      "site": "Inner Crater Wall",
+      "sol": 440,
+      "coordinates": "18.55° N, 77.34° E",
+      "mode": "balanced",
+      "policy_id": "hold-sheet",
+      "science_id": "model-40kg",
+      "start_lmst": 10.0,
+      "distance_km": 4.2,
+      "duration_label": "3 h 55 min",
+      "stops_count": 7,
+      "summary": "Paleolake shoreline carbonate bench analysis to detect potential micro-fossil stromatolite structures.",
+      "status": "Planned",
+      "tags": ["Carbonate", "Stromatolite", "Extended"]
+    },
+    {
+      "id": "EVA-13",
+      "name": "Kodiak Mesa Reconnaissance",
+      "site": "Kodiak Butte",
+      "sol": 447,
+      "coordinates": "18.41° N, 77.39° E",
+      "mode": "safest",
+      "policy_id": "engine",
+      "science_id": "app-50kg",
+      "start_lmst": 8.5,
+      "distance_km": 2.4,
+      "duration_label": "2 h 40 min",
+      "stops_count": 4,
+      "summary": "Steep stratigraphy survey of the isolated remnant delta butte to document bottomset-to-foreset transitions.",
+      "status": "Planned",
+      "tags": ["Stratigraphy", "Mesa", "Delta-Remnant"]
+    },
+    {
+      "id": "EVA-14",
+      "name": "Hawksbill Gap Exploration",
+      "site": "Delta Front Scarp",
+      "sol": 453,
+      "coordinates": "18.45° N, 77.42° E",
+      "mode": "balanced",
+      "policy_id": "hold-sheet",
+      "science_id": "model-40kg",
+      "start_lmst": 9.5,
+      "distance_km": 3.65,
+      "duration_label": "3 h 25 min",
+      "stops_count": 6,
+      "summary": "Fine-grained sedimentary rock sampling in high-priority astrobiology target zones.",
+      "status": "Planned",
+      "tags": ["Astrobiology", "Sedimentary", "Delta-Front"]
+    }
+  ],
+  "checklists": [
+    {
+      "id": "pre",
+      "title": "Pre-EVA checklist",
+      "phase": "pre",
+      "is_builtin": true,
+      "description": "Pre-EVA preparation from T−24 h to hatch open.",
+      "blocks": [
+        {
+          "id": "pre-1",
+          "title": "Plan and route",
+          "when": "T−24 h",
+          "items": [
+            {
+              "id": "pre-1.1",
+              "title": "Objectives and timeline",
+              "detail": "Tasks, stops and durations set; timeline padded (Apollo 15/16 tasks ran ~70% longer than in training)",
+              "codes": ["EB1"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-1.2",
+              "title": "Route geometry",
+              "detail": "Distance, elevation gain/loss and max slope inside the suit slope limit; uphill and downhill costed separately",
+              "codes": ["EB2"],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-1.3",
+              "title": "Walkback limit",
+              "detail": "Every point on the route within walkback distance of the habitat (10 km, Apollo-derived) if the rover fails",
+              "codes": ["EB12"],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-1.4",
+              "title": "Terrain hazards and map quality",
+              "detail": "Crater rims, scarps, sand traps flagged; segments below HiRISE resolution (~25–30 cm/px) marked low-confidence",
+              "codes": ["ED28", "EB14"],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-1.5",
+              "title": "Rocks and footing",
+              "detail": "Rock abundance and thermal-inertia soft-ground proxy reviewed along the route",
+              "codes": ["ED4", "ED5"],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-1.6",
+              "title": "No-go zones",
+              "detail": "Route clear of planetary-protection special regions",
+              "codes": ["ED29"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-1.7",
+              "title": "Lighting plan",
+              "detail": "Sun elevation, sunset and shadow maps for the EVA window; no stop in deep shadow",
+              "codes": ["EB15"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-1.8",
+              "title": "Planned load",
+              "detail": "Tool and sample mass entered so the load term is in the energy budget",
+              "codes": ["EB11"],
+              "owner": "Crew"
+            }
+          ]
+        },
+        {
+          "id": "pre-2",
+          "title": "Environment go/no-go",
+          "when": "T−12 h, refresh T−1 h",
+          "items": [
+            {
+              "id": "pre-2.1",
+              "title": "Dust opacity forecast",
+              "detail": "Optical depth below the mission limit; watch Ls ~140–180° storm season",
+              "codes": ["EB3"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-2.2",
+              "title": "Thermal window",
+              "detail": "Start time placed against the diurnal cycle (ground 150–300 K); no cold-soak at the far stop",
+              "codes": ["EB4"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-2.3",
+              "title": "Space weather",
+              "detail": "No SPE warning; shelter reachable from every stop within the mission rule",
+              "codes": ["EB5"],
+              "owner": "IV"
+            },
+            {
+              "id": "pre-2.4",
+              "title": "Planned dose",
+              "detail": "GCR 0.56–0.65 mSv/day × hours outside fits the crew member's remaining dose budget (IB14)",
+              "codes": ["ED13"],
+              "owner": "Auto"
+            }
+          ]
+        },
+        {
+          "id": "pre-3",
+          "title": "Crew readiness",
+          "when": "T−12 h to T−2 h",
+          "items": [
+            {
+              "id": "pre-3.1",
+              "title": "Aerobic capacity",
+              "detail": "Latest VO2peak at or above the NASA partial-g EVA standard of 36.5 mL/kg/min",
+              "codes": ["IB1"],
+              "owner": "Med"
+            },
+            {
+              "id": "pre-3.2",
+              "title": "Sensorimotor state",
+              "detail": "Days since landing logged; balance and gait test passed (deficit largest in first hours, marked gains within 24 h)",
+              "codes": ["IB5"],
+              "owner": "Med"
+            },
+            {
+              "id": "pre-3.3",
+              "title": "Muscle and bone",
+              "detail": "Post-transit strength and bone density on file; load and slope limits lowered if needed",
+              "codes": ["IB3", "IB4"],
+              "owner": "Med"
+            },
+            {
+              "id": "pre-3.4",
+              "title": "Orthostatic tolerance",
+              "detail": "Stand test without dizziness",
+              "codes": ["IB6"],
+              "owner": "Med"
+            },
+            {
+              "id": "pre-3.5",
+              "title": "Sleep and circadian phase",
+              "detail": "No sleep debt; schedule aligned to the 24.65 h sol",
+              "codes": ["IB9"],
+              "owner": "Crew"
+            },
+            {
+              "id": "pre-3.6",
+              "title": "Hydration and nutrition",
+              "detail": "Urine specific gravity and body mass normal; pre-EVA meal taken",
+              "codes": ["IB7", "IB8"],
+              "owner": "Crew"
+            },
+            {
+              "id": "pre-3.7",
+              "title": "Injury and acute health",
+              "detail": "No new pain (shoulder, hand, back), illness or sedating medication",
+              "codes": ["IB11", "IB16"],
+              "owner": "Med"
+            },
+            {
+              "id": "pre-3.8",
+              "title": "Hypoxia check",
+              "detail": "SpO2 normal in the 8.2 psia / 34% O2 cabin",
+              "codes": ["IB17"],
+              "owner": "Med"
+            },
+            {
+              "id": "pre-3.9",
+              "title": "Psychological state",
+              "detail": "Crew member and buddy report ready; no unresolved crew conflict",
+              "codes": ["IB13"],
+              "owner": "Crew"
+            },
+            {
+              "id": "pre-3.10",
+              "title": "Familiarity",
+              "detail": "Route and tasks rehearsed; first EVA on this terrain flagged for slower pacing",
+              "codes": ["IB12"],
+              "owner": "Crew"
+            }
+          ]
+        },
+        {
+          "id": "pre-4",
+          "title": "Suit and consumables",
+          "when": "T−4 h",
+          "items": [
+            {
+              "id": "pre-4.1",
+              "title": "Carry-over from last EVA",
+              "detail": "Last post-EVA suit inspection closed out; no open seal or glove defects",
+              "codes": ["EA10"],
+              "owner": "Suit"
+            },
+            {
+              "id": "pre-4.2",
+              "title": "Fit",
+              "detail": "Suit sized for this crew member; pressure points and glove fit checked",
+              "codes": ["EB8"],
+              "owner": "Suit"
+            },
+            {
+              "id": "pre-4.3",
+              "title": "Suit + PLSS mass and CG",
+              "detail": "Actual mass entered (Mars weight = 0.38 × mass; inertia stays full)",
+              "codes": ["EB9"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-4.4",
+              "title": "Consumables loadout",
+              "detail": "O2, CO2 removal, water and battery full; planned EVA plus walkback fits the design limit (up to 8 h)",
+              "codes": ["EB10"],
+              "owner": "Suit"
+            },
+            {
+              "id": "pre-4.5",
+              "title": "CO2 sensor",
+              "detail": "Reading live and below the 3.8 mmHg design average",
+              "codes": ["ED22"],
+              "owner": "Suit"
+            },
+            {
+              "id": "pre-4.6",
+              "title": "Cooling garment",
+              "detail": "Loop flowing; heat-storage limit 1.9–3.0 kJ/kg set in the alert model",
+              "codes": ["ED23"],
+              "owner": "Suit"
+            },
+            {
+              "id": "pre-4.7",
+              "title": "Displays",
+              "detail": "HUD or tablet readable with pressurised gloves",
+              "codes": ["ED24", "ED25"],
+              "owner": "Crew"
+            },
+            {
+              "id": "pre-4.8",
+              "title": "Leak check",
+              "detail": "Suit holds operating pressure before depress",
+              "codes": [],
+              "owner": "Suit"
+            }
+          ]
+        },
+        {
+          "id": "pre-5",
+          "title": "Prebreathe and DCS",
+          "when": "T−1 h",
+          "items": [
+            {
+              "id": "pre-5.1",
+              "title": "Cabin atmosphere",
+              "detail": "Habitat at 8.2 psia / 34% O2 (prebreathe ~0–30 min, vs 6.5–7 h from 14.7 psia)",
+              "codes": ["EB6"],
+              "owner": "IV"
+            },
+            {
+              "id": "pre-5.2",
+              "title": "Suit pressure and O2",
+              "detail": "~4.3 psi, 85–100% O2",
+              "codes": ["EB7"],
+              "owner": "Suit"
+            },
+            {
+              "id": "pre-5.3",
+              "title": "DCS risk",
+              "detail": "Model risk accepted (8.4% for 15-min prebreathe + 6 h at 4.3 psi; up to 10.9% for 8 h); prebreathe timer complete",
+              "codes": ["IB10"],
+              "owner": "Auto+"
+            }
+          ]
+        },
+        {
+          "id": "pre-6",
+          "title": "Communications and support",
+          "when": "T−1 h",
+          "items": [
+            {
+              "id": "pre-6.1",
+              "title": "Line of sight",
+              "detail": "Viewshed shows where voice/data to the habitat drops; relay placed or blind segments accepted",
+              "codes": ["ED16"],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-6.2",
+              "title": "Earth link",
+              "detail": "One-way delay (~3–22 min) noted; habitat crew holds real-time support; no solar conjunction blackout",
+              "codes": ["EB13", "ED17"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "pre-6.3",
+              "title": "Buddy and IV staffing",
+              "detail": "Buddy assigned with a maximum separation; IV crew on console for the full EVA",
+              "codes": ["EB16"],
+              "owner": "IV"
+            },
+            {
+              "id": "pre-6.4",
+              "title": "Rover",
+              "detail": "Rover position and status known if used to shorten return time",
+              "codes": ["ED26"],
+              "owner": "IV"
+            }
+          ]
+        },
+        {
+          "id": "pre-7",
+          "title": "GO/NO-GO",
+          "when": "Hatch open",
+          "items": [
+            {
+              "id": "pre-7.1",
+              "title": "Marswalk verdict",
+              "detail": "Verdict shows GO, or CAUTION accepted by EV crew and IV lead",
+              "codes": [],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-7.2",
+              "title": "Turn-back time",
+              "detail": "Clock time set at which return starts, whatever the task state",
+              "codes": ["ED18", "ED27"],
+              "owner": "Auto"
+            },
+            {
+              "id": "pre-7.3",
+              "title": "Abort triggers",
+              "detail": "Abort triggers briefed (see Hold criteria)",
+              "codes": [],
+              "owner": "IV"
+            },
+            {
+              "id": "pre-7.4",
+              "title": "Pre-EVA baselines",
+              "detail": "Heart rate, PVT reaction time, body mass, fatigue and soreness scores recorded",
+              "codes": [],
+              "owner": "Med"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "during",
+      "title": "During-EVA checklist",
+      "phase": "during",
+      "is_builtin": true,
+      "description": "Active tasks and checkpoints during EVA execution.",
+      "blocks": [
+        {
+          "id": "during-1",
+          "title": "During EVA",
+          "when": "starts 14:00",
+          "items": [
+            {
+              "id": "during-1.1",
+              "title": "Egress + HUD link check",
+              "detail": "Airlock depress, outer hatch egress, establish telemetry handshake and verify HUD reticle alignment",
+              "codes": [],
+              "tag": "00:05",
+              "owner": "Crew"
+            },
+            {
+              "id": "during-1.2",
+              "title": "WP1 · Panorama",
+              "detail": "Reach Waypoint 1, shoot 360-degree gigapixel survey panorama and record geological context",
+              "codes": [],
+              "tag": "00:20",
+              "owner": "Crew"
+            },
+            {
+              "id": "during-1.3",
+              "title": "WP3 · Core sample",
+              "detail": "Acquire drill core sample from delta outcrop, verify seal integrity and place in hermetic sample tube",
+              "codes": ["EB11"],
+              "tag": "01:05",
+              "owner": "Crew"
+            },
+            {
+              "id": "during-1.4",
+              "title": "Consumables check",
+              "detail": "Cross-check O2 pressure drop against metabolic prediction model; verify coolant loop temperature",
+              "codes": ["EB10", "ED20"],
+              "tag": "01:40",
+              "owner": "Suit"
+            },
+            {
+              "id": "during-1.5",
+              "title": "WP5 · Regolith scoop",
+              "detail": "Perform shallow soil trench and scoop regolith aliquot into volatile capture container",
+              "codes": ["EB11"],
+              "tag": "02:10",
+              "owner": "Crew"
+            },
+            {
+              "id": "during-1.6",
+              "title": "Ingress",
+              "detail": "Return traverse complete, enter airlock, seal outer hatch and initiate repressurization",
+              "codes": [],
+              "tag": "03:05",
+              "owner": "Crew"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "post",
+      "title": "Post-EVA checklist",
+      "phase": "post",
+      "is_builtin": true,
+      "description": "Post-EVA inspection, data collation, medical checks, and readiness for next EVA.",
+      "blocks": [
+        {
+          "id": "post-1",
+          "title": "Ingress and dust control",
+          "when": "T+0 to T+1 h",
+          "items": [
+            {
+              "id": "post-1.1",
+              "title": "Dust off before doffing",
+              "detail": "Suit brushed or vacuumed in the airlock; particle counter running (peaks come at suit ingress)",
+              "codes": ["ED12", "EA1"],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-1.2",
+              "title": "Habitat dust level",
+              "detail": "Respirable dust (<10 µm) on track for the 24 h average limit of 0.1 mg/m³",
+              "codes": ["EA1"],
+              "owner": "IV"
+            },
+            {
+              "id": "post-1.3",
+              "title": "Samples bagged",
+              "detail": "Sealed and labelled for perchlorate and toxic-element handling (Cr, Co, Ni) before entering the cabin",
+              "codes": ["EA4"],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-1.4",
+              "title": "Exposure check",
+              "detail": "No eye, skin or airway irritation after doffing",
+              "codes": ["IA5"],
+              "owner": "Med"
+            }
+          ]
+        },
+        {
+          "id": "post-2",
+          "title": "Immediate medical",
+          "when": "T+0 to T+2 h",
+          "items": [
+            {
+              "id": "post-2.1",
+              "title": "Repress and DCS watch",
+              "detail": "Repress from ~4.3 psi to 8.2 psia logged; DCS symptom check at repress and at end of watch window (mission rule)",
+              "codes": ["EA5", "IA4"],
+              "owner": "Med"
+            },
+            {
+              "id": "post-2.2",
+              "title": "Injury report",
+              "detail": "Falls, abrasions, hand and shoulder pain logged with severity: first aid, medical attention, lost duty time",
+              "codes": ["IA2"],
+              "owner": "Med"
+            },
+            {
+              "id": "post-2.3",
+              "title": "Hydration",
+              "detail": "Post-EVA body mass and urine output vs pre-EVA baseline; rehydrate against the 240 mL/h EVA fluid need",
+              "codes": [],
+              "owner": "Med"
+            },
+            {
+              "id": "post-2.4",
+              "title": "Heat strain",
+              "detail": "Core temperature and heart rate returning to baseline; peak heat storage reviewed against 3.0 kJ/kg",
+              "codes": [],
+              "owner": "Auto+"
+            }
+          ]
+        },
+        {
+          "id": "post-3",
+          "title": "Suit and consumables",
+          "when": "T+1 to T+6 h",
+          "items": [
+            {
+              "id": "post-3.1",
+              "title": "Suit and glove damage",
+              "detail": "Visual inspection of seals, bearings, visor and gloves; leak check",
+              "codes": ["EA10"],
+              "owner": "Suit"
+            },
+            {
+              "id": "post-3.2",
+              "title": "Cleaning and maintenance",
+              "detail": "Turnaround task list opened; estimated time to suit-ready logged",
+              "codes": ["EA2"],
+              "owner": "Suit"
+            },
+            {
+              "id": "post-3.3",
+              "title": "Consumables recharge",
+              "detail": "O2, water, battery and CO2 sorbent recharged; actual use per hour recorded to calibrate the metabolic model",
+              "codes": ["EA3"],
+              "owner": "Suit"
+            }
+          ]
+        },
+        {
+          "id": "post-4",
+          "title": "Data, map and dose",
+          "when": "T+1 to T+12 h",
+          "items": [
+            {
+              "id": "post-4.1",
+              "title": "Dose ledger",
+              "detail": "EVA dose added to each crew member's mission total (surface ~0.6 mSv/day vs cruise ~1.8 mSv/day)",
+              "codes": ["EA7"],
+              "owner": "Auto"
+            },
+            {
+              "id": "post-4.2",
+              "title": "As-walked map",
+              "detail": "Actual track, new hazards and footing notes uploaded; DTM blind spots corrected for the next route",
+              "codes": ["EA8"],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-4.3",
+              "title": "Planned vs actual",
+              "detail": "Time, distance, metabolic rate and consumables compared with the plan; variance fed back to the planner",
+              "codes": [],
+              "owner": "Auto"
+            },
+            {
+              "id": "post-4.4",
+              "title": "Earth package",
+              "detail": "Telemetry and notes sent; review expected after 2 × one-way delay plus analysis time",
+              "codes": ["EA6"],
+              "owner": "IV"
+            }
+          ]
+        },
+        {
+          "id": "post-5",
+          "title": "Crew recovery and cognition",
+          "when": "T+2 h to T+48 h",
+          "items": [
+            {
+              "id": "post-5.1",
+              "title": "Physical and mental fatigue",
+              "detail": "0–10 scores vs pre-EVA",
+              "codes": [],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-5.2",
+              "title": "PVT and working memory",
+              "detail": "Short battery vs pre-EVA baseline",
+              "codes": [],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-5.3",
+              "title": "Recovery time to baseline",
+              "detail": "Hours until resting heart rate, respiration and temperature return to pre-EVA levels (wearable)",
+              "codes": [],
+              "owner": "Med"
+            },
+            {
+              "id": "post-5.4",
+              "title": "DOMS",
+              "detail": "Soreness score at 24 h and 48 h, especially after long downhill segments",
+              "codes": ["IA3"],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-5.5",
+              "title": "Sleep",
+              "detail": "Duration and efficiency on the night after the EVA (actigraphy)",
+              "codes": [],
+              "owner": "Crew"
+            },
+            {
+              "id": "post-5.6",
+              "title": "Debrief",
+              "detail": "Stress, perceived success, what slowed the crew; route or HUD changes captured",
+              "codes": [],
+              "owner": "Crew"
+            }
+          ]
+        },
+        {
+          "id": "post-6",
+          "title": "Readiness for next EVA",
+          "when": "T+24 h to T+48 h",
+          "items": [
+            {
+              "id": "post-6.1",
+              "title": "Cumulative fatigue",
+              "detail": "Fatigue, soreness and sleep back near baseline",
+              "codes": ["IA1"],
+              "owner": "Med"
+            },
+            {
+              "id": "post-6.2",
+              "title": "Cadence",
+              "detail": "Time to next EVA fits recovery and the crew-week budget (NASA plans up to 24 h EVA per crew-week)",
+              "codes": ["EA9"],
+              "owner": "Auto+"
+            },
+            {
+              "id": "post-6.3",
+              "title": "Suit ready",
+              "detail": "EA2, EA3 and EA10 closed",
+              "codes": [],
+              "owner": "Suit"
+            },
+            {
+              "id": "post-6.4",
+              "title": "Dose budget",
+              "detail": "Remaining budget covers the next planned EVA",
+              "codes": [],
+              "owner": "Auto"
+            },
+            {
+              "id": "post-6.5",
+              "title": "Next Pre-EVA baselines",
+              "detail": "Injuries, fatigue and dose carried into the next crew-readiness block",
+              "codes": [],
+              "owner": "Med"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mission_checklist_states": [
+    { "preset_id": "EVA-07", "item_id": "pre-1.1", "is_done": true, "completed_by": "System", "notes": "Route verified" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.2", "is_done": true, "completed_by": "System", "notes": "Slope checked" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.3", "is_done": true, "completed_by": "System", "notes": "Within 10 km" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.4", "is_done": true, "completed_by": "System", "notes": "HiRISE overlay ready" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.5", "is_done": true, "completed_by": "System", "notes": "Footing OK" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.6", "is_done": true, "completed_by": "System", "notes": "No special region" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.7", "is_done": true, "completed_by": "System", "notes": "Sun azimuth verified" },
+    { "preset_id": "EVA-07", "item_id": "pre-1.8", "is_done": true, "completed_by": "Astronaut Reza", "notes": "Tool load entered" },
+    { "preset_id": "EVA-07", "item_id": "pre-2.1", "is_done": true, "completed_by": "System", "notes": "Optical depth tau=0.4" },
+    { "preset_id": "EVA-07", "item_id": "pre-2.2", "is_done": true, "completed_by": "System", "notes": "Thermal profile OK" },
+    { "preset_id": "EVA-07", "item_id": "pre-2.3", "is_done": true, "completed_by": "IV Lead", "notes": "No flare alert" },
+    { "preset_id": "EVA-07", "item_id": "pre-2.4", "is_done": true, "completed_by": "System", "notes": "Dose under cap" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.1", "is_done": true, "completed_by": "Flight Surgeon", "notes": "VO2 max 42.1" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.2", "is_done": true, "completed_by": "Flight Surgeon", "notes": "Romberg passed" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.3", "is_done": true, "completed_by": "Flight Surgeon", "notes": "Strength nominal" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.4", "is_done": true, "completed_by": "Flight Surgeon", "notes": "Stand test pass" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.5", "is_done": true, "completed_by": "Astronaut Reza", "notes": "7.5 h sleep" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.6", "is_done": true, "completed_by": "Astronaut Reza", "notes": "Hydration optimal" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.7", "is_done": true, "completed_by": "Flight Surgeon", "notes": "No pain reported" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.8", "is_done": true, "completed_by": "Flight Surgeon", "notes": "SpO2 98%" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.9", "is_done": true, "completed_by": "Astronaut Reza", "notes": "Team ready" },
+    { "preset_id": "EVA-07", "item_id": "pre-3.10", "is_done": true, "completed_by": "Astronaut Reza", "notes": "VR sim completed" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.1", "is_done": true, "completed_by": "Suit Tech", "notes": "Seals inspected" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.2", "is_done": true, "completed_by": "Suit Tech", "notes": "Gloves adjusted" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.3", "is_done": true, "completed_by": "System", "notes": "Suit mass calibrated" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.4", "is_done": true, "completed_by": "Suit Tech", "notes": "Tanks at 100%" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.5", "is_done": true, "completed_by": "Suit Tech", "notes": "CO2 scrubber fresh" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.6", "is_done": true, "completed_by": "Suit Tech", "notes": "LCVG flow verified" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.7", "is_done": true, "completed_by": "Astronaut Reza", "notes": "HUD tested" },
+    { "preset_id": "EVA-07", "item_id": "pre-4.8", "is_done": true, "completed_by": "Suit Tech", "notes": "Depress decay check pass" }
+  ],
+  "hold_criteria": [
+    {
+      "id": "hold-aerobic",
+      "title": "Aerobic capacity",
+      "codes": ["IB1"],
+      "limit": "VO2peak ≥ 36.5 mL/kg/min",
+      "status": "sourced",
+      "source": "Sourced (NASA partial-g EVA standard)"
+    },
+    {
+      "id": "hold-heat",
+      "title": "Body heat storage",
+      "codes": ["ED23"],
+      "limit": "Alert at 1.9 kJ/kg, abort at 3.0 kJ/kg",
+      "status": "sourced",
+      "source": "Sourced (NASA-STD-3001)"
+    },
+    {
+      "id": "hold-co2",
+      "title": "Suit CO2",
+      "codes": ["ED22"],
+      "limit": "3.8 mmHg design average; headaches reported at 2.8–4.5 mmHg",
+      "status": "margin",
+      "source": "Sourced; abort level is a mission rule"
+    },
+    {
+      "id": "hold-dust",
+      "title": "Habitat dust",
+      "codes": ["EA1"],
+      "limit": "0.1 mg/m³, 24 h average, <10 µm",
+      "status": "sourced",
+      "source": "Sourced (NASA, July 2026)"
+    },
+    {
+      "id": "hold-walkback",
+      "title": "Walkback distance",
+      "codes": ["EB12", "ED18"],
+      "limit": "10 km from habitat without rover",
+      "status": "sourced",
+      "source": "Sourced (Apollo-derived assumption)"
+    },
+    {
+      "id": "hold-consumables",
+      "title": "Consumables",
+      "codes": ["EB10", "ED20"],
+      "limit": "Remaining time = min(O2, water, power ÷ use rate) must exceed return time",
+      "status": "margin",
+      "source": "Formula sourced; margin is a mission rule"
+    },
+    {
+      "id": "hold-slope",
+      "title": "Suit slope limit",
+      "codes": ["EB2", "ED2"],
+      "limit": "Prototype default 16°",
+      "status": "rule",
+      "source": "Mission rule (planning choice)"
+    },
+    {
+      "id": "hold-opacity",
+      "title": "Dust opacity",
+      "codes": ["EB3", "ED11"],
+      "limit": "Prototype default tau 0.8",
+      "status": "rule",
+      "source": "Mission rule"
+    },
+    {
+      "id": "hold-spe",
+      "title": "SPE shelter reach",
+      "codes": ["EB5", "ED14"],
+      "limit": "Time from any stop to shelter",
+      "status": "rule",
+      "source": "Mission rule"
+    },
+    {
+      "id": "hold-dose",
+      "title": "Per-EVA dose",
+      "codes": ["ED13", "EA7"],
+      "limit": "Share of crew dose budget",
+      "status": "rule",
+      "source": "Mission rule"
+    },
+    {
+      "id": "hold-buddy",
+      "title": "Buddy separation",
+      "codes": ["EB16"],
+      "limit": "Maximum distance between EV crew",
+      "status": "rule",
+      "source": "Mission rule"
+    },
+    {
+      "id": "hold-dcs",
+      "title": "DCS watch window",
+      "codes": ["EA5"],
+      "limit": "Hours of symptom watch after repress",
+      "status": "rule",
+      "source": "Mission rule"
+    }
+  ]
+}

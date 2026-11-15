@@ -26,7 +26,10 @@ function Tabs({
   tabClassName?: string;
 }) {
   return (
-    <nav aria-label="Mission views" className={className}>
+    <nav
+      aria-label="Mission views"
+      className={cn("grid grid-cols-6 border-x border-line-subtle", className)}
+    >
       {TABS.map((tab) => {
         const active = tab.match.includes(route);
         return (
@@ -36,8 +39,7 @@ function Tabs({
             aria-current={active ? "page" : undefined}
             onClick={() => onNavigate(tab.route)}
             className={cn(
-              "mw-tab relative flex shrink-0 items-center justify-center t-label-m text-[20px] whitespace-nowrap",
-              active ? "text-fg" : "text-fg-secondary",
+              "mw-tab relative flex h-full w-full min-w-0 items-center justify-center rounded-none border-r border-line-subtle last:border-r-0 text-center t-body-s lg:t-label-m text-[17.5px] lg:text-[21.25px] whitespace-nowrap cursor-pointer select-none px-1",
               tabClassName,
             )}
           >
@@ -50,8 +52,8 @@ function Tabs({
 }
 
 /**
- * Global header, 64 px on wide screens. Stays put during screen changes so the
- * astronaut never loses it. Below 1024 px the tabs move to a scrollable second
+ * Global header, 80 px on wide screens. Stays put during screen changes so the
+ * astronaut never loses it. Below 1024 px the tabs move to a second
  * row. The link chip mirrors the relay link verdict.
  */
 export function TopBar({
@@ -67,7 +69,7 @@ export function TopBar({
 }) {
   return (
     <header className="relative z-50 shrink-0 border-b border-line-subtle bg-top-bar">
-      <div className="flex h-[60px] items-center justify-between gap-md px-md lg:h-[80px] lg:gap-lg lg:px-lg">
+      <div className="flex h-[60px] items-stretch justify-between gap-md px-md lg:h-[80px] lg:gap-lg lg:px-lg">
         <div className="flex min-w-0 items-center gap-md whitespace-nowrap">
           <img
             src={tapakWordmark}
@@ -81,8 +83,7 @@ export function TopBar({
         <Tabs
           route={route}
           onNavigate={onNavigate}
-          className="hidden h-full items-start gap-lg lg:flex xl:gap-2xl"
-          tabClassName="h-full px-sm xl:px-md"
+          className="hidden h-full items-stretch lg:grid w-[600px] xl:w-[696px]"
         />
         <div className="flex shrink-0 items-center gap-sm xl:gap-md">
           <p className="whitespace-nowrap t-data-coordinate text-[18.75px] text-fg">
@@ -101,8 +102,7 @@ export function TopBar({
       <Tabs
         route={route}
         onNavigate={onNavigate}
-        className="flex gap-md overflow-x-auto border-t border-line-subtle px-sm lg:hidden"
-        tabClassName="h-[45px] flex-1 px-sm"
+        className="grid h-[48px] w-full border-t border-line-subtle lg:hidden"
       />
     </header>
   );

@@ -191,7 +191,7 @@ function PlanScreenLoaded() {
             setAdded((a) => [...a, id as ExtraLayerId]);
             setOpacity((o) => ({ ...o, [id]: LAYER_OPACITY }));
           }}
-          className="lg:absolute lg:top-xl lg:right-xl lg:z-10 lg:max-h-[calc(100%_-_352px)] lg:w-[296px]"
+          className="lg:absolute lg:top-0 lg:right-0 lg:z-10 lg:w-[304px] lg:max-h-[calc(100%_-_220px)] lg:rounded-none lg:rounded-bl-sm lg:border-t-0 lg:border-r-0"
         />
 
       <MapFrame
