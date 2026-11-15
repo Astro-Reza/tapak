@@ -27,7 +27,7 @@ export const MARS_MISSION_PRESETS: MissionPreset[] = [
     coordinates: "18.44° N, 77.43° E",
     mode: "efficient",
     policyId: "engine",
-    scienceId: "app-50kg",
+    scienceId: "app-60kg",
     startLmst: 9,
     distanceKm: 3.4,
     durationLabel: "3 h 10 min",

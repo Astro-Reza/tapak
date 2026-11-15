@@ -25,6 +25,7 @@ export function HoldButton({
   onConfirm,
   onShortPress,
   danger = false,
+  size,
   className,
 }: {
   label: string;
@@ -33,6 +34,7 @@ export function HoldButton({
   onConfirm: () => void;
   onShortPress?: () => void;
   danger?: boolean;
+  size?: "glove" | "control" | "icon";
   className?: string;
 }) {
   const [state, setState] = useState<HoldState>("idle");
@@ -73,6 +75,7 @@ export function HoldButton({
   return (
     <>
       <Button
+        size={size}
         className={className}
         data-flash={flash}
         aria-description="Press and hold to confirm. With a keyboard, press Enter to open a confirmation."

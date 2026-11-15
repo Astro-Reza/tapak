@@ -3,8 +3,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import {
   createLink,
   DEFAULT_DELAY_S,
-  DEFAULT_POLICY,
-  DEFAULT_SCIENCE,
   planMission,
   validatePlan,
   type Evaluation,
@@ -54,8 +52,8 @@ type MissionState = {
 const Ctx = createContext<MissionState | null>(null);
 
 const DEFAULTS: Settings = {
-  scienceId: DEFAULT_SCIENCE,
-  policyId: DEFAULT_POLICY,
+  scienceId: "app-60kg",
+  policyId: "engine",
   mode: "efficient",
   startLmst: 9, // MARSWALK/app default start
   kSuit: 1,

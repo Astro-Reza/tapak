@@ -6,6 +6,11 @@
 import { SUIT } from './telemetry.js';
 
 export const SCIENCE_PROFILES = {
+  'app-60kg': {
+    label: 'Suit 60 kg (MARSWALK)',
+    params: { suitKg: 60 },
+    source: { suitKg: 'suit + PLSS (60 kg)' },
+  },
   'app-50kg': {
     label: 'Suit 50 kg (engine)',
     params: { suitKg: 50 },

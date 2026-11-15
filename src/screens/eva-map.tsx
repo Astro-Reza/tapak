@@ -127,9 +127,15 @@ function EvaMapLoaded() {
             {view.st.level === "return" ? "Start your return now: O₂ or EVA time covers the walk home only." : "Reserve below plan margin."}
           </p>
         ) : null}
-        <div className="grid grid-cols-2 gap-md sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-2">
+        <div className="grid grid-cols-2 gap-px border border-line-subtle bg-line-subtle sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-2">
           {view.tiles.map((tile, i) => (
-            <MetricTile key={tile.label} {...tile} className="min-w-0" style={stagger(i, group)} />
+            <MetricTile
+              key={tile.label}
+              {...tile}
+              variant="grid"
+              className="min-w-0"
+              style={stagger(i, group)}
+            />
           ))}
         </div>
         <Card className="shrink-0 rounded-sm">
@@ -148,7 +154,7 @@ function EvaMapLoaded() {
         className="h-[60vh] min-h-[380px] rounded-md xl:absolute xl:inset-0 xl:h-auto xl:min-h-0 xl:rounded-none"
         design={DESIGN}
         origin={{ x: view.you[0], y: view.you[1] }}
-        controlsClassName="right-lg top-1/2 -translate-y-1/2 xl:top-xl xl:right-[344px] xl:translate-y-0"
+        controlsClassName="right-lg bottom-lg xl:right-xl xl:bottom-xl"
         world={
           <>
             <OrthoBasemap src={ORTHO} {...view.proj.basemap} />
@@ -197,7 +203,7 @@ function EvaMapLoaded() {
             setAdded((a) => [...a, id as ExtraLayerId]);
             setOpacity((o) => ({ ...o, [id]: 0.35 }));
           }}
-          className="xl:absolute xl:top-xl xl:right-xl xl:z-10 xl:max-h-[calc(100%_-_352px)] xl:w-[296px]"
+          className="xl:absolute xl:top-0 xl:right-0 xl:z-10 xl:w-[304px] xl:max-h-[calc(100%_-_300px)] xl:rounded-none xl:rounded-bl-sm xl:border-t-0 xl:border-r-0"
           footer={
             <p className="py-sm t-data-telemetry text-fg-secondary">
               <span className="text-danger">■</span> over the {s.maxSlopeDeg}° limit · <span className="text-danger">●</span> no-return ring
@@ -206,7 +212,7 @@ function EvaMapLoaded() {
           }
         />
 
-        <Card className="rounded-sm xl:absolute xl:inset-x-xl xl:bottom-xl xl:z-10">
+        <Card className="rounded-sm xl:absolute xl:bottom-xl xl:left-xl xl:right-[96px] xl:z-10">
           <CardHeader title="Route profile" meta={profile.meta} />
           <Fit width={660} height={148} className="aspect-[660/148] w-full" key={ev.end.dist}>
             <ProfileChart width={660} height={148} baseline={130} area={[...profile.walked, ...profile.ahead.slice(1)]}>

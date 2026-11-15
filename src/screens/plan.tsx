@@ -3,7 +3,6 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { HazardAlert, VerdictBanner } from "@/components/marswalk/alerts";
 import { Fit } from "@/components/marswalk/fit";
 import { HoldButton } from "@/components/marswalk/hold-button";
 import {
@@ -23,7 +22,7 @@ import {
   WaypointDot,
   WaypointMarker,
 } from "@/components/marswalk/map";
-import { ScreenHeading, StatList, StatRow, StatusChip } from "@/components/marswalk/primitives";
+import { LogLine, ScreenHeading, StatList, StatRow, StatusChip } from "@/components/marswalk/primitives";
 import { useToast } from "@/components/marswalk/toaster";
 import { Trace, TraceContent, TraceLine, TraceStep } from "@/components/marswalk/trace";
 import { LAYER_CELLS, type LayerId } from "@/data/mission";
@@ -96,91 +95,119 @@ function PlanScreenLoaded() {
   const routeIndex = (i: number) => Math.round((i / Math.max(1, WAYPOINTS.length - 1)) * 8);
   const cellsFor = (id: PlanLayer) => (id === "slope" ? cells?.slope : id === "dose" ? cells?.dose : LAYER_CELLS[id]) ?? [];
 
+  const warning = useMemo<{ level: "warn" | "alert"; message: string } | null>(() => {
+    if (!result || !view.ok) return null;
+    if (ev?.reasons && ev.reasons.length > 0) {
+      return { level: "alert", message: ev.reasons[0] };
+    }
+    if (PLAN.hazard) {
+      return {
+        level: "warn",
+        message: `${PLAN.hazard.title} · caution ${result.s.cautionSlopeDeg}°, limit ${result.s.maxSlopeDeg}°`,
+      };
+    }
+    if (ev?.cautions && ev.cautions.length > 0) {
+      return { level: "warn", message: ev.cautions[0] };
+    }
+    return null;
+  }, [result, view.ok, ev, PLAN]);
+
   return (
     <div className="flex min-h-full flex-col lg:h-full lg:flex-row">
       {/* Left rail (below the map on narrow screens) */}
-      <ScrollArea className="order-last shrink-0 bg-raised lg:order-none lg:w-rail" fill aria-label="Route plan">
-      <aside className="flex flex-1 flex-col gap-lg px-lg py-xl">
-        <ScreenHeading title="Route plan" sub={PLAN.subtitle} />
-        <Trace>
-          {WAYPOINTS.map((wp, i) => {
-            const open = selected === wp.id;
-            return (
-              <TraceStep key={wp.id} index={i} stagger={motionMs("stagger-group")}>
-                <TraceLine
-                  first={i === 0}
-                  last={i === WAYPOINTS.length - 1}
-                  icon={<WaypointDot size={14} />}
-                  title={`${wp.id} · ${wp.name}`}
-                  description={wp.detail}
-                  trailing={<StatusChip status={wp.status} />}
-                  expanded={open}
-                  pressed={open}
-                  onClick={() => setSelected(wp.id)}
-                />
-                {open ? (
-                  <TraceContent last={i === WAYPOINTS.length - 1}>
-                    {wp.legNote}
-                  </TraceContent>
-                ) : null}
-              </TraceStep>
-            );
-          })}
-        </Trace>
-        {!view.ok ? <p role="alert" className="t-body-s text-danger">{view.error}</p> : null}
-        <PlanControls />
-        <StatList className="rounded-sm bg-panel px-md py-sm">
-          {PLAN.summary.map((row) => (
-            <StatRow key={row.label} {...row} />
-          ))}
-        </StatList>
-        <div className="hidden min-h-px flex-1 lg:block" />
-        <HoldButton
-          label={routeCommitted ? "Route committed" : "Commit route"}
-          confirmTitle="Commit this route?"
-          confirmDescription={`The planned route and its ${PLAN.verdict} verdict will be sent to the suit device over the light-time link. A planned route is a planning aid, not a guarantee.`}
-          onConfirm={() => {
-            if (!view.ok || busy) return toast("No route to commit", { safety: true });
-            commitRoute();
-            link.sendPlan();
-            toast(`Route committed · arrives at the suit in ${link.delayS} s`);
-          }}
-          onShortPress={() => toast("Hold to commit route")}
-          className="w-full"
-        />
-        <Button
-          variant="secondary"
-          className="w-full"
-          disabled={!view.ok || busy}
-          onClick={() => {
-            // the phone AR app follows this file; it never re-plans (docs/AR_MISSION_PACKAGE.md)
-            const pkg = buildArPackage({ data: data!, result: result!, mode: settings.mode, settings });
-            const url = URL.createObjectURL(new Blob([JSON.stringify(pkg)], { type: "application/json" }));
-            const a = Object.assign(document.createElement("a"), { href: url, download: arPackageFileName(settings.mode, settings.startLmst) });
-            a.click();
-            URL.revokeObjectURL(url);
-            toast(`AR mission package saved · ${pkg.waypoints.length} waypoints · ${(pkg.route.distanceM / 1000).toFixed(2)} km`);
-          }}
-        >
-          Export AR package
-        </Button>
-        <Button variant="secondary" className="w-full" onClick={() => toast("Stop editing is not in this prototype")}>
-          Edit stops
-        </Button>
+      <aside className="order-last flex shrink-0 flex-col bg-raised lg:order-none lg:h-full lg:w-rail">
+        <ScrollArea className="flex-1 min-h-0" fill aria-label="Route plan">
+          <div className="flex flex-1 flex-col gap-lg px-lg py-xl">
+            <ScreenHeading title="Route plan" sub={PLAN.subtitle} />
+            <Trace>
+              {WAYPOINTS.map((wp, i) => {
+                const open = selected === wp.id;
+                return (
+                  <TraceStep key={wp.id} index={i} stagger={motionMs("stagger-group")}>
+                    <TraceLine
+                      first={i === 0}
+                      last={i === WAYPOINTS.length - 1}
+                      icon={<WaypointDot size={14} />}
+                      title={`${wp.id} · ${wp.name}`}
+                      description={wp.detail}
+                      trailing={<StatusChip status={wp.status} />}
+                      expanded={open}
+                      pressed={open}
+                      onClick={() => setSelected(wp.id)}
+                    />
+                    {open ? (
+                      <TraceContent last={i === WAYPOINTS.length - 1}>
+                        {wp.legNote}
+                      </TraceContent>
+                    ) : null}
+                  </TraceStep>
+                );
+              })}
+            </Trace>
+            {!view.ok ? <p role="alert" className="t-body-s text-danger">{view.error}</p> : null}
+            <PlanControls />
+            <StatList className="rounded-sm bg-panel px-md py-sm">
+              {PLAN.summary.map((row) => (
+                <StatRow key={row.label} {...row} />
+              ))}
+            </StatList>
+          </div>
+        </ScrollArea>
+        <div className="flex shrink-0 flex-col gap-sm border-t border-line-subtle p-lg bg-raised">
+          <HoldButton
+            size="control"
+            label={routeCommitted ? "Route committed" : "Commit route"}
+            confirmTitle="Commit this route?"
+            confirmDescription={`The planned route and its ${PLAN.verdict} verdict will be sent to the suit device over the light-time link. A planned route is a planning aid, not a guarantee.`}
+            onConfirm={() => {
+              if (!view.ok || busy) return toast("No route to commit", { safety: true });
+              commitRoute();
+              link.sendPlan();
+              toast(`Route committed · arrives at the suit in ${link.delayS} s`);
+            }}
+            onShortPress={() => toast("Hold to commit route")}
+            className="w-full"
+          />
+          <Button
+            size="control"
+            variant="secondary"
+            className="w-full"
+            disabled={!view.ok || busy}
+            onClick={() => {
+              // the phone AR app follows this file; it never re-plans (docs/AR_MISSION_PACKAGE.md)
+              const pkg = buildArPackage({ data: data!, result: result!, mode: settings.mode, settings });
+              const url = URL.createObjectURL(new Blob([JSON.stringify(pkg)], { type: "application/json" }));
+              const a = Object.assign(document.createElement("a"), { href: url, download: arPackageFileName(settings.mode, settings.startLmst) });
+              a.click();
+              URL.revokeObjectURL(url);
+              toast(`AR mission package saved · ${pkg.waypoints.length} waypoints · ${(pkg.route.distanceM / 1000).toFixed(2)} km`);
+            }}
+          >
+            Export AR package
+          </Button>
+          <Button
+            size="control"
+            variant="secondary"
+            className="w-full"
+            onClick={() => toast("Stop editing is not in this prototype")}
+          >
+            Edit stops
+          </Button>
+        </div>
       </aside>
-      </ScrollArea>
 
       {/* Map. Panels float over it on wide screens and stack around it on narrow ones. */}
       <section className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
-        {/* Safety information: readable on the first frame, never behind a build */}
-        <div className="flex flex-col gap-lg lg:pointer-events-none lg:absolute lg:inset-x-xl lg:top-xl lg:bottom-[296px] lg:z-10">
-          <VerdictBanner verdict={PLAN.verdict} reasons={PLAN.reasons} className="lg:pointer-events-auto lg:mr-[320px] lg:max-w-[670px]" />
-          <div className="flex flex-col gap-lg md:flex-row md:items-start lg:min-h-0 lg:flex-1">
-            {PLAN.hazard ? (
-              <HazardAlert {...PLAN.hazard} className="md:w-[360px] md:min-w-0 md:shrink lg:pointer-events-auto" />
-            ) : null}
+        {/* Floating warning log (DESIGN.md: surface-scrim, border-subtle, rounded-sm, LogLine) */}
+        {warning ? (
+          <div className="z-10 lg:absolute lg:top-xl lg:left-xl lg:max-w-[calc(100%_-_360px)]">
+            <div className="mw-flash-in flex items-center rounded-sm border border-line-subtle bg-scrim px-md py-sm backdrop-blur-sm">
+              <ul className="m-0 list-none p-0">
+                <LogLine time="plan" level={warning.level} message={warning.message} />
+              </ul>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {/* Overlay control: snapped to the map's top-right */}
         <LayerPanel
