@@ -35,7 +35,7 @@ import {
 import { EVA, PASSES_EVA, type LayerId } from "@/data/mission";
 import { ORTHO } from "@/sim/load";
 import { MissionGate } from "@/sim/controls";
-import { useMission } from "@/sim/mission";
+import { courseText, COURSE_M, suitIsLive, useMission } from "@/sim/mission";
 import { evaView, fmtHM, layerCells } from "@/sim/view";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 
@@ -76,7 +76,7 @@ function EvaMapLoaded() {
   const [added, setAdded] = useState<ExtraLayerId[]>([]);
   const heartRate = useSimulatedHeartRate(92);
   const group = motionMs("stagger-group");
-  const { data, result, ev, evaT, setEvaT, playing, setPlaying } = useMission();
+  const { data, result, ev, evaT, setEvaT, playing, setPlaying, link } = useMission();
   const view = useMemo(() => evaView(data!, result!, ev!, evaT, ROUTE_BOX), [data, result, ev, evaT]);
   // layer cells depend on the route only, not on the clock
   const routeKey = view ? `${view.walked.length + view.remaining.length}` : "";
@@ -101,6 +101,10 @@ function EvaMapLoaded() {
     .map((id) => ({ id, name: EXTRA_LAYERS[id].name, unit: EXTRA_LAYERS[id].unit }));
   const end = ev.end;
   const profile = view.profile;
+  const suit = link.suit;
+  const suitAt = suit && suitIsLive(suit, link.delayS) && suit.x != null && suit.z != null ? view.proj.px(suit.x, suit.z) : null;
+  const suitCourse = suit ? courseText(suit.offM) : null;
+  const suitOff = suit?.offM != null && Math.abs(suit.offM) > COURSE_M;
   const s = result!.s;
 
   return (
@@ -185,6 +189,20 @@ function EvaMapLoaded() {
             <MapTag className="absolute" style={{ left: view.you[0] + 26, top: view.you[1] + 10 }}>
               {view.youTag}
             </MapTag>
+            {/* the suit's real position from the phone, and whether it is inside the PAPI corridor */}
+            {suitAt ? (
+              <>
+                <div
+                  role="img"
+                  aria-label={`Suit live position · ${suitCourse ?? "course unknown"}`}
+                  className={`absolute size-[22px] rounded-pill border-3 bg-fg ${suitOff ? "border-danger" : "border-safe"}`}
+                  style={{ left: suitAt[0] - 11, top: suitAt[1] - 11 }}
+                />
+                <MapTag className={`absolute ${suitOff ? "text-danger" : "text-safe"}`} style={{ left: suitAt[0] + 18, top: suitAt[1] - 32 }}>
+                  {`Suit · ${suitCourse ?? "live"}`}
+                </MapTag>
+              </>
+            ) : null}
           </>
         }
       >
