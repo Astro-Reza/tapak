@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "preview": "vite preview",
-    "test": "node src/engine/test.mjs && node src/engine/integration.test.mjs && node src/sim/fov/fov.test.ts && node src/sim/ar-package.test.ts && node api/link.test.mjs"
+    "test": "node src/engine/test.mjs && node src/engine/integration.test.mjs && node src/sim/fov/fov.test.ts && node src/sim/ar-package.test.ts && node src/sim/suit-feed.test.ts && node api/link.test.mjs"
   },
   "dependencies": {
     "@fontsource/geologica": "^5.3.0",

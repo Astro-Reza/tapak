@@ -14,8 +14,10 @@ import {
   type PolicyId,
   type ScienceId,
 } from "@/engine";
+import { DUMMY_COMMS_PASSES } from "@/data/comms";
 import { buildArPackage } from "./ar-package";
 import { loadMissionData, type LoadedData } from "./load";
+import { missionControlStatus, type Constellation } from "./suit-feed";
 
 export type Settings = {
   scienceId: ScienceId;
@@ -62,6 +64,18 @@ const DEFAULTS: Settings = {
 
 /** Simulated minutes per real second while the EVA playback runs. */
 const PLAY_RATE = 4;
+
+/** Mission Control tells a live suit its environment and orbit link this often (each send is a relay call). */
+const FEED_MS = 5000;
+/** A suit is live while its statuses keep arriving (it sends every 2 s). */
+const SUIT_LIVE_MS = 30e3;
+// ponytail: the Comms screens' relay constellation (dummy until VITE_MARSWALK_API_URL serves /comms/passes);
+// read it from the comms backend here too once that is deployed next to the site.
+const SKY: Constellation = {
+  site: { latDeg: DUMMY_COMMS_PASSES.site.latDeg, lonDeg: DUMMY_COMMS_PASSES.site.lonDeg },
+  relays: DUMMY_COMMS_PASSES.relays,
+  snapshotLmst: DUMMY_COMMS_PASSES.site.localSolarHour,
+};
 
 export function MissionProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<LoadedData | null>(null);
@@ -142,6 +156,20 @@ export function MissionProvider({ children }: { children: ReactNode }) {
   const setDelay = useCallback((s: number) => {
     linkRef.current?.setDelay(s);
     setDelayS(linkRef.current?.delayS ?? s);
+  }, []);
+
+  // Mission Control -> suit: live environment, consumables and orbit link at the suit's own planned time, so the
+  // phone's visor HUD follows Mission Control (MEDA weather, RAD model, relay passes) instead of showing fixed numbers.
+  const feed = useRef({ data, result, ev, evaT, suit });
+  feed.current = { data, result, ev, evaT, suit };
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const { data, result, ev, evaT, suit } = feed.current;
+      if (!linkRef.current || !result || !ev || !suit || Date.now() - suit.at > SUIT_LIVE_MS) return;
+      const payload = missionControlStatus(result, ev, evaT, SKY, data?.grid);
+      if (payload) linkRef.current.send("status", payload);
+    }, FEED_MS);
+    return () => window.clearInterval(id);
   }, []);
 
   const sendPlan = useCallback(() => {
