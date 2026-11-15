@@ -18,6 +18,7 @@ import { DUMMY_COMMS_PASSES } from "@/data/comms";
 import { buildArPackage } from "./ar-package";
 import { loadMissionData, type LoadedData } from "./load";
 import { missionControlStatus, type Constellation } from "./suit-feed";
+export { COURSE_M, courseText, suitIsLive } from "./suit-feed";
 
 export type Settings = {
   scienceId: ScienceId;
@@ -31,8 +32,21 @@ export type Settings = {
 
 export type LinkLogEntry = { at: number; dir: "out" | "in"; text: string };
 
-/** Latest status from a suit device on the relay (the Marswalk AR phone app), already light-time delayed. */
-export type SuitStatus = { at: number; t: number; km: number; tracking: string; counts: boolean };
+/**
+ * Latest status from a suit device on the relay (the Marswalk AR phone app), already light-time delayed.
+ * x / z: where the suit really is (mission frame); offM: signed distance from the route, + right of travel.
+ */
+export type SuitStatus = {
+  at: number;
+  t: number;
+  km: number;
+  tracking: string;
+  counts: boolean;
+  x?: number;
+  z?: number;
+  offM?: number;
+};
+
 
 type MissionState = {
   data: LoadedData | null;
@@ -136,7 +150,9 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     const push = (e: LinkLogEntry) => setLog((l) => [e, ...l].slice(0, 8));
     const link = createLink({
       role: "master",
-      relay: new URL(".", location.href).href.replace(/\/$/, ""),
+      // this site's own relay, unless VITE_RELAY_URL points elsewhere (npm run dev:cloud: a local site on the
+      // deployed relay, so it talks to phones on their default, tapak-two.vercel.app)
+      relay: ((import.meta.env.VITE_RELAY_URL as string | undefined)?.trim() || new URL(".", location.href).href).replace(/\/+$/, ""),
       onRelay: setRelayOnline,
       onMessage: (m: LinkMessage) => {
         push({ at: Date.now(), dir: "in", text: `${m.type} received (${Math.round((Date.now() - m.sentAt) / 1000)} s after send)` });
@@ -145,7 +161,17 @@ export function MissionProvider({ children }: { children: ReactNode }) {
         if (m.type === "status" && p && Number.isFinite(p.t) && Number.isFinite(p.km)) {
           setPlaying(false);
           setEvaT(Math.max(0, p.t!));
-          setSuit({ at: Date.now(), t: p.t!, km: p.km!, tracking: String(p.tracking ?? "normal"), counts: p.counts !== false });
+          const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined); // the relay is open
+          setSuit({
+            at: Date.now(),
+            t: p.t!,
+            km: p.km!,
+            tracking: String(p.tracking ?? "normal"),
+            counts: p.counts !== false,
+            x: num(p.x),
+            z: num(p.z),
+            offM: num(p.offM),
+          });
         }
       },
     });

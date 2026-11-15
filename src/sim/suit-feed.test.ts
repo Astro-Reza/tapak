@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 import { planMission } from "../engine/index.js";
 import { lookAngles, orbitLinkAt, orbitPoint, relayAt, uplinkMarginDb, type RelayOrbit } from "../lib/orbit.ts";
-import { missionControlStatus } from "./suit-feed.ts";
+import { courseText, missionControlStatus, suitIsLive } from "./suit-feed.ts";
 
 // the comms scenario (src/data/comms.ts, backend config.py): MRS-L1 about 25° up at 15.63 LMST over Jezero West
 const site = { latDeg: 18.43, lonDeg: 77.42 };
@@ -55,3 +55,13 @@ assert.ok(a.orbit && a.orbit.track.length >= 2, "orbit link found within a sol")
 assert.ok(JSON.stringify(a).length < 8000, "small enough to send every few seconds");
 if (process.env.WRITE_FIXTURE) (await import("node:fs")).writeFileSync(process.env.WRITE_FIXTURE, JSON.stringify(a, null, 1));
 console.log(`suit-feed ok · pass ${now.relay} ${now.aosLmst.toFixed(2)}–${now.losLmst.toFixed(2)} LMST, max el ${now.maxElDeg.toFixed(0)}° · status ${JSON.stringify(a).length} B`);
+
+// PAPI corridor wording the EVA Map and top bar show
+assert.equal(courseText(2.9), "On course");
+assert.equal(courseText(-3), "On course", "the corridor edge still counts");
+assert.equal(courseText(6.4), "Off course · 6 m right");
+assert.equal(courseText(-12), "Off course · 12 m left");
+assert.equal(courseText(undefined), null, "an older phone sends no offM");
+assert.ok(suitIsLive({ at: 1000 }, 5, 1000 + 11000), "within 2 s × 3 + light time");
+assert.ok(!suitIsLive({ at: 1000 }, 5, 1000 + 11001));
+console.log("suit-feed course ok");

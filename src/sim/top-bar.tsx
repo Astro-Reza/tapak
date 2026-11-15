@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentProps } from "react";
 
 import { TopBar } from "@/components/marswalk/top-bar";
 import type { Route } from "@/lib/router";
-import { useMission } from "./mission";
+import { courseText, suitIsLive, useMission } from "./mission";
 import { fmtLmst, MARS_HOUR_MIN } from "./view";
 
 /** Top bar whose LMST clock follows the plan: EVA start before the walk, the EVA clock during it, ingress after. */
@@ -20,8 +20,9 @@ export function MissionTopBar({ route, fallback, ...rest }: Omit<ComponentProps<
     const id = window.setInterval(() => tick((n) => n + 1), 1000);
     return () => window.clearInterval(id);
   }, [s]);
+  const course = s ? courseText(s.offM) : null;
   const suit = !s ? undefined
-    : Date.now() - s.at > 6000 + link.delayS * 1000 ? "Suit link lost"
-    : `Suit live · ${s.km.toFixed(2)} km${s.counts ? "" : ` · paused (${s.tracking})`}`;
+    : !suitIsLive(s, link.delayS) ? "Suit link lost"
+    : `Suit live · ${s.km.toFixed(2)} km${s.counts ? "" : ` · paused (${s.tracking})`}${course && course !== "On course" ? ` · ${course}` : ""}`;
   return <TopBar route={route} clock={clock} suit={suit} {...rest} />;
 }

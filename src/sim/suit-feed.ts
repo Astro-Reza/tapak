@@ -63,3 +63,17 @@ export function missionControlStatus(result: MissionResult, ev: Evaluation, T: n
     },
   };
 }
+
+// ---- suit → Mission Control: is the suit still talking, and is it on course (PAPI corridor) ----
+
+/** Half-width of the on-course corridor, m (the phone's PAPI lamps use the same, Papi.CourseM). */
+export const COURSE_M = 3;
+
+/** A suit is live while its statuses keep arriving: every 2 s plus the light-time delay, so lost after 3 missed. */
+export const suitIsLive = (s: { at: number } | null, delayS: number, now = Date.now()) => !!s && now - s.at <= 6000 + delayS * 1000;
+
+/** "On course" or "Off course · 6 m right" from the suit's signed distance to the route. */
+export function courseText(offM: number | undefined): string | null {
+  if (offM == null || !Number.isFinite(offM)) return null;
+  return Math.abs(offM) <= COURSE_M ? "On course" : `Off course · ${Math.abs(offM).toFixed(0)} m ${offM > 0 ? "right" : "left"}`;
+}
