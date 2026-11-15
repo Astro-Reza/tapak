@@ -60,11 +60,14 @@ export function TopBar({
   route,
   clock,
   linkStatus = "safe",
+  suit,
   onNavigate,
 }: {
   route: Route;
   clock: string;
   linkStatus?: Status;
+  /** live suit device line, e.g. "Suit live · 0.41 km" (the Marswalk AR phone on the relay) */
+  suit?: string;
   onNavigate: (route: Route) => void;
 }) {
   return (
@@ -86,6 +89,7 @@ export function TopBar({
           className="hidden h-full items-stretch lg:grid w-[600px] xl:w-[696px]"
         />
         <div className="flex shrink-0 items-center gap-sm xl:gap-md">
+          {suit ? <p role="status" className="hidden whitespace-nowrap t-data-telemetry text-[17.5px] text-fg-secondary md:block">{suit}</p> : null}
           <p className="whitespace-nowrap t-data-coordinate text-[18.75px] text-fg">
             <span className="hidden sm:inline">SOL {MISSION.sol} · </span>
             {clock} LMST

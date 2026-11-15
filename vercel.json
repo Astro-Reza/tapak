@@ -4,6 +4,7 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [{ "source": "/link", "destination": "/api/link" }],
   "headers": [
     {
       "source": "/(textures|draco|images|data)/(.*)",

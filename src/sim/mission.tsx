@@ -16,6 +16,7 @@ import {
   type PolicyId,
   type ScienceId,
 } from "@/engine";
+import { buildArPackage } from "./ar-package";
 import { loadMissionData, type LoadedData } from "./load";
 
 export type Settings = {
@@ -29,6 +30,9 @@ export type Settings = {
 };
 
 export type LinkLogEntry = { at: number; dir: "out" | "in"; text: string };
+
+/** Latest status from a suit device on the relay (the Marswalk AR phone app), already light-time delayed. */
+export type SuitStatus = { at: number; t: number; km: number; tracking: string; counts: boolean };
 
 type MissionState = {
   data: LoadedData | null;
@@ -44,7 +48,7 @@ type MissionState = {
   setEvaT: (t: number) => void;
   playing: boolean;
   setPlaying: (on: boolean) => void;
-  link: { delayS: number; setDelay: (s: number) => void; log: LinkLogEntry[]; sendPlan: () => void };
+  link: { delayS: number; setDelay: (s: number) => void; log: LinkLogEntry[]; sendPlan: () => void; relayOnline: boolean; suit: SuitStatus | null };
 };
 
 const Ctx = createContext<MissionState | null>(null);
@@ -72,6 +76,8 @@ export function MissionProvider({ children }: { children: ReactNode }) {
   const [log, setLog] = useState<LinkLogEntry[]>([]);
   const [delayS, setDelayS] = useState(DEFAULT_DELAY_S);
   const linkRef = useRef<Link | null>(null);
+  const [relayOnline, setRelayOnline] = useState(false);
+  const [suit, setSuit] = useState<SuitStatus | null>(null);
 
   useEffect(() => {
     loadMissionData().then(setData, (e: Error) => setError(`Mission data failed to load: ${e.message}`));
@@ -111,12 +117,25 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, [playing, endT]);
 
-  // Mission-control side of the light-time link; MARSWALK/app ?role=astronaut in another tab can answer.
+  // Mission-control side of the light-time link. MARSWALK/app ?role=astronaut in another tab can answer, and so can
+  // the Marswalk AR phone app through the /link relay: the dev server hosts one (npm run dev:lan), Vercel another
+  // (api/link.js, once Upstash Redis is connected). Hosts without one answer 404 and the link stops polling.
   useEffect(() => {
     const push = (e: LinkLogEntry) => setLog((l) => [e, ...l].slice(0, 8));
     const link = createLink({
       role: "master",
-      onMessage: (m: LinkMessage) => push({ at: Date.now(), dir: "in", text: `${m.type} received (${Math.round((Date.now() - m.sentAt) / 1000)} s after send)` }),
+      relay: new URL(".", location.href).href.replace(/\/$/, ""),
+      onRelay: setRelayOnline,
+      onMessage: (m: LinkMessage) => {
+        push({ at: Date.now(), dir: "in", text: `${m.type} received (${Math.round((Date.now() - m.sentAt) / 1000)} s after send)` });
+        // a walking suit drives the mission clock: EVA Map, FoV and telemetry follow its planned time at real progress
+        const p = m.payload as Partial<SuitStatus> | null;
+        if (m.type === "status" && p && Number.isFinite(p.t) && Number.isFinite(p.km)) {
+          setPlaying(false);
+          setEvaT(Math.max(0, p.t!));
+          setSuit({ at: Date.now(), t: p.t!, km: p.km!, tracking: String(p.tracking ?? "normal"), counts: p.counts !== false });
+        }
+      },
     });
     linkRef.current = link;
     return () => link.close();
@@ -130,6 +149,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
   const sendPlan = useCallback(() => {
     const link = linkRef.current;
     if (!link || !ev?.end || !result) return;
+    if (!data) return;
     const recipe = validatePlan({
       v: 1,
       mode: settings.mode,
@@ -140,9 +160,10 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       o2CapacityL: result.s.o2CapacityL,
       summary: { km: ev.end.dist / 1000, o2L: ev.end.o2 },
     });
-    link.send("plan", recipe);
+    // the recipe is for MARSWALK/app (it re-plans); the AR app never re-plans, so it gets the full package too
+    link.send("plan", { ...recipe, arPackage: buildArPackage({ data, result, mode: settings.mode, settings }) });
     setLog((l) => [{ at: Date.now(), dir: "out" as const, text: `plan sent · arrives in ${link.delayS} s` }, ...l].slice(0, 8));
-  }, [ev, result, settings]);
+  }, [data, ev, result, settings]);
 
   const update = useCallback((patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })), []);
 
@@ -159,9 +180,9 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       setEvaT,
       playing,
       setPlaying,
-      link: { delayS, setDelay, log, sendPlan },
+      link: { delayS, setDelay, log, sendPlan, relayOnline, suit },
     }),
-    [data, error, busy, settings, update, result, ev, evaT, endT, playing, delayS, setDelay, log, sendPlan],
+    [data, error, busy, settings, update, result, ev, evaT, endT, playing, delayS, setDelay, log, sendPlan, relayOnline, suit],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
