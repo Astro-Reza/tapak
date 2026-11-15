@@ -166,7 +166,12 @@ export type LinkType = "plan" | "status" | "alert" | "ack";
 export interface LinkMessage { type: LinkType; payload: unknown; from: string; sentAt: number; deliverAt: number }
 export interface Link { readonly delayS: number; setDelay(s: number): void; send(type: LinkType, payload: unknown): void; close(): void }
 export const DEFAULT_DELAY_S: number;
-export function createLink(opts: { role: string; onMessage: (m: LinkMessage) => void; name?: string; now?: () => number }): Link;
+export function createLink(opts: {
+  role: string; onMessage: (m: LinkMessage) => void; name?: string; now?: () => number;
+  /** base URL of a sync/relay.js mailbox, to reach other devices (the Marswalk AR phone app) */
+  relay?: string | null; fetchFn?: typeof fetch; onRelay?: (online: boolean) => void;
+}): Link;
+export function createRelay(opts?: { now?: () => number }): (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => boolean;
 
 export interface Recipe {
   v: 1; mode: Mode | "slider"; sliderT: number; modelKey: ModelKey; startLmst: number; kSuit: number; o2CapacityL: number;

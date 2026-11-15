@@ -10,6 +10,8 @@ import { returnField, walkBackCheck, ringCells, reserveL } from './models/return
 import { evaluatePlan, windowOptions, legBreakdown, goNoGo } from './models/evaluate.js';
 import { simulatePlayback, calibrateKSuit, SIM } from './debrief.js';
 import { createLink } from './sync/channel.js';
+import { createRelay } from './sync/relay.js';
+import { createServer } from 'node:http';
 import { encodePlan, decodePlan, summaryMatches } from './sync/plan.js';
 import { loadSurrogate } from './models/surrogate.js';
 import { adaptLookup } from './models/lookup.js';
@@ -228,6 +230,33 @@ assert.deepEqual(decodePlan(encodePlan(got[0].m.payload)), recipe);
 astro.send('status', { t: 1 }); // nobody listening: must not throw, astronaut carries on
 astro.close();
 console.log(`sync: plan delivered ${got[0].at - sentAt} ms after send (delay ${DELAY * 1000} ms), master closed first`);
+// Cross-device: a phone (no BroadcastChannel, clock 10 min fast) posts a status to the HTTP relay. The master still
+// waits the light-time delay, timed from the relay, and the relay refuses anything that is not a link message.
+{
+  const relay = createRelay();
+  const server = createServer((req, res) => { if (!relay(req, res)) { res.writeHead(404); res.end(); } });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${server.address().port}`, inbox = [];
+  const skew = 600e3, phoneSent = Date.now() + skew;
+  const post = (body) => fetch(`${base}/link`, { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) });
+  assert.equal((await post({ type: 'status', payload: { t: 12, km: 0.4 }, from: 'astronaut', sentAt: phoneSent, deliverAt: phoneSent + 1500 })).status, 204);
+  const postedAt = Date.now();
+  // mission control opens while the status is in flight (an idle link polls every 5 s, so it must be waiting already)
+  const ctl = createLink({ role: 'master', name: 'relay-test', relay: base, onMessage: (m) => inbox.push({ m, at: Date.now() }) });
+  for (const bad of ['{', { type: 'hack', from: 'x', sentAt: 1, deliverAt: 1 }, { type: 'status', from: 'x' }]) assert.equal((await post(bad)).status, 400);
+  await new Promise((r) => setTimeout(r, 1100));
+  assert.equal(inbox.length, 0, 'relay message held for the light-time delay');
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal(inbox.length, 1, 'relay message delivered once, despite the phone clock');
+  assert.ok(inbox[0].at - postedAt >= 1400 && inbox[0].m.payload.t === 12);
+  ctl.send('plan', recipe); // the master's own messages reach the relay for the phone
+  await new Promise((r) => setTimeout(r, 100));
+  const held = (await (await fetch(`${base}/link`)).json()).messages.map((e) => e.m.type);
+  assert.deepEqual(held, ['status', 'plan']);
+  ctl.close();
+  server.close();
+  console.log(`relay: phone status delivered ${inbox[0].at - postedAt} ms after posting (delay 1500 ms, phone clock +10 min)`);
+}
 
 // ---------- Step 7: optional surrogate grids ----------
 const synth = (over = {}) => ({ version: 1, rows: g.rows, cols: g.cols, source: 'synthetic test grid',

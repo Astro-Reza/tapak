@@ -7,6 +7,7 @@ export { MODEL_NAMES, DEFAULT_MODEL } from './models/energy.js';
 export { evaluatePlan, goNoGo, windowOptions, legBreakdown, DAYLIGHT, COLD_GROUND_K } from './models/evaluate.js';
 export { simulatePlayback, calibrateKSuit, SIM } from './debrief.js';
 export { createLink, DEFAULT_DELAY_S } from './sync/channel.js';
+export { createRelay } from './sync/relay.js';
 export { encodePlan, decodePlan, validatePlan, summaryMatches } from './sync/plan.js';
 export { SCIENCE_PROFILES, POLICY_PROFILES, DEFAULT_SCIENCE, DEFAULT_POLICY, suitFor } from './profiles.js';
 export { planMission, withVerdict, verdictOf, MODES } from './mission.js';

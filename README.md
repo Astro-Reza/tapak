@@ -117,6 +117,24 @@ npm test           # engine tests + regression and integration tests
 link budget. Start it, then set `VITE_MARSWALK_API_URL=http://localhost:5000` in `.env.local` (see `.env.example`).
 Without it, the Comms screens use their dummy data. See [backend/README.md](backend/README.md).
 
+## Live link to the Marswalk AR phone app
+
+Committing a route (Plan → **Commit route**) sends it over the light-time link; the Marswalk AR app (Unity, ARCore /
+ARKit) loads it, acks, and sends a status every 2 s that drives the mission clock, so EVA Map, FoV and telemetry follow
+the real walker and the top bar shows *Suit live · km*. Both sides poll a small relay at `/link`
+(`src/engine/sync/relay.js`):
+
+- **Local:** `npm run dev:lan` serves it from the dev server. Phone and laptop on the same Wi-Fi; type the `Network:`
+  address into the app's *Mission Control* field.
+- **Vercel:** `api/link.js`, reached at `/link` through `vercel.json`. Vercel functions keep no memory, so it stores
+  messages in Upstash Redis (10 minutes, last 500). One-time setup on the Vercel project: **Storage → Create /
+  Marketplace → Upstash for Redis (free plan) → connect to this project**, then redeploy. It sets `KV_REST_API_URL` /
+  `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_*`); nothing else to configure. In the app, type the site address
+  (`https://tapak-two.vercel.app`): it works over mobile data, no shared Wi-Fi needed.
+- Without Redis the site asks once, gets `{ configured: false }` and stops polling. An idle page polls every 5 s, an
+  active link every 1 s. Anyone with the URL can post: both ends accept only valid plans and statuses, and a plan
+  must pass the AR package's golden checks.
+
 ## Data honesty
 
 Terrain, MEDA temperatures and pressure, and stop positions are measurements. Routes, slope and sky view are calculated
