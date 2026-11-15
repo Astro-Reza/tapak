@@ -1,7 +1,8 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { LayerId } from "@/data/mission";
@@ -119,6 +120,7 @@ export function MapFrame({
   controlsClassName = "right-xl bottom-xl",
   className,
   origin,
+  onView,
 }: {
   world: ReactNode;
   children?: ReactNode;
@@ -126,6 +128,8 @@ export function MapFrame({
   controlsClassName?: string;
   className?: string;
   origin: { x: number; y: number };
+  /** the design-pixel area in the frame, reported once a pan or zoom settles (not on every drag move) */
+  onView?: (view: { x0: number; y0: number; x1: number; y1: number }) => void;
 }) {
   const [zoom, setZoom] = useState(0);
   const [ref, box] = useFit(design, "contain", origin, { min: 0.55, max: 1.25 });
@@ -142,6 +146,20 @@ export function MapFrame({
     setZoom(0);
     setPan({ x: 0, y: 0 });
   };
+  // frame px -> design px: undo the pan, the fit, then the zoom about `origin`
+  const onViewRef = useRef(onView);
+  onViewRef.current = onView;
+  const z = ZOOM_STEPS[zoom];
+  useEffect(() => {
+    if (dragging || !box.width || !onViewRef.current) return;
+    const toDesign = (p: number, shift: number, fit: number, o: number) => o + ((p - shift - fit) / box.scale - o) / z;
+    onViewRef.current({
+      x0: toDesign(0, shown.x, box.x, origin.x),
+      y0: toDesign(0, shown.y, box.y, origin.y),
+      x1: toDesign(box.width, shown.x, box.x, origin.x),
+      y1: toDesign(box.height, shown.y, box.y, origin.y),
+    });
+  }, [dragging, z, shown.x, shown.y, box.x, box.y, box.scale, box.width, box.height, origin.x, origin.y]);
   return (
     <div ref={ref} className={cn("relative overflow-hidden bg-canvas", className)}>
       <div
@@ -468,6 +486,8 @@ export type PanelLayer = {
   opacity: number;
 };
 
+export type PanelOption = { id: string; label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void };
+
 /** Pie showing a layer's opacity: filled clockwise from the top. Click steps it. */
 function OpacityPie({ value, label, onChange }: { value: number; label: string; onChange: (v: number) => void }) {
   const r = 8;
@@ -506,6 +526,7 @@ export function LayerPanel({
   onAdd,
   className,
   footer,
+  options,
 }: {
   layers: readonly PanelLayer[];
   addable: readonly { id: string; name: string; unit: string }[];
@@ -513,12 +534,14 @@ export function LayerPanel({
   onAdd: (id: string) => void;
   className?: string;
   footer?: ReactNode;
+  /** Map display switches under the search row (e.g. near-route cells, no-go cells) */
+  options?: readonly PanelOption[];
 }) {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const q = query.trim().toLowerCase();
   const shown = layers.filter((l) => l.name.toLowerCase().includes(q));
-  const options = addable.filter((l) => l.name.toLowerCase().includes(q));
+  const matches = addable.filter((l) => l.name.toLowerCase().includes(q));
   return (
     <div
       className={cn(
@@ -552,9 +575,23 @@ export function LayerPanel({
         </button>
       </div>
 
+      {options?.length ? (
+        <div role="group" aria-label="Map display" className="flex shrink-0 flex-col">
+          {options.map((o) => (
+            <label key={o.id} className="flex cursor-pointer items-center gap-sm py-xs">
+              <Checkbox checked={o.checked} onCheckedChange={(v) => o.onChange(v === true)} />
+              <span className="flex min-w-px flex-1 flex-col">
+                <span className="t-label-m text-fg">{o.label}</span>
+                {o.hint ? <span className="t-body-s text-fg-muted">{o.hint}</span> : null}
+              </span>
+            </label>
+          ))}
+        </div>
+      ) : null}
+
       {adding ? (
         <div role="group" aria-label="Add a layer" className="flex shrink-0 flex-col rounded-sm bg-panel p-xs">
-          {options.map((o) => (
+          {matches.map((o) => (
             <button
               key={o.id}
               type="button"
@@ -570,7 +607,7 @@ export function LayerPanel({
               <span className="shrink-0 t-label-unit text-fg-secondary">{o.unit}</span>
             </button>
           ))}
-          {options.length === 0 ? (
+          {matches.length === 0 ? (
             <p className="px-sm py-sm t-body-s text-fg-secondary">
               {addable.length === 0 ? "Every available layer is already on the map" : `No layer matches “${query}”`}
             </p>
@@ -645,6 +682,32 @@ export function CellLayer({
       ))}
     </div>
   );
+}
+
+/* ---------- Data rasters (the dataset GUI's view: whole patch, one pixel per data pixel) ---------- */
+
+type RasterFrame = { left: number; top: number; width: number; height: number };
+
+/**
+ * A data layer as a raster over the terrain patch: an RGBA buffer the size of its grid, stretched
+ * to the frame with hard pixel edges (stepped, as the cells were). Turning it on runs the scan reveal.
+ */
+export function RasterLayer({ paint, frame, opacity }: { paint: { w: number; h: number; rgba: Uint8ClampedArray }; frame: RasterFrame; opacity: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = ref.current?.getContext("2d");
+    if (ctx) ctx.putImageData(new ImageData(paint.rgba as Uint8ClampedArray<ArrayBuffer>, paint.w, paint.h), 0, 0);
+  }, [paint]);
+  return (
+    <div className="pointer-events-none absolute inset-0 mw-scan-in" style={{ opacity }}>
+      <canvas ref={ref} width={paint.w} height={paint.h} className="absolute [image-rendering:pixelated]" style={frame} />
+    </div>
+  );
+}
+
+/** Hillshade multiplied over the basemap and layers, so the data reads as terrain (as the dataset GUI shades it). */
+export function ShadeLayer({ src, frame, opacity }: { src: string; frame: RasterFrame; opacity: number }) {
+  return <img src={src} alt="" aria-hidden="true" className="pointer-events-none absolute mix-blend-multiply" style={{ ...frame, opacity }} />;
 }
 
 /* ---------- Elevation profile ---------- */

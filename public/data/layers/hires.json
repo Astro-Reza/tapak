@@ -1,0 +1,23 @@
+{
+ "source": "USGS Mars 2020 TRN HiRISE DTM mosaic, 1 m (doi:10.5066/P9REJ9JN)",
+ "grid": {
+  "rows": 2000,
+  "cols": 2108,
+  "cell": [
+   0.949,
+   1.0
+  ],
+  "x0": -998.8225,
+  "z0": -998.0
+ },
+ "slope": {
+  "file": "hires-slope.png",
+  "step": 0.25,
+  "nodata": 255
+ },
+ "shade": {
+  "file": "hires-shade.jpg",
+  "azimuth": 315,
+  "altitude": 45
+ }
+}

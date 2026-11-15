@@ -1,0 +1,467 @@
+{
+ "rasters": [
+  {
+   "id": "albedo",
+   "name": "TES albedo",
+   "group": "Global",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "gray",
+   "bounds": [
+    -180,
+    180,
+    -90,
+    90
+   ],
+   "res_m": 7410,
+   "credit": "NASA/JPL/ASU MGS TES (Christensen et al. 2001), USGS Astrogeology mosaic",
+   "source": "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_TES_Albedo_mosaic_global_7410m.tif",
+   "note": "Lambert albedo, bolometric; bright = dusty, dark = basaltic sand",
+   "hillshade": false,
+   "shape": [
+    1440,
+    2880
+   ],
+   "file": "albedo.png",
+   "offset": 0.05999999865889549,
+   "scale": 3.967402959872592e-06,
+   "nodata": 65535,
+   "p": [
+    0.05999999865889549,
+    0.05999999865889549,
+    0.19254890084266663,
+    0.3199997842311859,
+    0.3199997842311859
+   ]
+  },
+  {
+   "id": "crism_bd1900_2",
+   "name": "CRISM Hydration (BD1900_2)",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "mineral",
+   "bounds": [
+    74.99891277244598,
+    80.00412805961165,
+    17.497343597274593,
+    22.50040165489464
+   ],
+   "res_m": 181,
+   "credit": "NASA/JPL-Caltech/JHU-APL (MRO CRISM), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+   "note": "1.9 um H2O band depth: hydrated minerals. MRDR summary parameter (Viviano-Beck et al. 2014); <= 0 means no band",
+   "hillshade": false,
+   "shape": [
+    1636,
+    1538
+   ],
+   "file": "crism_bd1900_2.png",
+   "offset": -0.359266459941864,
+   "scale": 8.085933603896836e-05,
+   "nodata": 65535,
+   "p": [
+    -0.035079218931496146,
+    -0.02041045039892197,
+    0.004415636882185936,
+    0.032262362465262415,
+    0.04314874857664108
+   ]
+  },
+  {
+   "id": "crism_bd2500_2",
+   "name": "CRISM Carbonate (BD2500_2)",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "mineral",
+   "bounds": [
+    74.99891277244598,
+    80.00412805961165,
+    17.497343597274593,
+    22.50040165489464
+   ],
+   "res_m": 181,
+   "credit": "NASA/JPL-Caltech/JHU-APL (MRO CRISM), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+   "note": "2.5 um band depth: carbonates. MRDR summary parameter (Viviano-Beck et al. 2014); <= 0 means no band",
+   "hillshade": false,
+   "shape": [
+    1636,
+    1538
+   ],
+   "file": "crism_bd2500_2.png",
+   "offset": -0.1798812299966812,
+   "scale": 4.289460371552518e-06,
+   "nodata": 65535,
+   "p": [
+    -0.08473719656467438,
+    -0.07244697093963623,
+    -0.04639097675681114,
+    -0.02106805257499218,
+    -0.009861729256808806
+   ]
+  },
+  {
+   "id": "crism_d2300",
+   "name": "CRISM Fe/Mg phyllosilicate (D2300)",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "mineral",
+   "bounds": [
+    74.99891277244598,
+    80.00412805961165,
+    17.497343597274593,
+    22.50040165489464
+   ],
+   "res_m": 181,
+   "credit": "NASA/JPL-Caltech/JHU-APL (MRO CRISM), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+   "note": "2.3 um drop-off: Fe/Mg clays. MRDR summary parameter (Viviano-Beck et al. 2014); <= 0 means no band",
+   "hillshade": false,
+   "shape": [
+    1636,
+    1538
+   ],
+   "file": "crism_d2300.png",
+   "offset": -0.09542087465524673,
+   "scale": 2.986924391326627e-06,
+   "nodata": 65535,
+   "p": [
+    -0.027868715710937977,
+    -0.02016473636031151,
+    -0.0003852791269309819,
+    0.02816724218428135,
+    0.03945693794637918
+   ]
+  },
+  {
+   "id": "crism_hcpindex2",
+   "name": "CRISM High-Ca pyroxene (HCPINDEX2)",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "mineral",
+   "bounds": [
+    74.99891277244598,
+    80.00412805961165,
+    17.497343597274593,
+    22.50040165489464
+   ],
+   "res_m": 181,
+   "credit": "NASA/JPL-Caltech/JHU-APL (MRO CRISM), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+   "note": "1.05/2.3 um: high-calcium pyroxene. MRDR summary parameter (Viviano-Beck et al. 2014); <= 0 means no band",
+   "hillshade": false,
+   "shape": [
+    1636,
+    1538
+   ],
+   "file": "crism_hcpindex2.png",
+   "offset": -0.13621926307678223,
+   "scale": 3.641371276121273e-06,
+   "nodata": 65535,
+   "p": [
+    -0.06003033369779587,
+    -0.0476175956428051,
+    -0.01768719870597124,
+    0.02341330051422119,
+    0.03431138359010218
+   ]
+  },
+  {
+   "id": "crism_lcpindex2",
+   "name": "CRISM Low-Ca pyroxene (LCPINDEX2)",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "mineral",
+   "bounds": [
+    74.99891277244598,
+    80.00412805961165,
+    17.497343597274593,
+    22.50040165489464
+   ],
+   "res_m": 181,
+   "credit": "NASA/JPL-Caltech/JHU-APL (MRO CRISM), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+   "note": "1.0/1.9 um: low-calcium pyroxene. MRDR summary parameter (Viviano-Beck et al. 2014); <= 0 means no band",
+   "hillshade": false,
+   "shape": [
+    1636,
+    1538
+   ],
+   "file": "crism_lcpindex2.png",
+   "offset": -0.2329849898815155,
+   "scale": 6.330771998781111e-06,
+   "nodata": 65535,
+   "p": [
+    -0.11935011297464371,
+    -0.0848368303477764,
+    0.0057774558663368225,
+    0.06293217822909355,
+    0.07598296750336878
+   ]
+  },
+  {
+   "id": "crism_olindex3",
+   "name": "CRISM Olivine (OLINDEX3)",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "",
+   "ramp": "mineral",
+   "bounds": [
+    74.99891277244598,
+    80.00412805961165,
+    17.497343597274593,
+    22.50040165489464
+   ],
+   "res_m": 181,
+   "credit": "NASA/JPL-Caltech/JHU-APL (MRO CRISM), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+   "note": "1 um broad band: olivine. MRDR summary parameter (Viviano-Beck et al. 2014); <= 0 means no band",
+   "hillshade": false,
+   "shape": [
+    1636,
+    1538
+   ],
+   "file": "crism_olindex3.png",
+   "offset": -12.220501899719238,
+   "scale": 0.00019442707242886241,
+   "nodata": 65535,
+   "p": [
+    0.012657460831105706,
+    0.06181578710675239,
+    0.1585930809378624,
+    0.2913095951080322,
+    0.33695290058851224
+   ]
+  },
+  {
+   "id": "ctx_dtm",
+   "name": "CTX DTM 20 m",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "m",
+   "ramp": "terrain",
+   "bounds": [
+    77.16046545922367,
+    77.69897516629472,
+    18.211027390963398,
+    18.721194481872804
+   ],
+   "res_m": 20,
+   "credit": "NASA/JPL-Caltech/MSSS; USGS Astrogeology Mars 2020 TRN CTX DTM (Fergason et al. 2020)",
+   "source": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/JEZ_ctx_B_soc_008_DTM_MOLAtopography_DeltaGeoid_20m_Eqc_latTs0_lon0.tif",
+   "note": null,
+   "hillshade": true,
+   "shape": [
+    1512,
+    1596
+   ],
+   "file": "ctx_dtm.png",
+   "offset": -2710.69580078125,
+   "scale": 0.018237193670461133,
+   "nodata": 65535,
+   "p": [
+    -2693.2890576171876,
+    -2675.645234375,
+    -2445.04296875,
+    -1791.0011132812501,
+    -1656.9338073730462
+   ]
+  },
+  {
+   "id": "ctx_ortho",
+   "name": "CTX image 12 m",
+   "group": "Jezero region",
+   "kind": "gray",
+   "units": "",
+   "ramp": null,
+   "bounds": [
+    77.16046545922367,
+    77.69917761355299,
+    18.211027390963398,
+    18.721194481872804
+   ],
+   "res_m": 12,
+   "credit": "NASA/JPL-Caltech/MSSS; USGS Astrogeology Mars 2020 TRN CTX ortho mosaic",
+   "source": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0.tif",
+   "note": null,
+   "hillshade": false,
+   "shape": [
+    2520,
+    2661
+   ],
+   "file": "ctx_ortho.png"
+  },
+  {
+   "id": "mola",
+   "name": "MOLA topography",
+   "group": "Global",
+   "kind": "scalar",
+   "units": "m",
+   "ramp": "terrain",
+   "bounds": [
+    -180,
+    180,
+    -90,
+    90
+   ],
+   "res_m": 3700,
+   "credit": "NASA/GSFC MGS MOLA team (MEGDR, Smith et al. 2003), PDS Geosciences Node",
+   "source": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg016/megt90n000eb.img",
+   "note": "Height above the MOLA areoid (median of the MOLA shots in each 1/16 deg bin)",
+   "hillshade": true,
+   "shape": [
+    2880,
+    5760
+   ],
+   "file": "mola.png",
+   "offset": -8177.0,
+   "scale": 1.0,
+   "nodata": 65535,
+   "p": [
+    -6508.0,
+    -5101.0,
+    -257.0,
+    4704.0,
+    6971.0
+   ],
+   "overview": {
+    "file": "mola-overview.png",
+    "shape": [
+     720,
+     1440
+    ]
+   }
+  },
+  {
+   "id": "themis_ti",
+   "name": "THEMIS thermal inertia",
+   "group": "Jezero region",
+   "kind": "scalar",
+   "units": "TIU",
+   "ramp": "thermal",
+   "bounds": [
+    76.99912763292366,
+    78.50061146529593,
+    17.749563371223022,
+    19.251047203595277
+   ],
+   "res_m": 100,
+   "credit": "NASA/JPL-Caltech/Arizona State University (Mars Odyssey THEMIS); thermal inertia mosaic by Edwards & Buz (2021), NAU",
+   "source": "https://zenodo.org/records/4931348",
+   "note": "J m-2 K-1 s-1/2. Low = dust/sand, high = rock and bedrock",
+   "hillshade": false,
+   "shape": [
+    890,
+    890
+   ],
+   "file": "themis_ti.png",
+   "offset": 42.42324447631836,
+   "scale": 0.02461171898926407,
+   "nodata": 65535,
+   "p": [
+    105.04321910858154,
+    129.20028533935547,
+    243.60125732421875,
+    418.302703857422,
+    512.7237680053713
+   ]
+  },
+  {
+   "id": "viking",
+   "name": "Viking colour",
+   "group": "Global",
+   "kind": "rgb",
+   "units": "",
+   "ramp": null,
+   "bounds": [
+    -180.008,
+    179.9459369662887,
+    -89.97296848314436,
+    90.004
+   ],
+   "res_m": 7400,
+   "credit": "NASA/JPL/USGS Viking Orbiter MDIM 2.1 colour mosaic (USGS Astrogeology)",
+   "source": "https://planetarymaps.usgs.gov/mosaic/Mars_Viking_ClrMosaic_global_925m.tif",
+   "note": null,
+   "hillshade": false,
+   "shape": [
+    1441,
+    2882
+   ],
+   "file": "viking.jpg"
+  }
+ ],
+ "site": {
+  "file": "site-elev.png",
+  "offset": -2100.0,
+  "scale": 0.01,
+  "nodata": 65535,
+  "shape": [
+   2000,
+   2108
+  ],
+  "res_m": 1.0,
+  "credit": "USGS Mars 2020 TRN HiRISE DTM (doi:10.5066/P9REJ9JN)"
+ },
+ "bookmarks": [
+  {
+   "name": "Whole planet",
+   "lon": 0.0,
+   "lat": 0.0,
+   "height": 190.0
+  },
+  {
+   "name": "Jezero crater",
+   "lon": 77.5,
+   "lat": 18.45,
+   "height": 0.75
+  },
+  {
+   "name": "Marswalk patch",
+   "lon": 77.269,
+   "lat": 18.4593,
+   "height": 0.045
+  },
+  {
+   "name": "Jezero west rim + delta",
+   "lon": 77.38,
+   "lat": 18.47,
+   "height": 0.25
+  },
+  {
+   "name": "Isidis + Syrtis",
+   "lon": 80.0,
+   "lat": 14.0,
+   "height": 30.0
+  },
+  {
+   "name": "Gale crater (Curiosity)",
+   "lon": 137.6,
+   "lat": -4.9,
+   "height": 2.5
+  },
+  {
+   "name": "Olympus Mons",
+   "lon": -133.8,
+   "lat": 18.65,
+   "height": 12.0
+  },
+  {
+   "name": "Valles Marineris",
+   "lon": -65.0,
+   "lat": -9.0,
+   "height": 25.0
+  },
+  {
+   "name": "Hellas Planitia",
+   "lon": 70.5,
+   "lat": -42.4,
+   "height": 40.0
+  }
+ ]
+}

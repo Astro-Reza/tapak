@@ -1,0 +1,92 @@
+{
+ "source": "https://github.com/Astro-Reza/marswalk-dataset (data/processed)",
+ "format": "float32 little-endian, [layers, rows, cols], row 0 = north; NaN = no data",
+ "grid": {
+  "rows": 500,
+  "cols": 527,
+  "cell": [
+   3.796,
+   4
+  ],
+  "x0": -998.8225,
+  "z0": -998
+ },
+ "layers": [
+  {
+   "id": "minerals",
+   "name": "Hydrated Minerals",
+   "unit": "BD1900_2",
+   "ramp": "minerals",
+   "range": [
+    0,
+    0.018013
+   ],
+   "min": 0,
+   "max": 0.03597221150994301,
+   "coverage": 1,
+   "nativeM": 181,
+   "source": "CRISM MRDR T1250 · BD1900_2"
+  },
+  {
+   "id": "thermal",
+   "name": "Thermal Inertia",
+   "unit": "SI",
+   "ramp": "thermal",
+   "range": [
+    174.013474,
+    333.331055
+   ],
+   "min": 164.4489288330078,
+   "max": 357.3625183105469,
+   "coverage": 1,
+   "nativeM": 100,
+   "source": "THEMIS TI mosaic (Edwards & Buz 2021)"
+  },
+  {
+   "id": "phyllosilicate",
+   "name": "Fe/Mg Phyllosilicate",
+   "unit": "D2300",
+   "ramp": "minerals",
+   "range": [
+    -0.00491,
+    0.018724
+   ],
+   "min": -0.015367900021374226,
+   "max": 0.023417973890900612,
+   "coverage": 1,
+   "nativeM": 181,
+   "source": "CRISM MRDR T1250 · D2300"
+  },
+  {
+   "id": "carbonate",
+   "name": "Carbonate",
+   "unit": "BD2500_2",
+   "ramp": "minerals",
+   "range": [
+    -0.057569,
+    -0.033364
+   ],
+   "min": -0.0672585740685463,
+   "max": -0.028108516708016396,
+   "coverage": 1,
+   "nativeM": 181,
+   "source": "CRISM MRDR T1250 · BD2500_2"
+  },
+  {
+   "id": "olivine",
+   "name": "Olivine",
+   "unit": "OLINDEX3",
+   "ramp": "minerals",
+   "range": [
+    0.105454,
+    0.226269
+   ],
+   "min": 0.058843422681093216,
+   "max": 0.2633861005306244,
+   "coverage": 1,
+   "nativeM": 181,
+   "source": "CRISM MRDR T1250 · OLINDEX3"
+  }
+ ],
+ "credits": "See README.md#data-sources-and-credits"
+}

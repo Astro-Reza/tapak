@@ -18,7 +18,7 @@ import {
   type Sample,
   type Status,
 } from "@/engine";
-import type { LoadedData } from "./load";
+import type { LoadedData, OrbitalLayers } from "./load";
 import { arrivalIndices, stopName } from "./stops";
 
 export { arrivalIndices, stopName };
@@ -79,38 +79,157 @@ const mix = (low: string, high: string, mid: string | null, v: number) =>
       : `color-mix(in srgb, ${mid}, ${high} ${(v - 0.5) * 200}%)`
     : `color-mix(in srgb, ${low}, ${high} ${v * 100}%)`;
 
-export type LayerCells = { slope: Cell[]; dose: Cell[]; doseRange: [number, number]; noGo: Cell[] };
+export type LayerCells = {
+  slope: Cell[];
+  dose: Cell[];
+  doseRange: [number, number];
+  noGo: Cell[];
+  /** orbital dataset layers by id (cells with no data are left out) */
+  orbital: Record<string, Cell[]>;
+  /** the value range each orbital layer's ramp spans: the dataset range, or the data in view when stretched */
+  orbitalRange: Record<string, [number, number]>;
+};
 
-/** Slope (0-35°, the layer ramp) and quiet-sun dose rate per 24 px cell, within `nearPx` of the route. */
-export function layerCells(data: LoadedData, result: MissionResult, proj: Projection, route: Point[], design: { width: number; height: number }, nearPx = 80): LayerCells {
+/** Per 24 px cell layer values, before colouring. */
+export type LayerSamples = {
+  cells: { x: number; y: number; slope: number; dose: number; noGo: number; orb: number[] }[];
+  orb: OrbitalLayers["layers"];
+};
+
+const RAMPS: Record<string, [string, string, string | null]> = {
+  minerals: ["var(--data-mineral-low)", "var(--data-mineral-high)", null],
+  thermal: ["var(--data-thermal-low)", "var(--data-thermal-high)", "var(--data-thermal-mid)"],
+};
+
+/**
+ * Slope (0-35°, the layer ramp), quiet-sun dose rate, no-go share and the orbital layers per 24 px cell.
+ * `nearPx` keeps only cells within that distance of the route; null covers the whole terrain patch.
+ */
+export function layerCells(
+  data: LoadedData,
+  result: MissionResult,
+  proj: Projection,
+  route: Point[],
+  design: { width: number; height: number },
+  nearPx: number | null = 80,
+  orbital?: OrbitalLayers | null,
+): LayerCells {
+  return colorCells(layerSamples(data, result, proj, route, design, nearPx, orbital));
+}
+
+/** The sampling half of `layerCells`: average every layer under each 24 px cell. */
+export function layerSamples(
+  data: LoadedData,
+  result: MissionResult,
+  proj: Projection,
+  route: Point[],
+  design: { width: number; height: number },
+  nearPx: number | null = 80,
+  orbital?: OrbitalLayers | null,
+): LayerSamples {
   const g = data.grid;
-  const raw: { x: number; y: number; slope: number; dose: number; noGo: number }[] = [];
-  for (let py = 0; py < design.height; py += CELL) {
-    for (let px = 0; px < design.width; px += CELL) {
+  const orb = orbital?.layers ?? [];
+  const raw: LayerSamples["cells"] = [];
+  // near the route: the design frame; whole patch: the ortho footprint
+  const b = proj.basemap;
+  const [xa, ya, xb, yb] = nearPx == null
+    ? [Math.floor(b.left / CELL) * CELL, Math.floor(b.top / CELL) * CELL, b.left + b.width, b.top + b.height]
+    : [0, 0, design.width, design.height];
+  for (let py = ya; py < yb; py += CELL) {
+    for (let px = xa; px < xb; px += CELL) {
       const cx = px + CELL / 2, cy = py + CELL / 2;
-      if (!route.some(([x, y]) => Math.hypot(x - cx, y - cy) < nearPx)) continue;
+      if (nearPx != null && !route.some(([x, y]) => Math.hypot(x - cx, y - cy) < nearPx)) continue;
       // average the 4 m grid cells under this design cell
       const [wx0, wz0] = proj.world(px, py), [wx1, wz1] = proj.world(px + CELL, py + CELL);
       const c0 = Math.max(0, Math.floor((wx0 - g.x0) / g.cell[0])), c1 = Math.min(g.cols - 1, Math.ceil((wx1 - g.x0) / g.cell[0]));
       const r0 = Math.max(0, Math.floor((wz0 - g.z0) / g.cell[1])), r1 = Math.min(g.rows - 1, Math.ceil((wz1 - g.z0) / g.cell[1]));
       let n = 0, slope = 0, sky = 0, elev = 0, noGo = 0;
+      const sum = orb.map(() => 0), cnt = orb.map(() => 0);
       for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
         const i = r * g.cols + c;
         slope += g.slope[i]; sky += g.sky?.[i] ?? 1; elev += g.elev[i]; n++;
         if (g.slope[i] > result.s.maxSlopeDeg) noGo++;
+        for (let k = 0; k < orb.length; k++) {
+          const v = orb[k].values[i];
+          if (!Number.isNaN(v)) { sum[k] += v; cnt[k]++; }
+        }
       }
       if (!n) continue;
       const pressure = envAt(result.env, 0, elev / n).pressurePa;
-      raw.push({ x: px + 1, y: py + 1, slope: slope / n, dose: doseRate(pressure, sky / n), noGo: noGo / n });
+      raw.push({
+        x: px + 1, y: py + 1, slope: slope / n, dose: doseRate(pressure, sky / n), noGo: noGo / n,
+        orb: sum.map((v, k) => (cnt[k] ? v / cnt[k] : NaN)),
+      });
     }
   }
-  const doses = raw.map((c) => c.dose);
-  const lo = Math.min(...doses), hi = Math.max(...doses);
+  return { cells: raw, orb };
+}
+
+/** Min and max of the finite values, or null when there are none. */
+const extent = (values: number[]): [number, number] | null => {
+  let lo = Infinity, hi = -Infinity;
+  for (const v of values) if (Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  return lo <= hi ? [lo, hi] : null;
+};
+
+/**
+ * Colour the sampled cells. With `stretch` (a design-pixel box, the map in view) the dose and orbital
+ * ramps span only the cells inside it, so local contrast shows; slope keeps its fixed 0-35° ramp because
+ * its colours mean the caution and no-go limits.
+ */
+export function colorCells({ cells: raw, orb }: LayerSamples, stretch?: Box | null): LayerCells {
+  const inView = stretch
+    ? raw.filter((c) => c.x + CELL / 2 >= stretch.x0 && c.x + CELL / 2 <= stretch.x1 && c.y + CELL / 2 >= stretch.y0 && c.y + CELL / 2 <= stretch.y1)
+    : raw;
+  const fullDose = extent(raw.map((c) => c.dose)) ?? [0, 0];
+  const [lo, hi] = (stretch && extent(inView.map((c) => c.dose))) || fullDose;
+  const orbitalCells: Record<string, Cell[]> = {};
+  const orbitalRange: Record<string, [number, number]> = {};
+  orb.forEach((l, k) => {
+    const [low, high, mid] = RAMPS[l.ramp] ?? RAMPS.minerals;
+    const [a, z] = (stretch && extent(inView.map((c) => c.orb[k]))) || l.range;
+    orbitalRange[l.id] = [a, z];
+    orbitalCells[l.id] = raw
+      .filter((c) => !Number.isNaN(c.orb[k]))
+      .map((c) => ({ x: c.x, y: c.y, color: mix(low, high, mid, stepped((c.orb[k] - a) / (z - a || 1))) }));
+  });
   return {
     slope: raw.map((c) => ({ x: c.x, y: c.y, color: mix("var(--data-slope-low)", "var(--data-slope-high)", "var(--data-slope-mid)", stepped(c.slope / 35)) })),
     dose: raw.map((c) => ({ x: c.x, y: c.y, color: mix("var(--data-radiation-low)", "var(--data-radiation-high)", null, stepped((c.dose - lo) / (hi - lo || 1))) })),
     doseRange: [lo, hi],
     noGo: raw.filter((c) => c.noGo >= 0.5).map((c) => ({ x: c.x, y: c.y, color: "var(--route-hazard)" })),
+    orbital: orbitalCells,
+    orbitalRange,
+  };
+}
+
+/* ---------- point readout (hover) ---------- */
+
+const MARS_R = 3396190; // m, IAU sphere
+
+export type PointReadout = { lat: string; lon: string; rows: StatView[] } | null;
+
+/** Values of every layer at world point (x east, z south), metres. Null outside the grid. */
+export function pointReadout(data: LoadedData, result: MissionResult, orbital: OrbitalLayers | null, x: number, z: number): PointReadout {
+  const g = data.grid;
+  const c = Math.floor((x - g.x0) / g.cell[0]), r = Math.floor((z - g.z0) / g.cell[1]);
+  if (c < 0 || r < 0 || c >= g.cols || r >= g.rows) return null;
+  const i = r * g.cols + c;
+  const { lat: lat0, lon: lon0 } = data.terrain.center;
+  const la = lat0 - (z / MARS_R) * (180 / Math.PI);
+  const lo = lon0 + (x / (MARS_R * Math.cos((lat0 * Math.PI) / 180))) * (180 / Math.PI);
+  const elev = g.elev[i];
+  const dose = (doseRate(envAt(result.env, 0, elev).pressurePa, g.sky?.[i] ?? 1) * 24) / 1000;
+  const fmt = (v: number) => (Number.isNaN(v) ? "no data" : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(4));
+  return {
+    lat: `${Math.abs(la).toFixed(5)}° ${la >= 0 ? "N" : "S"}`,
+    lon: `${Math.abs(lo).toFixed(5)}° ${lo >= 0 ? "E" : "W"}`,
+    rows: [
+      { label: "Elevation", value: elev.toFixed(1), unit: "m" },
+      { label: "Slope", value: g.slope[i].toFixed(1), unit: g.slope[i] > result.s.maxSlopeDeg ? "° · no-go" : "°" },
+      { label: "Dose rate (quiet)", value: dose.toFixed(3), unit: "mSv/day" },
+      ...(orbital?.layers ?? []).map((l) => ({ label: l.name, value: fmt(l.values[i]), unit: Number.isNaN(l.values[i]) ? "" : l.unit })),
+    ],
   };
 }
 
@@ -417,4 +536,47 @@ export function evaView(data: LoadedData, result: MissionResult, ev: Evaluation,
 
 export function debriefLegs(ev: Evaluation, s: MissionResult["s"]) {
   return legBreakdown(ev.plan, ev.prof!, s);
+}
+
+/* ---------- Plan · simulated walk (Plan screen "Walk" tab) ---------- */
+
+export type PlanWalkView = {
+  walked: Point[];
+  remaining: Point[];
+  you: Point;
+  youTag: string;
+  /** x of "now" on the Plan profile chart (box 40..600) */
+  nowX: number;
+  nowLabel: string;
+  tiles: { label: string; value: string; unit: string; sub: string }[];
+};
+
+/** Position at EVA minute T on the planned route, in the Plan map's projection, with what the layers read there. */
+export function planWalkView(data: LoadedData, result: MissionResult, ev: Evaluation, proj: Projection, orbital: OrbitalLayers | null, T: number): PlanWalkView | null {
+  if (!ev.prof || !ev.end) return null;
+  const s = result.s, prof = ev.prof, end = ev.end;
+  const now = sampleAt(prof, T, s);
+  const total = end.dist || 1;
+  const { label: nextLabel, point: nextP, minutes } = nextArrival(prof, arrivalIndices(ev), T);
+  const read = pointReadout(data, result, orbital, now.x, now.z);
+  const pick = (name: string) => read?.rows.find((r) => r.label === name);
+  const thermal = pick("Thermal Inertia"), hyd = pick("Hydrated Minerals");
+  const doseDay = pick("Dose rate (quiet)");
+  return {
+    walked: thin([...prof.slice(0, now.k).map((p) => proj.px(p.x, p.z)), proj.px(now.x, now.z)]),
+    remaining: thin([proj.px(now.x, now.z), ...prof.slice(now.k).map((p) => proj.px(p.x, p.z))]),
+    you: proj.px(now.x, now.z),
+    youTag: `You · ${(now.dist / 1000).toFixed(2)} km · ${now.dwelling ? "science stop" : `${now.slope.toFixed(0)}° slope`}`,
+    nowX: 40 + (now.dist / total) * 560,
+    nowLabel: `Now · ${(now.dist / 1000).toFixed(2)} km`,
+    tiles: [
+      { label: "Distance", value: (now.dist / 1000).toFixed(2), unit: "km", sub: `of ${(end.dist / 1000).toFixed(2)} · ${Math.round((100 * now.dist) / total)} %` },
+      { label: "EVA time", value: fmtHM(T), unit: "h", sub: `ends ${fmtHM(end.t)} · cap ${fmtHM(s.evaLimitMin)}` },
+      { label: "Slope here", value: now.slope.toFixed(1), unit: "°", sub: now.slope > s.cautionSlopeDeg ? `over ${s.cautionSlopeDeg}° caution` : `caution ${s.cautionSlopeDeg}° · limit ${s.maxSlopeDeg}°` },
+      { label: "Dose here", value: doseDay?.value ?? "—", unit: "mSv/d", sub: "GCR × sky view · model" },
+      { label: "Thermal inertia here", value: thermal?.value ?? "…", unit: thermal?.unit ?? "", sub: "THEMIS · 100 m/px" },
+      { label: "Hydration here", value: hyd?.value ?? "…", unit: "", sub: `${hyd?.unit ?? "BD1900_2"} band depth · CRISM · 181 m/px` },
+      { label: "Next stop", value: minutes.toFixed(0), unit: "min", sub: `${nextLabel} · ${Math.max(0, nextP.dist - now.dist).toFixed(0)} m` },
+    ],
+  };
 }

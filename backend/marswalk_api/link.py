@@ -1,10 +1,10 @@
 """UHF link budget and the elevation statistics behind outage.
 
-Received power E[Pr] = Pt + Gt − FSPL(E[θ]) − dust − pointing + Gr, with FSPL at
-the slant range of the mean pass elevation. The maximum elevation of each
-simulated pass is fitted with a gamma distribution (method of moments);
-outage is P(θ < θmin), the share of passes that never reach θmin, the
-elevation at which the margin reaches 0 dB.
+Received power E[Pr] = Pt + Gt − FSPL(E[θ]) − A_Atm(E[θ]) − dust − pointing + Gr, with FSPL
+and atmospheric loss at the slant range and elevation of the mean pass elevation.
+The maximum elevation of each simulated pass is fitted with a gamma distribution
+(method of moments); outage is P(θ < θmin), the share of passes that never reach θmin,
+the elevation at which the margin reaches 0 dB.
 """
 
 from __future__ import annotations
@@ -17,30 +17,52 @@ import numpy as np
 from .config import LinkSide
 from .orbit import slant_range_km
 
+ATMOS_FLOOR_DEG = 0.5
+
 
 def fspl_db(distance_km, frequency_mhz: float):
     return 20.0 * np.log10(distance_km) + 20.0 * math.log10(frequency_mhz) + 32.44
 
 
-def received_dbw(side: LinkSide, fspl: float) -> float:
-    return side.pt_dbw + side.gt_dbi - fspl - side.dust_db - side.pointing_db + side.gr_dbi
+def atmos_loss_db(elevation_deg, zenith_loss_db: float = 0.3):
+    """Elevation-dependent atmospheric attenuation in dB (simplified ITU-R P.676 model)."""
+    el = np.maximum(elevation_deg, ATMOS_FLOOR_DEG)
+    loss = zenith_loss_db / np.sin(np.radians(el))
+    return float(loss) if np.ndim(loss) == 0 else loss
 
 
-def margin_db(side: LinkSide, elevation, altitude_km: float, frequency_mhz: float):
+def received_dbw(side: LinkSide, fspl: float, atmos_loss: float = 0.0) -> float:
+    return side.pt_dbw + side.gt_dbi - fspl - atmos_loss - side.dust_db - side.pointing_db + side.gr_dbi
+
+
+def margin_db(
+    side: LinkSide,
+    elevation,
+    altitude_km: float,
+    frequency_mhz: float,
+    atmos_zenith_db: float | None = None,
+):
+    zenith = atmos_zenith_db if atmos_zenith_db is not None else getattr(side, "atmos_zenith_db", 0.3)
     fspl = fspl_db(slant_range_km(elevation, altitude_km), frequency_mhz)
-    return received_dbw(side, fspl) - side.threshold_dbw
+    atmos = atmos_loss_db(elevation, zenith)
+    return received_dbw(side, fspl, atmos) - side.threshold_dbw
 
 
-def theta_min_deg(side: LinkSide, altitude_km: float, frequency_mhz: float) -> float:
+def theta_min_deg(
+    side: LinkSide,
+    altitude_km: float,
+    frequency_mhz: float,
+    atmos_zenith_db: float | None = None,
+) -> float:
     """Lowest elevation with a non-negative margin (bisection; margin rises with θ)."""
     lo, hi = 0.0, 90.0
-    if margin_db(side, lo, altitude_km, frequency_mhz) >= 0:
+    if margin_db(side, lo, altitude_km, frequency_mhz, atmos_zenith_db=atmos_zenith_db) >= 0:
         return 0.0
-    if margin_db(side, hi, altitude_km, frequency_mhz) < 0:
+    if margin_db(side, hi, altitude_km, frequency_mhz, atmos_zenith_db=atmos_zenith_db) < 0:
         return 90.0
     for _ in range(60):
         mid = 0.5 * (lo + hi)
-        if margin_db(side, mid, altitude_km, frequency_mhz) >= 0:
+        if margin_db(side, mid, altitude_km, frequency_mhz, atmos_zenith_db=atmos_zenith_db) >= 0:
             hi = mid
         else:
             lo = mid
@@ -114,15 +136,46 @@ class SideResult:
     margin_db: float
     theta_min_deg: float
     outage: float
+    atmos_loss_db: float = 0.0
+    delta_margin_atmos_db: float = 0.0
 
 
 def evaluate_side(
-    side: LinkSide, fit: GammaFit, samples: np.ndarray, altitude_km: float, frequency_mhz: float
+    side: LinkSide,
+    arg2: GammaFit | float,
+    arg3: np.ndarray | float | None = None,
+    arg4: float | GammaFit = 400.0,
+    arg5: float = 401.6,
+    atmos_zenith_db: float | None = None,
 ) -> SideResult:
+    if isinstance(arg2, GammaFit):
+        fit = arg2
+        samples = arg3 if isinstance(arg3, np.ndarray) else None
+        altitude_km = float(arg4) if isinstance(arg4, (int, float)) else 400.0
+        frequency_mhz = float(arg5)
+        zenith = atmos_zenith_db if atmos_zenith_db is not None else getattr(side, "atmos_zenith_db", 0.3)
+    elif isinstance(arg4, GammaFit):
+        altitude_km = float(arg2)
+        frequency_mhz = float(arg3) if isinstance(arg3, (int, float)) else 401.6
+        fit = arg4
+        samples = None
+        zenith = atmos_zenith_db if atmos_zenith_db is not None else getattr(side, "atmos_zenith_db", 0.3)
+    else:
+        fit = arg2
+        samples = arg3 if isinstance(arg3, np.ndarray) else None
+        altitude_km = float(arg4)
+        frequency_mhz = float(arg5)
+        zenith = atmos_zenith_db if atmos_zenith_db is not None else getattr(side, "atmos_zenith_db", 0.3)
+
     fspl_mean = float(fspl_db(slant_range_km(fit.mean, altitude_km), frequency_mhz))
-    spread = float(np.std(fspl_db(slant_range_km(samples, altitude_km), frequency_mhz)))
-    pr = received_dbw(side, fspl_mean)
-    tmin = theta_min_deg(side, altitude_km, frequency_mhz)
+    spread = (
+        float(np.std(fspl_db(slant_range_km(samples, altitude_km), frequency_mhz)))
+        if samples is not None and len(samples) > 0
+        else 0.0
+    )
+    atmos_mean = float(atmos_loss_db(fit.mean, zenith))
+    pr = float(received_dbw(side, fspl_mean, atmos_mean))
+    tmin = theta_min_deg(side, altitude_km, frequency_mhz, atmos_zenith_db=zenith)
     return SideResult(
         side=side,
         fspl_db=fspl_mean,
@@ -131,4 +184,6 @@ def evaluate_side(
         margin_db=pr - side.threshold_dbw,
         theta_min_deg=tmin,
         outage=fit.cdf(tmin),
+        atmos_loss_db=atmos_mean,
+        delta_margin_atmos_db=-atmos_mean,
     )
