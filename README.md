@@ -1,4 +1,16 @@
-# TAPAK
+<p align="center">
+  <img src="src/icon/TAPAK_LOGO_WORDMARK.svg" alt="TAPAK logo" width="280">
+</p>
+
+<h1 align="center">TAPAK: A Physiology-Aware Route Planner for Crewed Surface Excursions on Mars</h1>
+
+![TAPAK route planner](docs/screenshots/plan2.png)
+
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)
 
 TAPAK is a route planner for single crewed surface excursions on Mars. It pairs stochastic route planning with Damon, a biomechanical walking model fine-tuned from KINESIS for Martian conditions. Users set a base, science goals, and mission limits, and the app returns an optimized route with an oxygen budget, radiation dose, walk-back margin, and an explained GO, CAUTION, or NO-GO verdict. To model Jezero Crater, TAPAK layers multiple NASA datasets: a 1-meter HiRISE terrain model and orthoimage, Perseverance MEDA temperature and pressure records, and a galactic cosmic ray dose model scaled by sky view. Its core contribution is a physics-derived walking cost. Because standard energy models rely on unsuited humans in Earth gravity, TAPAK replaces them with costs learned from musculoskeletal simulations. Driven by the fine-tuned policy via reinforcement learning, an 80-muscle leg model traverses synthetic terrain patches under Mars gravity and spacesuit mass. A gradient-boosted surrogate then translates these results into per-step energy expenditure, fall probability, and stability metrics for the route search.
 
@@ -16,7 +28,7 @@ Requires Node 20 or newer. The build uses a relative base path, so `dist/` can b
 
 ## Add the images first
 
-The Figma screens use three raster placeholders. They are **not in this repository** yet; export them from Figma and save them here:
+One raster placeholder is still **not in this repository**; export it from Figma and save it here:
 
 | File | Figma layer | Used on |
 | --- | --- | --- |
@@ -25,12 +37,13 @@ The Figma screens use three raster placeholders. They are **not in this reposito
 Plan, EVA Map, FoV and Debrief now use the real HiRISE orthoimage and DTM in `public/data/terrain/`, so
 `mars-basemap.jpg` and `fov-camera.jpg` are no longer needed.
 
-Until they exist, each slot shows a neutral surface and a status line naming the missing file. Check the license and credit of each image before the submission; the design marks all three as placeholders to be replaced with real NASA imagery.
+Until it exists, the slot shows a neutral surface and a status line naming the missing file. Check the license and credit of the image before the submission; the design marks it as a placeholder to be replaced with real NASA imagery.
 
 ## Screens
 
 | Route | Figma frame |
 | --- | --- |
+| `/` (no hash) | TAPAK landing page (screenshots in `public/landing/`) |
 | `#/hub` | 01 · Mission Hub (Pre-EVA) |
 | `#/plan` | 02 · Route Planner (Pre-EVA) |
 | `#/eva` | 03 · EVA Map (During EVA) |
@@ -38,6 +51,8 @@ Until they exist, each slot shows a neutral surface and a status line naming the
 | `#/comms` | 05 · Comms · Link Budget |
 | `#/comms/passes` | 06 · Comms · Pass Prediction |
 | `#/debrief` | 07 · Debrief (Post-EVA) |
+
+A guided tour (`src/tour/`) walks through each screen the first time it opens; progress is kept in local storage and it can be skipped.
 
 The app renders a fixed 1366 × 1024 stage (iPad Pro 12.9" landscape) and scales it to fit the window.
 
@@ -58,7 +73,13 @@ src/
   data/mission.ts         all demo data (synthetic), one place to swap for real data
   components/ui/          shadcn-style primitives
   components/marswalk/    product components (top bar, checklist, map, alerts, comms...)
-  screens/                one file per Figma screen
+  screens/                one file per Figma screen, plus the landing page
+  engine/                 science engine, models, light-time link sync
+  sim/                    typed adapters, FoV, AR package export
+  tour/                   guided tour
+api/                      Vercel functions: /link relay, /ar-comms
+backend/                  Flask API: comms passes, link budget, Hub checklist
+docs/                     integration, provenance, AR package, release notes
 ```
 
 Design rules come from two project documents: `DESIGN.md` (look) and `DESIGN-MOTION.md` (movement). Components use semantic tokens only; durations and easings live in `motion.css` and are read from CSS variables in JS.
@@ -96,13 +117,20 @@ engine in `src/engine/` on real Jezero data (HiRISE DTM and orthoimage, MEDA wea
 [docs/SCIENCE_PROVENANCE.md](docs/SCIENCE_PROVENANCE.md).
 
 ```bash
-npm test           # engine tests + regression and integration tests
+npm test           # engine, FoV, AR package, link/comms API and tour tests
+npm run typecheck  # tsc strict
+npm run test:e2e   # comms end-to-end (Node and Python)
+```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, tests and build on every PR and on `main`.
+
+```bash
 ```
 
 ## Backend
 
 `backend/` is a Flask API that serves `GET /comms/passes` and `GET /comms/link`, computed from relay orbits and a UHF
-link budget. Start it, then set `VITE_MARSWALK_API_URL=http://localhost:5000` in `.env.local` (see `.env.example`).
+link budget, and stores the Hub checklist in Turso (see `.env.example`). Start it, then set `VITE_MARSWALK_API_URL=http://localhost:5000` in `.env.local` (see `.env.example`).
 Without it, the Comms screens use their dummy data. See [backend/README.md](backend/README.md).
 
 ## Live link to the Marswalk AR phone app
@@ -137,3 +165,7 @@ are simulated or synthetic, and the screens say so. Routes are "planned", and th
 - The Dose layer draws a small synthetic patch on the planner; the frame shows the toggle on with no cells.
 - "Live telemetry" is labelled "1 Hz · simulated" and the sky dome header ends with "simulated".
 - Routes, charts and the sky dome are drawn from data in code instead of static images, so they can animate and later take real data.
+
+## License
+
+MIT, see [LICENSE](LICENSE). NASA, HiRISE and MEDA data in `public/data/` keep their own terms; see [docs/SCIENCE_PROVENANCE.md](docs/SCIENCE_PROVENANCE.md).
