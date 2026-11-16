@@ -34,6 +34,20 @@ class NullCache:
     def invalidate(self) -> int:
         return 0
 
+    def publish_ar_comms(
+        self,
+        comms_payload: dict,
+        passes_payload: dict | None = None,
+        ttl_s: int = 3600,
+    ) -> dict[str, Any]:
+        log.warning("Upstash Redis unconfigured; skipping AR comms publish")
+        return {
+            "published": False,
+            "configured": False,
+            "error": None,
+            "keys": [],
+        }
+
 
 class UpstashCache(NullCache):
     enabled = True
@@ -107,6 +121,48 @@ class UpstashCache(NullCache):
             if str(cursor) == "0":
                 return deleted
 
+    def publish_ar_comms(
+        self,
+        comms_payload: dict,
+        passes_payload: dict | None = None,
+        ttl_s: int = 3600,
+    ) -> dict[str, Any]:
+        """Publish AR comms and optional pass simulation data to Upstash Redis.
+
+        Sets `marswalk:ar:comms` with TTL, and optionally sets / publishes
+        `marswalk:comms:passes`. Fault-tolerant: errors are logged and returned
+        in the result dictionary rather than raising exceptions.
+        """
+        keys_written: list[str] = []
+        try:
+            ar_json = json.dumps(comms_payload, ensure_ascii=False)
+            self.command("SET", "marswalk:ar:comms", ar_json, "EX", ttl_s)
+            keys_written.append("marswalk:ar:comms")
+
+            if passes_payload is not None:
+                passes_json = json.dumps(passes_payload, ensure_ascii=False)
+                self.command("SET", "marswalk:comms:passes", passes_json, "EX", ttl_s)
+                keys_written.append("marswalk:comms:passes")
+                try:
+                    self.command("PUBLISH", "marswalk:comms:passes", passes_json)
+                except Exception as pub_err:
+                    log.debug("PUBLISH to marswalk:comms:passes failed (non-critical): %s", pub_err)
+
+            return {
+                "published": True,
+                "configured": True,
+                "error": None,
+                "keys": keys_written,
+            }
+        except Exception as err:
+            log.warning("publish_ar_comms failed: %s", err)
+            return {
+                "published": False,
+                "configured": True,
+                "error": str(err),
+                "keys": keys_written,
+            }
+
 
 _cache: Optional[NullCache] = None
 
@@ -123,3 +179,12 @@ def set_cache(cache: Optional[NullCache]) -> None:
     """Override the process-wide cache (tests); None rebuilds from env."""
     global _cache
     _cache = cache
+
+
+def publish_ar_comms(
+    comms_payload: dict,
+    passes_payload: dict | None = None,
+    ttl_s: int = 3600,
+) -> dict[str, Any]:
+    """Publish AR comms data via the process-wide cache instance."""
+    return get_cache().publish_ar_comms(comms_payload, passes_payload=passes_payload, ttl_s=ttl_s)

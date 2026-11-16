@@ -1,4 +1,4 @@
-import { Fragment, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CardHeader } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import type { Budget } from "@/data/mission";
 import { SOURCE_LABEL, useCommsLink } from "@/lib/comms-api";
 import { CommsPassesScreen } from "@/screens/comms-passes";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
+import { useTour } from "@/tour";
 import { cn } from "@/lib/utils";
 
 type Link = CommsLinkData["link"];
@@ -357,8 +358,41 @@ export function CommsLinkScreen() {
   const collapsed = snap !== OPEN;
   const group = motionMs("stagger-group");
 
+  let tourTarget: string | null = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const tour = useTour();
+    tourTarget = tour.activeStep?.targetSelector ?? null;
+  } catch {
+    // Tour may not be mounted in pure tests
+  }
+
+  // Drive the drawer from the tour step's *target* rather than its numeric id,
+  // so renumbering the tour can't desync it. The sky map lives inside the
+  // drawer, so it must be open; the comms-switch only renders while the drawer
+  // is peeking and the pass list sits behind it, so those need it collapsed.
+  // The drawer also collapses again when the tour ends.
+  // `snap` is a dependency so the required state is re-asserted if the drawer
+  // library overwrites it while it finishes initialising its snap points.
+  const wantSnap =
+    tourTarget === '[data-tour="sky-dome"]'
+      ? OPEN
+      : tourTarget === '[data-tour="comms-switch"]' || tourTarget === '[data-tour="pass-list"]'
+        ? PEEK
+        : null;
+  const tourDrove = useRef(false);
+  useEffect(() => {
+    if (wantSnap !== null) {
+      tourDrove.current = true;
+      if (snap !== wantSnap) setSnap(wantSnap);
+    } else if (tourDrove.current) {
+      tourDrove.current = false;
+      setSnap(PEEK);
+    }
+  }, [wantSnap, snap]);
+
   const sky = (
-    <section className={PANEL} aria-label="Uplink margin across the sky">
+    <section className={PANEL} aria-label="Uplink margin across the sky" data-tour="sky-dome">
       <CardHeader title="Uplink margin across the sky" meta="suit → relay · Pr(θ) − Pth · simulated" />
       <div role="group" aria-label="Uplink margin across the sky" className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <SkyDome link={link} className="aspect-[878/432] w-full lg:aspect-auto lg:min-h-[200px] lg:flex-1" />
@@ -417,6 +451,7 @@ export function CommsLinkScreen() {
           onHandleClick={() => setSnap(collapsed ? OPEN : PEEK)} aria-describedby="link-budget-sub">
           {collapsed ? (
             <div
+              data-tour="comms-switch"
               className="flex h-[39px] shrink-0 cursor-pointer items-center justify-between gap-md px-lg md:px-xl"
               onClick={() => setSnap(OPEN)}
             >

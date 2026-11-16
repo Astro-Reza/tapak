@@ -5,7 +5,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PassRow } from "@/components/marswalk/comms";
 import { ScreenHeading, StatList, StatRow, TimelineBar } from "@/components/marswalk/primitives";
 import { useToast } from "@/components/marswalk/toaster";
+import { DEFAULT_ACTIVE_PASS } from "@/data/comms";
 import { SOURCE_LABEL, useCommsPasses } from "@/lib/comms-api";
+import { saveHudPass, type HudPassData } from "@/lib/hud-pass";
 import { motionMs, stagger } from "@/lib/motion";
 
 /** three.js is only needed here, so it stays out of the other screens' bundle. */
@@ -99,7 +101,7 @@ export function CommsPassesScreen() {
         />
         <ScrollArea className="min-h-0 flex-1" aria-label="Link prediction">
           <div className="flex flex-col gap-lg px-lg pb-lg">
-            <ul className="flex flex-col gap-xs">
+            <ul data-tour="pass-list" className="flex flex-col gap-xs">
               {data.passes.map((pass, i) => (
                 <PassRow key={pass.id} pass={pass} signature style={stagger(i, group)} />
               ))}
@@ -112,7 +114,29 @@ export function CommsPassesScreen() {
           </div>
         </ScrollArea>
         <div className="flex shrink-0 flex-col gap-sm border-t border-line-subtle p-lg">
-          <Button className="w-full" onClick={() => toast("Passes synced to HUD", { safety: true })}>
+          <Button
+            className="w-full"
+            onClick={() => {
+              const passToSync: HudPassData = data.activePass
+                ? {
+                    relayId: data.activePass.relayId,
+                    relayName: data.activePass.relayName,
+                    startS: data.activePass.startS,
+                    endS: data.activePass.endS,
+                    maxElevationDeg: data.activePass.maxElevationDeg,
+                    aos: data.activePass.aos ?? "15:35",
+                    los: data.activePass.los ?? "15:44",
+                    track: data.activePass.track,
+                    syncedAt: Date.now(),
+                  }
+                : {
+                    ...DEFAULT_ACTIVE_PASS,
+                    syncedAt: Date.now(),
+                  };
+              saveHudPass(passToSync);
+              toast(`Passes synced to HUD: ${passToSync.relayName}`, { safety: true });
+            }}
+          >
             Sync passes to HUD
           </Button>
           <Button variant="ghost" className="w-full" onClick={() => toast("Export is not in this prototype")}>

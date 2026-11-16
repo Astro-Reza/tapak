@@ -106,6 +106,8 @@ const paths = {
       <path d="M9 3V21" {...stroke} />
     </>
   ),
+  play: <path d="M6 4L19 12L6 20V4Z" fill="currentColor" />,
+  pause: <path d="M6 4H10V20H6V4ZM14 4H18V20H14V4Z" fill="currentColor" />,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof paths;

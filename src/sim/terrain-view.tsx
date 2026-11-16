@@ -98,7 +98,7 @@ export function TerrainView({
     const project = (points: { x: number; y: number; z: number }[]) =>
       points.map((p) => {
         v.set(p.x, p.y, p.z).project(camera);
-        const front = v.z < 1;
+        const front = Number.isFinite(v.z) && v.z < 1;
         return { x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, front, visible: front && Math.abs(v.x) < 1 && Math.abs(v.y) < 1 };
       });
     const setRoute = (r: ProfileSample[]) => {

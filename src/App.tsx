@@ -7,6 +7,7 @@ import { isReducedMotion, motionMs } from "@/lib/motion";
 import { useHashRoute, type Route } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { StoreProvider } from "@/lib/store";
+import { TourOverlay, TourProvider } from "@/tour";
 import { MissionProvider } from "@/sim/mission";
 import { MissionTopBar } from "@/sim/top-bar";
 import { CommsLinkScreen } from "@/screens/comms-link";
@@ -103,25 +104,28 @@ export default function App() {
   return (
     <StoreProvider>
       <MissionProvider>
-        <ToastProvider>
-          <TooltipProvider delayDuration={200}>
-            <div className="flex h-full flex-col bg-canvas">
-              <MissionTopBar route={route} fallback={CLOCK[shown]} onNavigate={navigate} />
-              <div className="relative min-h-0 flex-1">
-                <main key={shown} className={cn("absolute inset-0 overflow-x-hidden", shown === "hub" || shown === "debrief" ? "overflow-y-hidden" : "overflow-y-auto")}>
-                  <Screen />
-                </main>
-                {phase === "idle" ? null : (
-                  <div className="mw-cols" data-phase={phase} aria-hidden="true">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <i key={i} style={{ "--i": i } as CSSProperties} />
-                    ))}
-                  </div>
-                )}
+        <TourProvider route={route} onNavigate={navigate}>
+          <ToastProvider>
+            <TooltipProvider delayDuration={200}>
+              <div className="flex h-full flex-col bg-canvas">
+                <MissionTopBar route={route} fallback={CLOCK[shown]} onNavigate={navigate} />
+                <div className="relative min-h-0 flex-1">
+                  <main key={shown} className={cn("absolute inset-0 overflow-x-hidden", shown === "hub" || shown === "debrief" ? "overflow-y-hidden" : "overflow-y-auto")}>
+                    <Screen />
+                  </main>
+                  {phase === "idle" ? null : (
+                    <div className="mw-cols" data-phase={phase} aria-hidden="true">
+                      {Array.from({ length: 6 }, (_, i) => (
+                        <i key={i} style={{ "--i": i } as CSSProperties} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <TourOverlay />
               </div>
-            </div>
-          </TooltipProvider>
-        </ToastProvider>
+            </TooltipProvider>
+          </ToastProvider>
+        </TourProvider>
       </MissionProvider>
     </StoreProvider>
   );

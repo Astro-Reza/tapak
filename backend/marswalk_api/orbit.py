@@ -63,6 +63,43 @@ def elevation_deg(site: Site, points: np.ndarray) -> np.ndarray:
     return np.degrees(np.arcsin((v @ up) / np.linalg.norm(v, axis=-1)))
 
 
+def topocentric_vectors(site: Site) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Topocentric East, North, Up unit vectors at the surface site on the spherical Mars model."""
+    lat = math.radians(site.lat_deg)
+    lon = math.radians(site.lon_deg)
+    up = np.array([
+        math.cos(lat) * math.cos(lon),
+        math.sin(lat),
+        -math.cos(lat) * math.sin(lon),
+    ], dtype=float)
+    east = np.array([
+        -math.sin(lon),
+        0.0,
+        -math.cos(lon),
+    ], dtype=float)
+    north = np.array([
+        -math.sin(lat) * math.cos(lon),
+        math.cos(lat),
+        math.sin(lat) * math.sin(lon),
+    ], dtype=float)
+    return east, north, up
+
+
+def azimuth_deg(site: Site, points: np.ndarray) -> np.ndarray:
+    """Calculate topocentric azimuth angle in degrees [0.0, 360.0) measured clockwise from North (0 deg) through East (90 deg).
+
+    Uses topocentric East, North, Up unit vectors at the surface site on the spherical Mars model.
+    Handles points arrays with shape (..., 3).
+    """
+    pts = np.asarray(points, dtype=float)
+    east, north, up = topocentric_vectors(site)
+    v = pts - up
+    v_east = np.sum(v * east, axis=-1)
+    v_north = np.sum(v * north, axis=-1)
+    az = np.degrees(np.arctan2(v_east, v_north)) % 360.0
+    return az
+
+
 def slant_range_km(elevation: np.ndarray | float, altitude_km: float) -> np.ndarray:
     """Site-to-relay distance for a relay at `altitude_km` seen at `elevation`."""
     e = np.radians(elevation)

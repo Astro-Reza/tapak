@@ -1,19 +1,7 @@
-# Marswalk
+# TAPAK
 
-Front-end for **Marswalk**, a single-EVA (Marswalk) planner built for NASA Space Apps Jakarta, challenge "Interplanetary Survival Guide: Martian Map".
+TAPAK is a route planner for single crewed surface excursions on Mars. It pairs stochastic route planning with Damon, a biomechanical walking model fine-tuned from KINESIS for Martian conditions. Users set a base, science goals, and mission limits, and the app returns an optimized route with an oxygen budget, radiation dose, walk-back margin, and an explained GO, CAUTION, or NO-GO verdict. To model Jezero Crater, TAPAK layers multiple NASA datasets: a 1-meter HiRISE terrain model and orthoimage, Perseverance MEDA temperature and pressure records, and a galactic cosmic ray dose model scaled by sky view. Its core contribution is a physics-derived walking cost. Because standard energy models rely on unsuited humans in Earth gravity, TAPAK replaces them with costs learned from musculoskeletal simulations. Driven by the fine-tuned policy via reinforcement learning, an 80-muscle leg model traverses synthetic terrain patches under Mars gravity and spacesuit mass. A gradient-boosted surrogate then translates these results into per-step energy expenditure, fall probability, and stability metrics for the route search.
 
-This is the web app for the "Marswalk v1 · iPad screens" in the Figma file *Marswalk - Palatine*. It is a front-end prototype: every number on screen is synthetic or modelled (see [Data honesty](#data-honesty)).
-
-## Screenshots
-
-Captured from the production build at 1366 × 1024. The map, camera and globe areas are plain grey because the three placeholder images are not in the repository yet (see [Add the images first](#add-the-images-first)). Screens after the science-engine integration: [docs/INTEGRATION.md](docs/INTEGRATION.md#screenshots-figma-prototype-before-vs-integrated-after-1366--1024).
-
-| | |
-| --- | --- |
-| **01 · Mission Hub**<br>![Mission Hub](docs/screenshots/hub.png) | **02 · Route Planner**<br>![Route Planner](docs/screenshots/plan.png) |
-| **03 · EVA Map**<br>![EVA Map](docs/screenshots/eva.png) | **04 · FoV Simulation**<br>![FoV Simulation](docs/screenshots/fov.png) |
-| **05 · Comms · Link Budget**<br>![Comms link budget](docs/screenshots/comms.png) | **06 · Comms · Pass Prediction**<br>![Comms pass prediction](docs/screenshots/comms-passes.png) |
-| **07 · Debrief**<br>![Debrief](docs/screenshots/debrief.png) | |
 
 ## Run it
 

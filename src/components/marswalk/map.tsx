@@ -218,7 +218,7 @@ export function MapFrame({
         </FitLayer>
       </div>
       {children}
-      <div className={cn("absolute z-10 flex flex-col gap-sm", controlsClassName)}>
+      <div data-tour="map-controls" className={cn("absolute z-10 flex flex-col gap-sm", controlsClassName)}>
         <Button variant="map" size="icon" className="size-glove" aria-label="North up" onClick={recenter}>
           <Icon name="north" size={20} />
         </Button>
@@ -527,6 +527,7 @@ export function LayerPanel({
   className,
   footer,
   options,
+  dataTour,
 }: {
   layers: readonly PanelLayer[];
   addable: readonly { id: string; name: string; unit: string }[];
@@ -536,6 +537,7 @@ export function LayerPanel({
   footer?: ReactNode;
   /** Map display switches under the search row (e.g. near-route cells, no-go cells) */
   options?: readonly PanelOption[];
+  dataTour?: string;
 }) {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
@@ -544,6 +546,7 @@ export function LayerPanel({
   const matches = addable.filter((l) => l.name.toLowerCase().includes(q));
   return (
     <div
+      data-tour={dataTour}
       className={cn(
         "mw-flash-in flex flex-col gap-sm rounded-sm border border-line-subtle bg-scrim px-lg py-md",
         className,

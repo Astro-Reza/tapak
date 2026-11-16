@@ -19,15 +19,18 @@ function Tabs({
   onNavigate,
   className,
   tabClassName,
+  dataTour,
 }: {
   route: Route;
   onNavigate: (route: Route) => void;
   className?: string;
   tabClassName?: string;
+  dataTour?: string;
 }) {
   return (
     <nav
       aria-label="Mission views"
+      data-tour={dataTour}
       className={cn("grid grid-cols-6 border-x border-line-subtle", className)}
     >
       {TABS.map((tab) => {
@@ -62,6 +65,7 @@ export function TopBar({
   linkStatus = "safe",
   suit,
   onNavigate,
+  onHelp,
 }: {
   route: Route;
   clock: string;
@@ -69,6 +73,7 @@ export function TopBar({
   /** live suit device line, e.g. "Suit live · 0.41 km" (the Marswalk AR phone on the relay) */
   suit?: string;
   onNavigate: (route: Route) => void;
+  onHelp?: () => void;
 }) {
   return (
     <header className="relative z-50 shrink-0 border-b border-line-subtle bg-top-bar">
@@ -86,6 +91,7 @@ export function TopBar({
         <Tabs
           route={route}
           onNavigate={onNavigate}
+          dataTour="main-nav"
           className="hidden h-full items-stretch lg:grid w-[600px] xl:w-[696px]"
         />
         <div className="flex shrink-0 items-center gap-sm xl:gap-md">
@@ -101,6 +107,18 @@ export function TopBar({
             <p className="hidden whitespace-nowrap t-data-telemetry text-[17.5px] text-fg-secondary xl:block">{MISSION.relay}</p>
             <span className="origin-right scale-[0.94]"><StatusChip status={linkStatus} /></span>
           </div>
+          {/* Final-step Replay Help button (56px touch target for gloved fingers) */}
+          <button
+            type="button"
+            data-tour="help-button"
+            data-testid="help-button"
+            aria-label="Help · Replay onboarding tour"
+            title="Help · Replay onboarding tour"
+            onClick={onHelp}
+            className="mw-btn flex min-h-[56px] min-w-[56px] items-center justify-center rounded-sm border border-line-subtle bg-panel px-sm text-[18px] font-semibold text-fg-secondary transition-colors hover:bg-inset hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand cursor-pointer select-none"
+          >
+            ?
+          </button>
         </div>
       </div>
       <Tabs

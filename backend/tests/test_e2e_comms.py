@@ -151,6 +151,9 @@ class FakeRedisStore:
         return None
 
 
+MAX_UPSTASH_PAYLOAD_BYTES = 1024 * 1024  # 1 MB REST payload limit per TEST_INFRA.md T2.B8
+
+
 class FakeHTTPConnection:
     """Mock http.client connection that routes requests to FakeRedisStore."""
 
@@ -171,6 +174,11 @@ class FakeHTTPConnection:
                 return
             else:
                 raise OSError("Simulated socket timeout / connection reset")
+
+        # T2.B8: Enforce 1 MB payload size limit (HTTP 413 Payload Too Large)
+        if body and len(body.encode("utf-8")) > MAX_UPSTASH_PAYLOAD_BYTES:
+            self._last_resp = FakeHTTPResponse(413, {"error": "payload too large: exceeds 1MB limit"})
+            return
 
         parsed_body = json.loads(body) if body else []
         result = self.store.execute(parsed_body)
@@ -249,6 +257,62 @@ def build_ar_telemetry_payload(scn: Scenario, passes_data: dict, link_data: dict
             "delta_atmos_db": round(model.down.delta_margin_atmos_db, 2),
         },
     }
+
+
+def validate_ar_telemetry_payload(payload: Any) -> bool:
+    """Validates an AR telemetry payload against the contract in PROJECT.md.
+
+    Raises ValueError on missing keys, wrong types, or out-of-range values.
+    Returns True when schema is valid.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("Telemetry payload must be a non-null dictionary")
+
+    required_top = {"timestamp", "constellation", "relays", "link_budget"}
+    missing = required_top - payload.keys()
+    if missing:
+        raise ValueError(f"Payload missing required top-level keys: {missing}")
+
+    if not isinstance(payload["timestamp"], (int, float)):
+        raise ValueError("timestamp must be numeric")
+    if not isinstance(payload["constellation"], str) or not payload["constellation"]:
+        raise ValueError("constellation must be a non-empty string")
+    if not isinstance(payload["relays"], list) or len(payload["relays"]) == 0:
+        raise ValueError("relays must be a non-empty list")
+
+    for idx, r in enumerate(payload["relays"]):
+        if not isinstance(r, dict):
+            raise ValueError(f"relay[{idx}] must be a dict")
+        relay_keys = {"id", "name", "altitude_km", "in_view"}
+        if not relay_keys.issubset(r.keys()):
+            raise ValueError(f"relay[{idx}] missing mandatory keys: {relay_keys - r.keys()}")
+
+    if "active_pass" in payload and payload["active_pass"] is not None:
+        ap = payload["active_pass"]
+        if not isinstance(ap, dict):
+            raise ValueError("active_pass must be a dict or None")
+        ap_keys = {"relay_id", "aos", "los", "max_elevation_deg", "track"}
+        if not ap_keys.issubset(ap.keys()):
+            raise ValueError(f"active_pass missing keys: {ap_keys - ap.keys()}")
+        if not isinstance(ap["track"], list):
+            raise ValueError("active_pass.track must be a list")
+        for tidx, pt in enumerate(ap["track"]):
+            if not isinstance(pt, dict):
+                raise ValueError(f"track[{tidx}] must be a dict")
+            track_keys = {"time_s", "azimuth_deg", "elevation_deg", "uplink_margin_db", "atmos_loss_db"}
+            if not track_keys.issubset(pt.keys()):
+                raise ValueError(f"track[{tidx}] missing keys: {track_keys - pt.keys()}")
+
+    lb = payload["link_budget"]
+    if not isinstance(lb, dict):
+        raise ValueError("link_budget must be a dict")
+    lb_keys = {"downlink_margin_db", "uplink_margin_db", "atmos_loss_db", "delta_atmos_db"}
+    if not lb_keys.issubset(lb.keys()):
+        raise ValueError(f"link_budget missing keys: {lb_keys - lb.keys()}")
+    if lb["delta_atmos_db"] > 0:
+        raise ValueError("delta_atmos_db must be negative (positive margin bug detected)")
+
+    return True
 
 
 # ==============================================================================
@@ -598,16 +662,37 @@ def test_tier2_f1_05_polar_vs_equatorial_orbit_propagation():
 
 def test_tier2_f1_06_boundary_clipped_passes_filtering():
     """T2.B6: Boundary-clipped passes crossing simulation boundaries are filtered out of statistical fit."""
-    scn = Scenario(fit_sols=1, step_s=60.0)
-    t = np.arange(0.0, 2 * SOL_S, 60.0)
-    els = elevations(scn, t)
-    raw_passes = find_passes(scn, t, els)
+    from marswalk_api.comms import _times
+    from marswalk_api.link import fit_gamma
 
-    # Filter applied in link_model: t[0] < p.start_s and p.end_s < t[-1]
-    filtered = [p for p in raw_passes if t[0] < p.start_s and p.end_s < t[-1]]
-    for p in filtered:
-        assert p.start_s > t[0]
-        assert p.end_s < t[-1]
+    scn = Scenario(fit_sols=1, step_s=60.0)
+    step = max(scn.step_s, 30.0)
+    t = _times(0.0, scn.fit_sols * SOL_S, step)
+    raw_passes = find_passes(scn, t, elevations(scn, t))
+
+    # Identify boundary-clipped passes crossing t[0] or t[-1]
+    clipped_passes = [p for p in raw_passes if p.start_s <= t[0] or p.end_s >= t[-1]]
+    unclipped_passes = [p for p in raw_passes if t[0] < p.start_s and p.end_s < t[-1]]
+
+    # Boundary passes must exist in this scenario to genuinely exercise the boundary condition
+    assert len(clipped_passes) > 0, "Scenario must contain at least one boundary-clipped pass"
+    assert len(clipped_passes) == 2  # exactly 2 passes at start (t=0) and end (t=88800)
+
+    # Call production link_model and verify boundary passes were excluded
+    model = link_model(scn)
+    assert model.pass_count == len(unclipped_passes)
+    assert model.pass_count == len(raw_passes) - len(clipped_passes)
+    assert model.pass_count < len(raw_passes)
+
+    # Verify that the statistical Gamma fit was fitted exclusively on unclipped passes
+    raw_samples = np.array([p.max_el for p in raw_passes])
+    raw_fit = fit_gamma(raw_samples)
+    unclipped_samples = np.array([p.max_el for p in unclipped_passes])
+    expected_fit = fit_gamma(unclipped_samples)
+
+    assert model.fit.mean == pytest.approx(expected_fit.mean, rel=1e-5)
+    # The raw fit mean is ~29.19 deg, while the unclipped fit mean is ~25.25 deg
+    assert model.fit.mean != pytest.approx(raw_fit.mean, abs=1.0)
 
 
 # ------------------------------------------------------------------------------
@@ -631,19 +716,22 @@ def test_tier2_f2_01_unconfigured_credentials_graceful_fallback(monkeypatch):
     assert loaded == "fallback_val"
 
 
-def test_tier2_f2_02_payload_size_limits_acceptance_and_rejection():
-    """T2.B8: Large payloads within 1 MB are accepted; oversized payloads (> 1 MB) are rejected."""
-    max_bytes = 1024 * 1024
+def test_tier2_f2_02_payload_size_limits_acceptance_and_rejection(mock_upstash: UpstashCache):
+    """T2.B8: Large payloads within 1 MB are accepted; oversized payloads (> 1 MB) are rejected with HTTP 413."""
+    # 500 KB payload -> within 1 MB limit -> accepted by Upstash REST client
+    valid_data = "x" * (500 * 1024)
+    res_valid = mock_upstash.command("SET", "marswalk:ar:comms:valid", valid_data)
+    assert res_valid == "OK"
+    readback = mock_upstash.command("GET", "marswalk:ar:comms:valid")
+    assert readback == valid_data
 
-    # 500 KB payload -> accepted
-    valid_payload = {"data": "x" * (500 * 1024)}
-    valid_bytes = len(json.dumps(valid_payload).encode("utf-8"))
-    assert valid_bytes <= max_bytes
+    # 1.2 MB payload -> exceeds 1 MB limit -> rejected with HTTP 413
+    large_data = "x" * (1200 * 1024)
+    with pytest.raises(RuntimeError) as exc_info:
+        mock_upstash.command("SET", "marswalk:ar:comms:oversized", large_data)
 
-    # 1.2 MB payload -> exceeds limit
-    large_payload = {"data": "x" * (1200 * 1024)}
-    large_bytes = len(json.dumps(large_payload).encode("utf-8"))
-    assert large_bytes > max_bytes
+    assert "413" in str(exc_info.value)
+    assert "payload too large" in str(exc_info.value).lower()
 
 
 def test_tier2_f2_03_network_timeout_and_5xx_retry_error_handling(mock_upstash: UpstashCache, fake_redis_store: FakeRedisStore):
@@ -663,10 +751,54 @@ def test_tier2_f2_03_network_timeout_and_5xx_retry_error_handling(mock_upstash: 
 
 
 def test_tier2_f2_04_empty_or_null_payload_handling():
-    """T2.B10: Empty or null payloads in AR relay messaging are properly detected."""
-    empty_payload = {}
-    with pytest.raises(KeyError):
-        _ = empty_payload["constellation"]
+    """T2.B10: Empty, null, or corrupted AR telemetry payloads are rejected by schema validation."""
+    # 1. Null payload rejection
+    with pytest.raises(ValueError, match="non-null dictionary"):
+        validate_ar_telemetry_payload(None)
+
+    # 2. Empty payload rejection
+    with pytest.raises(ValueError, match="missing required top-level keys"):
+        validate_ar_telemetry_payload({})
+
+    # 3. Missing mandatory keys (missing constellation, relays)
+    corrupted_missing_keys = {
+        "timestamp": 1731681600,
+        "link_budget": {"downlink_margin_db": 3.8, "uplink_margin_db": 1.5, "atmos_loss_db": 0.5, "delta_atmos_db": -0.5},
+    }
+    with pytest.raises(ValueError, match="missing required top-level keys"):
+        validate_ar_telemetry_payload(corrupted_missing_keys)
+
+    # 4. Corrupted active_pass track (missing required telemetry metrics)
+    corrupted_track = {
+        "timestamp": 1731681600,
+        "constellation": "MRS",
+        "relays": [{"id": "l1", "name": "MRS-L1", "altitude_km": 400, "in_view": True}],
+        "active_pass": {
+            "relay_id": "l1",
+            "aos": 15.0,
+            "los": 16.0,
+            "max_elevation_deg": 45.0,
+            "track": [{"time_s": 0}],  # missing azimuth_deg, elevation_deg, uplink_margin_db, atmos_loss_db
+        },
+        "link_budget": {"downlink_margin_db": 3.8, "uplink_margin_db": 1.5, "atmos_loss_db": 0.5, "delta_atmos_db": -0.5},
+    }
+    with pytest.raises(ValueError, match="missing keys"):
+        validate_ar_telemetry_payload(corrupted_track)
+
+    # 5. Corrupted link budget with positive atmospheric delta (positive margin bug regression)
+    corrupted_positive_margin = {
+        "timestamp": 1731681600,
+        "constellation": "MRS",
+        "relays": [{"id": "l1", "name": "MRS-L1", "altitude_km": 400, "in_view": True}],
+        "link_budget": {"downlink_margin_db": 3.8, "uplink_margin_db": 1.5, "atmos_loss_db": 0.5, "delta_atmos_db": 0.5},
+    }
+    with pytest.raises(ValueError, match="delta_atmos_db must be negative"):
+        validate_ar_telemetry_payload(corrupted_positive_margin)
+
+    # 6. Valid payload generated by production scenario passes cleanly
+    scn = Scenario()
+    valid_payload = build_ar_telemetry_payload(scn, passes_payload(scn), link_payload(scn))
+    assert validate_ar_telemetry_payload(valid_payload) is True
 
 
 def test_tier2_f2_05_high_concurrency_sequential_monotonic_ids(mock_upstash: UpstashCache):

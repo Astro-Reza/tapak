@@ -87,5 +87,10 @@ class Scenario:
 
     def with_overrides(self, **kw) -> "Scenario":
         site_kw = {k: kw.pop(k) for k in ("lat_deg", "lon_deg") if k in kw}
+        if "relays" in kw:
+            relays = kw.pop("relays")
+            if isinstance(relays, list):
+                relays = tuple(relays)
+            kw["relays"] = relays
         out = replace(self, **kw)
         return replace(out, site=replace(out.site, **site_kw)) if site_kw else out

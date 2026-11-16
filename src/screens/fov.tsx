@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -21,29 +22,14 @@ import { EXPLORE_FAST_X, EXPLORE_MPS, stepExplore, type MoveInput } from "@/sim/
 import { readInput, useFovInput } from "@/sim/fov/input";
 import { pointAtDist, routeHeading, stepRoute, WALK_RATES, type WalkRate } from "@/sim/fov/route-walker";
 import { heightAt, terrainBounds, toCompassDeg, wrapPi, type WorldXZ } from "@/sim/fov/world";
+import { DEFAULT_ACTIVE_PASS } from "@/data/comms";
+import { useCommsPasses } from "@/lib/comms-api";
+import { getSatelliteTrackState, useHudPass, type HudPassData } from "@/lib/hud-pass";
 
 /** Elevation gauge: 0° at 607 px, 6 px per degree, major tick every 10° (design). */
 const ELEVATION = { zero: 607, pxPerDeg: 5.99, satellite: 25, passMax: 29 };
 const elevationTicks = Array.from({ length: 19 }, (_, i) => i * 5);
 
-/**
- * Relay pass (simulated, from the design): the design's arc converted to sky directions (azimuth, elevation),
- * so it is drawn by projecting through the 3D camera and stays fixed in the sky as you turn and tilt.
- */
-const SAT = { az: 22, label: "MRS-L1 · el 25° · az 022° · uplink +0.6 dB" };
-const cubic = (t: number, a: number, b: number, c: number, d: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * d;
-const PASS = Array.from({ length: 49 }, (_, i) => {
-  const t = i / 48;
-  const x = cubic(t, -40, 420, 880, 1250), y = cubic(t, 724, 500, 480, 600);
-  return { az: 32 + (x - 691) / 19.5, el: (704 - y) / 5.99 }; // design heading 032° at x 691, horizon at y 704
-});
-const elOnPass = (az: number) => {
-  const j = PASS.findIndex((p) => p.az >= az);
-  const a = PASS[Math.max(j - 1, 0)], b = PASS[Math.max(j, 0)];
-  return a.el + ((az - a.az) / (b.az - a.az || 1)) * (b.el - a.el);
-};
-const AOS = { az: 2, label: "AOS 15:35" };
-const LOS = { az: 56, label: "LOS 15:44" };
 /** Spot note geometry relative to the WP4 marker (design): outcrop ellipse and card. */
 const SPOT = { outcropDx: -252, outcropDy: 1, cardW: 296, cardDx: -700, cardDy: -12, lineDx: -402, lineDy: -35.5 };
 
@@ -143,6 +129,13 @@ function FovScene({ ev }: { ev: Evaluation }) {
   const bounds = useMemo(() => terrainBounds(data!.terrain.size), [data]);
   const mini = useMemo(() => fitProjection(prof, { x0: 24, y0: 24, x1: 232, y1: 168 }, data!.terrain), [prof, data]);
 
+  const comms = useCommsPasses();
+  const fallbackPass = (comms.data.activePass as HudPassData | null | undefined) ?? DEFAULT_ACTIVE_PASS;
+  const { pass: activePass } = useHudPass(fallbackPass);
+  const activePassRef = useRef<HudPassData>(activePass);
+  activePassRef.current = activePass;
+  const satState = useMemo(() => getSatelliteTrackState(activePass), [activePass]);
+
   const [mode, setMode] = useState<Mode>("route");
   const [rate, setRate] = useState<WalkRate>(60);
   const [bobLevel, setBobLevel] = useState<BobLevel>(() => (isReducedMotion() ? "off" : "normal"));
@@ -241,10 +234,18 @@ function FovScene({ ev }: { ev: Evaluation }) {
         }
         return d;
       };
-      const satEl = elOnPass(SAT.az);
-      el.flown.current?.setAttribute("d", path([...PASS.filter((p) => p.az < SAT.az), { az: SAT.az, el: satEl }]));
-      el.predicted.current?.setAttribute("d", path(PASS));
-      const [sat, aos, los, hz] = a.project([sky(SAT.az, satEl), sky(AOS.az, elOnPass(AOS.az)), sky(LOS.az, elOnPass(LOS.az)), sky(pose.yaw / RAD, 0)]);
+      const passState = getSatelliteTrackState(activePassRef.current);
+      const satAz = passState.currentPt.az;
+      const satEl = passState.currentPt.el;
+
+      el.flown.current?.setAttribute("d", path(passState.flown));
+      el.predicted.current?.setAttribute("d", path(passState.predicted));
+      const [sat, aos, los, hz] = a.project([
+        sky(satAz, satEl),
+        sky(passState.aosPt.az, passState.aosPt.el),
+        sky(passState.losPt.az, passState.losPt.el),
+        sky(pose.yaw / RAD, 0),
+      ]);
       // out of view: pin the satellite marker to the nearest screen edge, pointing the way to it
       const W = viewSize.current.width, H = viewSize.current.height;
       const satNode = el.sat.current, pin = el.satPin.current;
@@ -254,11 +255,14 @@ function FovScene({ ev }: { ev: Evaluation }) {
         satNode.style.transform = inView ? `translate(${sat.x}px, ${sat.y}px)` : "none";
         pin.style.visibility = inView ? "hidden" : "visible";
         if (!inView) {
-          const side = dDeg(SAT.az, pose.yaw / RAD);
+          const side = dDeg(satAz, pose.yaw / RAD);
           const left = wide.matches ? 304 : 16, right = W - (wide.matches ? 360 : 240), top = wide.matches ? 88 : 216, bottom = H - 180;
-          const x = Math.abs(side) > FOV_H / 2 || !sat.front ? (side < 0 ? left : right) : Math.min(Math.max(sat.x, left), right);
-          const y = sat.front ? Math.min(Math.max(sat.y, top), bottom) : top;
-          const ang = Math.atan2(sat.front ? sat.y - y : -1, sat.front && Math.abs(side) <= FOV_H / 2 ? sat.x - x : side) / RAD + 90;
+          const satFront = sat.front && Number.isFinite(sat.x) && Number.isFinite(sat.y);
+          const x = Math.abs(side) > FOV_H / 2 || !satFront ? (side < 0 ? left : right) : Math.min(Math.max(sat.x, left), right);
+          const y = satFront ? Math.min(Math.max(sat.y, top), bottom) : top;
+          const dx = satFront && Math.abs(side) <= FOV_H / 2 ? sat.x - x : side;
+          const dy = satFront ? sat.y - y : -1;
+          const ang = (Math.atan2(Number.isFinite(dy) ? dy : -1, Number.isFinite(dx) ? dx : side) / RAD) + 90;
           pin.style.transform = `translate(${x}px, ${y}px)`;
           const arrow = pin.firstElementChild as HTMLElement | null;
           if (arrow) arrow.style.transform = `rotate(${ang}deg)`;
@@ -457,22 +461,22 @@ function FovScene({ ev }: { ev: Evaluation }) {
       </svg>
       <div className="pointer-events-none absolute inset-0">
         <div ref={el.sat} className="absolute top-0 left-0" style={{ visibility: "hidden" }}>
-          <SatelliteMarker label={SAT.label} style={{ left: -13, top: -12 }} />
+          <SatelliteMarker label={satState.satLabel} style={{ left: -13, top: -12 }} />
           <Brackets className="top-[-19.5px] left-[-20px] size-[40px]" delay={tick * 12} />
         </div>
         <div ref={el.satPin} className="absolute top-0 left-0 flex items-center gap-xs" style={{ visibility: "hidden" }}>
           <span className="flex size-[24px] items-center justify-center rounded-pill bg-scrim text-fg">
             <Icon name="arrow" size={16} />
           </span>
-          <SatelliteMarker label="MRS-L1 · out of view" className="relative" />
+          <SatelliteMarker label={satState.satPinLabel} className="relative" />
         </div>
         <div ref={el.aos} className="absolute top-0 left-0" style={{ visibility: "hidden" }}>
           <span className="absolute top-[-8px] left-[-1px] h-lg w-(--stroke-default) bg-fg" />
-          <MapTag className="absolute top-[-54px] left-[-30px]">{AOS.label}</MapTag>
+          <MapTag className="absolute top-[-54px] left-[-30px]">{satState.aosLabel}</MapTag>
         </div>
         <div ref={el.los} className="absolute top-0 left-0" style={{ visibility: "hidden" }}>
           <span className="absolute top-[-8px] left-[-1px] h-lg w-(--stroke-default) bg-fg" />
-          <MapTag className="absolute top-[18px] left-[-30px]">{LOS.label}</MapTag>
+          <MapTag className="absolute top-[18px] left-[-30px]">{satState.losLabel}</MapTag>
         </div>
         <div ref={el.wp} className="absolute top-0 left-0" style={{ visibility: "hidden" }}>
           <WaypointMarker label={hud.nextLabel} x={0} y={0} />
@@ -484,6 +488,31 @@ function FovScene({ ev }: { ev: Evaluation }) {
           <p className="whitespace-nowrap t-label-m text-fg">Spot note · outcrop left of WP4</p>
           <p className="t-body-s text-fg-secondary">Layered rock, loose scree on the left flank. Approach from the east bench</p>
         </div>
+      </div>
+
+      {/* Step 13 Arrival preview card (POV preview card per DESIGN.md:303) */}
+      <div
+        data-tour="arrival-preview"
+        data-testid="arrival-preview-card"
+        className="mw-flash-in pointer-events-auto absolute bottom-lg left-lg z-20 flex w-[320px] flex-col gap-xs rounded-sm border border-line-subtle bg-scrim p-md md:bottom-xl md:left-[280px]"
+      >
+        <div className="flex items-center justify-between gap-sm">
+          <MapTag>POV · WP3</MapTag>
+          <Badge variant="tag" className="border-line-subtle bg-scrim text-brand t-data-telemetry">
+            simulated
+          </Badge>
+        </div>
+        <div className="relative mt-xs aspect-[16/9] w-full overflow-hidden rounded-xs border border-line-subtle bg-inset flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center gap-xs p-sm text-center">
+            <Icon name="look" size={24} className="text-brand opacity-80" />
+            <p className="t-data-telemetry text-xs text-fg-secondary">Arrival view · WP3 Jezero Delta</p>
+          </div>
+        </div>
+        <p className="mt-xs t-label-m text-fg">What to expect at WP3</p>
+        <p className="t-body-s text-fg-secondary">
+          Layered rock, loose scree on the left flank. Approach from the east bench · max slope 14°.
+        </p>
+        <p className="t-caption text-fg-muted mt-xs">NASA / JPL-Caltech / MSSS · simulated</p>
       </div>
 
       {/* ---------- Screen chrome, anchored to the screen edges ---------- */}
@@ -524,8 +553,8 @@ function FovScene({ ev }: { ev: Evaluation }) {
             </span>
           );
         })}
-        <span aria-label={`Pass maximum elevation ${ELEVATION.passMax}°`} className="absolute left-0 h-px w-full bg-fg opacity-60" style={{ top: ELEVATION.zero - ELEVATION.passMax * ELEVATION.pxPerDeg }} />
-        <span aria-label={`Satellite elevation ${ELEVATION.satellite}°`} className="absolute left-0 h-(--stroke-default) w-full bg-brand" style={{ top: ELEVATION.zero - ELEVATION.satellite * ELEVATION.pxPerDeg + 1 }} />
+        <span aria-label={`Pass maximum elevation ${Math.round(activePass.maxElevationDeg)}°`} className="absolute left-0 h-px w-full bg-fg opacity-60" style={{ top: ELEVATION.zero - activePass.maxElevationDeg * ELEVATION.pxPerDeg }} />
+        <span aria-label={`Satellite elevation ${Math.round(satState.currentPt.el)}°`} className="absolute left-0 h-(--stroke-default) w-full bg-brand" style={{ top: ELEVATION.zero - satState.currentPt.el * ELEVATION.pxPerDeg + 1 }} />
       </div>
 
       {/* View controls: white map squares beside the ruler */}
@@ -675,7 +704,7 @@ function FovScene({ ev }: { ev: Evaluation }) {
           );
         })}
         <span aria-label={`Heading ${Math.round(look)}°`} className="absolute top-0 h-full w-(--stroke-default) bg-fg" style={{ left: rulerMid }} />
-        <span aria-label={`Satellite azimuth ${SAT.az}°`} className="absolute top-0 h-[20px] w-(--stroke-default) bg-brand" style={{ left: azX(SAT.az) }} />
+        <span aria-label={`Satellite azimuth ${Math.round(satState.currentPt.az)}°`} className="absolute top-0 h-[20px] w-(--stroke-default) bg-brand" style={{ left: azX(satState.currentPt.az) }} />
         <span aria-label={`Walking direction ${Math.round(hud.walkDeg)}°`} className="absolute bottom-0 h-[10px] w-(--stroke-default) bg-route-path" style={{ left: azX(hud.walkDeg) }} />
       </div>
     </div>

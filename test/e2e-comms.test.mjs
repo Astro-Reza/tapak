@@ -20,311 +20,68 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MARS_RADIUS_KM, latLonToVec, orbitPoint, elevationDeg } from '../src/lib/orbit.ts';
+import {
+  MARS_RADIUS_KM,
+  MARS_MU_KM3_S2,
+  SOL_S,
+  SIDEREAL_DAY_S,
+  DEFAULT_SITE,
+  DEFAULT_RELAYS,
+  DOWNLINK_CONFIG,
+  UPLINK_CONFIG,
+  latLonToVec,
+  orbitRadius,
+  orbitPoint,
+  elevationDeg,
+  orbitalPeriodS,
+  propagateRelayPosition,
+  slantRangeKm,
+  azimuthDeg,
+  fsplDb,
+  atmosphericLossDb,
+  receivedPowerDbw,
+  calculateLinkMarginDb,
+  deltaAtmosphericMarginDb,
+  solveThetaMinDeg,
+  regularizedGammaP,
+  fitGammaDistribution,
+  simulateConstellationPasses,
+  buildMcStatusOrbit,
+  buildWaterfallStages,
+} from '../src/lib/orbit.ts';
 import { createLinkHandler } from '../api/link.js';
 import { parseLinkMessage, MAX_BYTES, KEEP_MS, KEEP_N } from '../src/engine/sync/relay.js';
 import { TYPES, createLink } from '../src/engine/sync/channel.js';
 
-/* =========================================================================
-   1. AUTHORITATIVE PHYSICAL CONSTANTS & REFERENCE MATHEMATICAL ENGINE
-   ========================================================================= */
-
-export const MARS_MU_KM3_S2 = 42828.37;
-export const SOL_S = 88775.244;
-export const SIDEREAL_DAY_S = 88642.663;
-
-export const DEFAULT_SITE = {
-  name: 'Jezero West',
-  latDeg: 18.43,
-  lonDeg: 77.42,
-  elevationM: -2410.0,
+export {
+  MARS_RADIUS_KM,
+  MARS_MU_KM3_S2,
+  SOL_S,
+  SIDEREAL_DAY_S,
+  DEFAULT_SITE,
+  DEFAULT_RELAYS,
+  DOWNLINK_CONFIG,
+  UPLINK_CONFIG,
+  latLonToVec,
+  orbitRadius,
+  orbitPoint,
+  elevationDeg,
+  orbitalPeriodS,
+  propagateRelayPosition,
+  slantRangeKm,
+  azimuthDeg,
+  fsplDb,
+  atmosphericLossDb,
+  receivedPowerDbw,
+  calculateLinkMarginDb,
+  deltaAtmosphericMarginDb,
+  solveThetaMinDeg,
+  regularizedGammaP,
+  fitGammaDistribution,
+  simulateConstellationPasses,
+  buildMcStatusOrbit,
+  buildWaterfallStages,
 };
-
-export const DEFAULT_RELAYS = [
-  { id: 'l1', name: 'MRS-L1', altitudeKm: 400, inclinationDeg: 75, raanDeg: 70, argLatDeg: 9 },
-  { id: 'l2', name: 'MRS-L2', altitudeKm: 400, inclinationDeg: 52, raanDeg: 190, argLatDeg: 300 },
-  { id: 'l3', name: 'MRS-L3', altitudeKm: 400, inclinationDeg: 52, raanDeg: 310, argLatDeg: 70 },
-  { id: 'l4', name: 'MRS-L4', altitudeKm: 400, inclinationDeg: 75, raanDeg: 70, argLatDeg: 189 },
-];
-
-export const DOWNLINK_CONFIG = {
-  title: 'Receive · relay → suit',
-  tx: 'relay',
-  ptDbw: 10.0,
-  gtDbi: 4.0,
-  grDbi: 2.0,
-  dustDb: 0.3,
-  pointingDb: 1.0,
-  thresholdDbw: -131.0,
-};
-
-export const UPLINK_CONFIG = {
-  title: 'Transmit · suit → relay',
-  tx: 'suit',
-  ptDbw: 6.0,
-  gtDbi: 2.0,
-  grDbi: 4.0,
-  dustDb: 0.3,
-  pointingDb: 1.0,
-  thresholdDbw: -133.0,
-};
-
-/** Orbital period around Mars for a circular orbit at altitude h (Kepler's 3rd Law). */
-export function orbitalPeriodS(altitudeKm) {
-  const a = MARS_RADIUS_KM + altitudeKm;
-  return 2.0 * Math.PI * Math.sqrt(Math.pow(a, 3) / MARS_MU_KM3_S2);
-}
-
-/** Propagates circular orbit in Mars-fixed frame advancing argument of latitude and regressing node. */
-export function propagateRelayPosition(relay, timeS) {
-  const raan = relay.raanDeg - (360.0 * timeS) / SIDEREAL_DAY_S;
-  const T = orbitalPeriodS(relay.altitudeKm);
-  const u = relay.argLatDeg + (360.0 * timeS) / T;
-  return orbitPoint({
-    altitudeKm: relay.altitudeKm,
-    inclinationDeg: relay.inclinationDeg,
-    raanDeg: raan,
-    argLatDeg: u,
-  });
-}
-
-/** Calculates spherical slant range in kilometers from topocentric elevation and orbital altitude. */
-export function slantRangeKm(elevationDegVal, altitudeKm) {
-  const eRad = (elevationDegVal * Math.PI) / 180.0;
-  const R = MARS_RADIUS_KM;
-  const a = R + altitudeKm;
-  return Math.sqrt(a * a - Math.pow(R * Math.cos(eRad), 2)) - R * Math.sin(eRad);
-}
-
-/** Free Space Path Loss (ITU-R P.525). */
-export function fsplDb(distanceKm, frequencyMhz) {
-  if (distanceKm <= 0 || frequencyMhz <= 0) return 0.0;
-  return 20.0 * Math.log10(distanceKm) + 20.0 * Math.log10(frequencyMhz) + 32.44;
-}
-
-/**
- * Elevation-dependent atmospheric attenuation (ITU-R P.676 cosecant model).
- * Enforces minimum elevation floor of 0.5 degrees to prevent division by zero at horizon.
- */
-export function atmosphericLossDb(elevationDegVal, zenithLossDb = 0.3, floorDeg = 0.5) {
-  const effectiveEl = Math.max(elevationDegVal, floorDeg);
-  const elRad = (effectiveEl * Math.PI) / 180.0;
-  return zenithLossDb / Math.sin(elRad);
-}
-
-/** Computes received power incorporating subtractive atmospheric attenuation. */
-export function receivedPowerDbw(side, fsplVal, atmosLossVal) {
-  return (
-    side.ptDbw +
-    side.gtDbi -
-    fsplVal -
-    atmosLossVal -
-    side.dustDb -
-    side.pointingDb +
-    side.grDbi
-  );
-}
-
-/** Full link margin calculation at a given elevation and altitude. */
-export function calculateLinkMarginDb(
-  side,
-  elevationDegVal,
-  altitudeKm = 400.0,
-  frequencyMhz = 401.6,
-  zenithLossDb = 0.3
-) {
-  const d = slantRangeKm(elevationDegVal, altitudeKm);
-  const fspl = fsplDb(d, frequencyMhz);
-  const atmos = atmosphericLossDb(elevationDegVal, zenithLossDb);
-  const pr = receivedPowerDbw(side, fspl, atmos);
-  return pr - side.thresholdDbw;
-}
-
-/**
- * Delta in link margin produced by atmospheric loss.
- * Delta = Margin(with atmos) - Margin(without atmos) = -A_atm < 0.
- */
-export function deltaAtmosphericMarginDb(elevationDegVal, zenithLossDb = 0.3) {
-  return -atmosphericLossDb(elevationDegVal, zenithLossDb);
-}
-
-/** Bisection solver finding the minimum usable elevation theta_min where Margin == 0 dB. */
-export function solveThetaMinDeg(
-  side,
-  altitudeKm = 400.0,
-  frequencyMhz = 401.6,
-  zenithLossDb = 0.3
-) {
-  if (calculateLinkMarginDb(side, 0.0, altitudeKm, frequencyMhz, zenithLossDb) >= 0) {
-    return 0.0;
-  }
-  if (calculateLinkMarginDb(side, 90.0, altitudeKm, frequencyMhz, zenithLossDb) < 0) {
-    return 90.0;
-  }
-  let lo = 0.0;
-  let hi = 90.0;
-  for (let i = 0; i < 60; i++) {
-    const mid = 0.5 * (lo + hi);
-    if (calculateLinkMarginDb(side, mid, altitudeKm, frequencyMhz, zenithLossDb) >= 0) {
-      hi = mid;
-    } else {
-      lo = mid;
-    }
-  }
-  return hi;
-}
-
-/** Lanczos log-gamma approximation for regularized incomplete gamma evaluation. */
-function logGamma(z) {
-  const c = [
-    76.18009172947146,
-    -86.50532032941677,
-    24.01409824083091,
-    -1.231739572450155,
-    0.001208650973866179,
-    -0.000005395239384953,
-  ];
-  let x = z;
-  let y = z;
-  let tmp = x + 5.5;
-  tmp -= (x + 0.5) * Math.log(tmp);
-  let ser = 1.000000000190015;
-  for (let j = 0; j < 6; j++) {
-    y += 1;
-    ser += c[j] / y;
-  }
-  return -tmp + Math.log((2.5066282746310005 * ser) / x);
-}
-
-/** Lower regularized incomplete gamma P(a, x) per Numerical Recipes 6.2. */
-export function regularizedGammaP(a, x) {
-  if (x <= 0) return 0.0;
-  const logPre = -x + a * Math.log(x) - logGamma(a);
-  if (x < a + 1.0) {
-    let term = 1.0 / a;
-    let total = term;
-    let ap = a;
-    for (let i = 0; i < 500; i++) {
-      ap += 1.0;
-      term *= x / ap;
-      total += term;
-      if (Math.abs(term) < Math.abs(total) * 1e-14) break;
-    }
-    return total * Math.exp(logPre);
-  }
-  const tiny = 1e-300;
-  let b = x + 1.0 - a;
-  let c = 1.0 / tiny;
-  let d = 1.0 / b;
-  let h = d;
-  for (let i = 1; i < 500; i++) {
-    const an = -i * (i - a);
-    b += 2.0;
-    d = an * d + b;
-    if (Math.abs(d) < tiny) d = tiny;
-    c = b + an / c;
-    if (Math.abs(c) < tiny) c = tiny;
-    d = 1.0 / d;
-    const delta = d * c;
-    h *= delta;
-    if (Math.abs(delta - 1.0) < 1e-14) break;
-  }
-  return 1.0 - Math.exp(logPre) * h;
-}
-
-/** Method of moments Gamma distribution fit for contact peak elevations. */
-export function fitGammaDistribution(samples) {
-  if (!samples || samples.length === 0) return { k: 2.4, scale: 14.8, mean: 33.4 };
-  const n = samples.length;
-  const mean = samples.reduce((acc, v) => acc + v, 0) / n;
-  const variance = samples.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / n;
-  if (variance <= 1e-6) return { k: 2.4, scale: 14.8, mean };
-  const k = (mean * mean) / variance;
-  const scale = variance / mean;
-  return {
-    k,
-    scale,
-    mean,
-    cdf: (x) => regularizedGammaP(k, x / scale),
-  };
-}
-
-/** Topocentric azimuth in degrees [0, 360) from site to 3D position vector in Mars-fixed frame. */
-export function azimuthDeg(site, point) {
-  const up = latLonToVec(site.latDeg, site.lonDeg);
-  const rad = Math.PI / 180.0;
-  const phi = rad * (90.0 - site.latDeg);
-  const theta = rad * (site.lonDeg + 180.0);
-  const north = [Math.cos(phi) * Math.cos(theta), Math.sin(phi), -Math.cos(phi) * Math.sin(theta)];
-  const east = [
-    north[1] * up[2] - north[2] * up[1],
-    north[2] * up[0] - north[0] * up[2],
-    north[0] * up[1] - north[1] * up[0],
-  ];
-  const v = [point[0] - up[0], point[1] - up[1], point[2] - up[2]];
-  const vN = v[0] * north[0] + v[1] * north[1] + v[2] * north[2];
-  const vE = v[0] * east[0] + v[1] * east[1] + v[2] * east[2];
-  let az = (Math.atan2(vE, vN) * 180.0) / Math.PI;
-  if (az < 0) az += 360.0;
-  return az;
-}
-
-/** Simulates orbital passes for a constellation over a time interval [t0, t1]. */
-export function simulateConstellationPasses(
-  site = DEFAULT_SITE,
-  relays = DEFAULT_RELAYS,
-  t0 = 0.0,
-  t1 = SOL_S,
-  stepS = 20.0,
-  maskDeg = 0.0
-) {
-  const passes = [];
-  for (const relay of relays) {
-    let inPass = false;
-    let passStart = 0;
-    let peakEl = -90.0;
-    const track = [];
-
-    for (let t = t0; t <= t1; t += stepS) {
-      const pos = propagateRelayPosition(relay, t);
-      const el = elevationDeg(site, pos);
-      if (el > maskDeg) {
-        if (!inPass) {
-          inPass = true;
-          passStart = t;
-          peakEl = el;
-          track.length = 0;
-        }
-        if (el > peakEl) peakEl = el;
-        const az = azimuthDeg(site, pos);
-        const margin = calculateLinkMarginDb(UPLINK_CONFIG, el, relay.altitudeKm);
-        const atmos = atmosphericLossDb(el);
-        track.push({ timeS: t - passStart, az, el, uplinkMarginDb: margin, atmosLossDb: atmos });
-      } else if (inPass) {
-        inPass = false;
-        passes.push({
-          relay,
-          startS: passStart,
-          endS: t - stepS,
-          durationMin: (t - stepS - passStart) / 60.0,
-          maxElDeg: peakEl,
-          track: [...track],
-        });
-      }
-    }
-    if (inPass) {
-      passes.push({
-        relay,
-        startS: passStart,
-        endS: t1,
-        durationMin: (t1 - passStart) / 60.0,
-        maxElDeg: peakEl,
-        track: [...track],
-      });
-    }
-  }
-  return passes.sort((a, b) => a.startS - b.startS);
-}
 
 /* =========================================================================
    2. IN-MEMORY UPSTASH REDIS REST HARNESS
@@ -669,30 +426,18 @@ describe('Marswalk E2E Comms, AR Upstash Redis & Link Budget Suite', () => {
       });
 
       it('T2.5: AR payload format complies with McStatus / OrbitLink schema required by external AR visor codebase', () => {
-        const mcStatus = {
-          t: 45.0,
-          lmst: '15:42',
-          orbit: {
-            current: {
-              relay: 'MRS-L1',
-              elevationDeg: 24.8,
-              azimuthDeg: 207.5,
-              uplinkMarginDb: 0.6,
-            },
-            aosLmst: '15:35',
-            losLmst: '15:44',
-            maxElDeg: 29.0,
-            track: [{ az: 22.1, el: 12.4, marginDb: -0.8, timeS: 0 }],
-          },
-        };
+        const passes = simulateConstellationPasses(DEFAULT_SITE, DEFAULT_RELAYS, 0, 3600);
+        assert.ok(passes.length > 0, 'Pass simulation must produce passes');
+        const mcStatus = buildMcStatusOrbit(45.0, '15:42', passes[0]);
 
         assert.equal(typeof mcStatus.t, 'number');
         assert.equal(typeof mcStatus.lmst, 'string');
         assert.ok(mcStatus.orbit !== null);
-        assert.equal(mcStatus.orbit.current.relay, 'MRS-L1');
+        assert.equal(typeof mcStatus.orbit.current.relay, 'string');
         assert.equal(typeof mcStatus.orbit.current.elevationDeg, 'number');
         assert.equal(typeof mcStatus.orbit.current.uplinkMarginDb, 'number');
         assert.ok(Array.isArray(mcStatus.orbit.track));
+        assert.ok(mcStatus.orbit.track.length > 0);
       });
     });
 
@@ -748,16 +493,7 @@ describe('Marswalk E2E Comms, AR Upstash Redis & Link Budget Suite', () => {
 
       it('T3.5: candlestick waterfall layout contains "Atmos" stage with kind "loss" and negative step value', () => {
         const el = 33.4;
-        const atmosLoss = atmosphericLossDb(el, 0.3);
-        const stages = [
-          { label: 'Pt', kind: 'gain', value: DOWNLINK_CONFIG.ptDbw },
-          { label: 'Gt', kind: 'gain', value: DOWNLINK_CONFIG.gtDbi },
-          { label: 'FSPL', kind: 'loss', value: -fsplDb(slantRangeKm(el, 400.0), 401.6) },
-          { label: 'Atmos', kind: 'loss', value: -atmosLoss },
-          { label: 'Dust', kind: 'loss', value: -DOWNLINK_CONFIG.dustDb },
-          { label: 'Point', kind: 'loss', value: -DOWNLINK_CONFIG.pointingDb },
-          { label: 'Gr', kind: 'gain', value: DOWNLINK_CONFIG.grDbi },
-        ];
+        const stages = buildWaterfallStages(DOWNLINK_CONFIG, el, 400.0, 401.6, 0.3);
 
         const atmosStage = stages.find((s) => s.label === 'Atmos');
         assert.ok(atmosStage, 'Waterfall stages must contain Atmos stage');

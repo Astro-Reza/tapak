@@ -762,10 +762,11 @@ export function HubScreen() {
   };
 
   return (
-    <div className="flex size-full min-h-0 overflow-hidden">
+    <div className="flex size-full min-h-0 overflow-hidden" data-tour="hub-welcome">
       {/* Sliding sidebar container: transitions width without remounting right-side panels */}
       <aside
         aria-label="EVA presets sidebar"
+        data-tour="eva-presets"
         className={cn(
           "relative h-full shrink-0 border-r border-line-subtle bg-panel overflow-hidden select-none",
           isDragging ? "transition-none" : "transition-[width] duration-200 ease-out",
@@ -838,8 +839,8 @@ export function HubScreen() {
       </aside>
 
       {/* Main content on the right: stable, never unmounts, never re-animates */}
-      <div className="min-w-0 flex-1 h-full overflow-hidden">
-        <ResizablePanelGroup orientation="vertical" className="size-full min-h-0">
+      <div className="min-w-0 flex-1 h-full overflow-hidden flex flex-col">
+        <ResizablePanelGroup orientation="vertical" className="size-full min-h-0 flex-1">
             <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 160 : 240}>
               <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
                 <ResizablePanel id="hub-lists" defaultSize="72%" minSize="30%">

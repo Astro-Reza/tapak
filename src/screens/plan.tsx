@@ -39,10 +39,14 @@ import {
   type PlanetMapHandle,
 } from "@/components/marswalk/planet-map";
 import { LogLine, MapTag, MetricTile, ScreenHeading, StatList, StatRow, StatusChip } from "@/components/marswalk/primitives";
+import { ChecklistPanel } from "@/components/marswalk/checklist-panel";
+import { PRE_EVA_BLOCKS } from "@/data/eva-checklist";
+import { useTour } from "@/tour";
 import { useToast } from "@/components/marswalk/toaster";
 import { Trace, TraceContent, TraceLine, TraceStep } from "@/components/marswalk/trace";
 import type { LayerId } from "@/data/mission";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { loadHires, loadOrbitalLayers, ORTHO, type Hires, type OrbitalLayers } from "@/sim/load";
 import { MissionGate, PlanControls } from "@/sim/controls";
@@ -109,6 +113,7 @@ const isGlobal = (b: Bounds) => b[1] - b[0] >= 359;
 const fmtRes = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km/px` : `${m >= 10 ? m.toFixed(0) : m.toFixed(1)} m/px`);
 const GREY_RAMP = "linear-gradient(to right, #000, #fff)";
 const SIDE_TABS = [
+  ["checklist", "Checklist"],
   ["route", "Route"],
   ["walk", "Walk"],
   ["probe", "Probe"],
@@ -121,8 +126,17 @@ const SIDE_TABS = [
 
 function PlanScreenLoaded() {
   const toast = useToast();
-  const { routeCommitted, commitRoute } = useStore();
+  const { routeCommitted, commitRoute, done, toggle } = useStore();
   const { data, result, ev, busy, link, settings, evaT, setEvaT, playing, setPlaying } = useMission();
+
+  let activeStepId: number | null = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const tour = useTour();
+    activeStepId = tour.activeStep?.id ?? null;
+  } catch {
+    // Tour may not be mounted in pure tests
+  }
   const view = useMemo(() => planView(data!, result!, ev!, ROUTE_BOX), [data, result, ev]);
   /** Orbital layers load after the map shows; until then their rows say "loading" */
   const [orbital, setOrbital] = useState<OrbitalLayers | null>(null);
@@ -179,6 +193,14 @@ function PlanScreenLoaded() {
     return r;
   }, [dose, grid, view.proj, stretch, orbital]);
   const [tab, setTab] = useState("route");
+
+  useEffect(() => {
+    if (activeStepId === 5) {
+      setTab("checklist");
+    } else if (activeStepId === 6) {
+      setTab("route");
+    }
+  }, [activeStepId]);
   const walk = useMemo(
     () => (tab === "walk" ? planWalkView(data!, result!, ev!, view.proj, orbital, evaT) : null),
     [tab, data, result, ev, view, orbital, evaT],
@@ -602,10 +624,26 @@ function PlanScreenLoaded() {
               </TabsTrigger>
             ))}
           </TabsList>
+          <TabsContent
+            value="checklist"
+            forceMount
+            className={cn("flex min-h-0 flex-1 flex-col", tab !== "checklist" && "hidden")}
+            data-tour="plan-checklist"
+          >
+            <ChecklistPanel
+              title="Pre-EVA checklist"
+              blocks={PRE_EVA_BLOCKS}
+              done={done.pre}
+              current
+              signature
+              onToggle={(id) => toggle("pre", id)}
+            />
+          </TabsContent>
           <TabsContent value="route" className="flex min-h-0 flex-1 flex-col">
             <ScrollArea className="flex-1 min-h-0" fill aria-label="Route plan">
               <div className="flex flex-1 flex-col gap-lg px-lg py-xl">
                 <ScreenHeading title="Route plan" sub={PLAN.subtitle} />
+                <div data-tour="plan-stops" className="flex flex-col gap-md">
                 <Trace>
                   {WAYPOINTS.map((wp, i) => {
                     const open = selected === wp.id;
@@ -627,6 +665,7 @@ function PlanScreenLoaded() {
                     );
                   })}
                 </Trace>
+                </div>
                 {!view.ok ? <p role="alert" className="t-body-s text-danger">{view.error}</p> : null}
                 <PlanControls />
                 <StatList className="rounded-sm bg-panel px-md py-sm">

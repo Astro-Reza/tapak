@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite",
     "dev:lan": "vite --host",
-    "dev:cloud": "VITE_RELAY_URL=https://tapak-two.vercel.app vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "preview": "vite preview",
-    "test": "node src/engine/test.mjs && node src/engine/integration.test.mjs && node src/sim/fov/fov.test.ts && node src/sim/ar-package.test.ts && node src/sim/suit-feed.test.ts && node api/link.test.mjs"
+    "test": "node src/engine/test.mjs && node src/engine/integration.test.mjs && node src/sim/fov/fov.test.ts && node src/sim/fov/pass-track.test.ts && node src/sim/ar-package.test.ts && node api/link.test.mjs && node api/ar-comms.test.mjs && node test/tour.test.ts",
+    "test:tour": "node test/tour.test.ts",
+    "test:e2e": "node test/run-all-e2e.mjs",
+    "test:e2e:node": "node test/e2e-comms.test.mjs",
+    "test:e2e:python": "python -m pytest -o pythonpath=backend backend/tests/test_e2e_comms.py"
   },
   "dependencies": {
     "@fontsource/geologica": "^5.3.0",

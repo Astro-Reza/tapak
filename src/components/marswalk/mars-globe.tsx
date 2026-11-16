@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { elevationDeg, latLonToVec, orbitPoint, type RelayOrbit } from "@/lib/orbit";
+import { elevationDeg, latLonToVec, orbitPoint, propagateRelayPosition, type RelayOrbit } from "@/lib/orbit";
 import { flyMs, stepMs, tween } from "@/lib/camera";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
-import { SatelliteMarker, WaypointMarker } from "./map";
+import { WaypointMarker } from "./map";
 import { Brackets } from "./primitives";
 import { useToast } from "./toaster";
 
@@ -50,6 +51,14 @@ export default function MarsGlobe({
   const relayRefs = useRef<(HTMLDivElement | null)[]>([]);
   const view = useRef<{ reset: () => void; zoom: (factor: number) => void } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(true);
+  const [speed, setSpeed] = useState(60);
+
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+  const wakeRef = useRef<() => void>(() => {});
 
   const tracked = useMemo(() => {
     const list = relays.map((relay) => {
@@ -130,15 +139,22 @@ export default function MarsGlobe({
     const dotGeometry = own(new THREE.SphereGeometry(0.012, 12, 8));
     const dotMaterial = own(new THREE.MeshBasicMaterial({ color: linkColor }));
     const linkMaterial = own(new THREE.LineBasicMaterial({ color: linkColor }));
-    tracked.forEach((item, i) => {
+
+    const dotMeshes: THREE.Mesh[] = [];
+    const losLines: THREE.Line[] = [];
+
+    relays.forEach((_, i) => {
       const dot = new THREE.Mesh(dotGeometry, dotMaterial);
       dot.position.copy(relayPoints[i]);
       scene.add(dot);
-      // Line of sight from the site to every relay above its horizon.
-      if (item.inView) {
-        const geometry = own(new THREE.BufferGeometry().setFromPoints([sitePoint, relayPoints[i]]));
-        scene.add(new THREE.Line(geometry, linkMaterial));
-      }
+      dotMeshes.push(dot);
+
+      // Line of sight from the site to this relay
+      const geometry = own(new THREE.BufferGeometry().setFromPoints([sitePoint, relayPoints[i]]));
+      const line = new THREE.Line(geometry, linkMaterial);
+      line.visible = tracked[i]?.inView ?? false;
+      scene.add(line);
+      losLines.push(line);
     });
 
     /* ----- labels: project to the canvas, hide behind the planet ----- */
@@ -222,21 +238,82 @@ export default function MarsGlobe({
       // Turn slower the closer you are, so a drag moves the ground under the cursor about 1:1.
       controls.rotateSpeed = THREE.MathUtils.clamp((camera.position.length() - 1) * 0.28, 0.08, 0.7);
       render();
+      wake();
     });
 
-    // Frames are drawn only while something moves: a drag or wheel coasting, or a flight.
+    // Frames are drawn while playing, or while something moves (drag, flight).
     let raf = 0;
     let cancelFlight = () => {};
     let flying = false;
+    let lastTime = performance.now();
+    let simTimeS = 0;
+
     const frame = () => {
       raf = 0;
       if (disposed) return;
+
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (playingRef.current) {
+        simTimeS += dt * speedRef.current;
+
+        let bestIndex = -1;
+        let maxElevation = -999;
+
+        for (let i = 0; i < relays.length; i++) {
+          const p = propagateRelayPosition(relays[i], simTimeS);
+          relayPoints[i].set(p[0], p[1], p[2]);
+          if (dotMeshes[i]) dotMeshes[i].position.copy(relayPoints[i]);
+
+          const el = elevationDeg(site, p);
+          const inView = el > 0;
+          if (inView && el > maxElevation) {
+            maxElevation = el;
+            bestIndex = i;
+          }
+
+          const line = losLines[i];
+          if (line) {
+            line.visible = inView;
+            if (inView) {
+              const posAttr = line.geometry.attributes.position;
+              posAttr.setXYZ(0, sitePoint.x, sitePoint.y, sitePoint.z);
+              posAttr.setXYZ(1, relayPoints[i].x, relayPoints[i].y, relayPoints[i].z);
+              posAttr.needsUpdate = true;
+            }
+          }
+
+          const refEl = relayRefs.current[i];
+          if (refEl) {
+            const labelEl = refEl.querySelector<HTMLElement>(".relay-marker-label");
+            if (labelEl) {
+              labelEl.textContent = inView ? `${relays[i].name} · el ${Math.round(el)}°` : relays[i].name;
+            }
+            const bracketEl = refEl.querySelector<HTMLElement>(".relay-bracket");
+            if (bracketEl) {
+              bracketEl.style.display = i === bestIndex ? "block" : "none";
+            }
+          }
+        }
+      }
+
       const moved = controls.update();
-      if (moved || flying) raf = requestAnimationFrame(frame);
+      render();
+
+      if (playingRef.current || moved || flying) {
+        raf = requestAnimationFrame(frame);
+      }
     };
+
     const wake = () => {
-      if (!raf && !disposed) raf = requestAnimationFrame(frame);
+      if (!raf && !disposed) {
+        lastTime = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
     };
+    wakeRef.current = wake;
     controls.addEventListener("start", () => {
       cancelFlight(); // grabbing the globe always wins over a flight in progress
       flying = false;
@@ -329,6 +406,7 @@ export default function MarsGlobe({
     goal.distance = VIEW.max;
     resize();
     reset();
+    wake();
 
     return () => {
       disposed = true;
@@ -369,11 +447,17 @@ export default function MarsGlobe({
             }}
             className="invisible absolute top-0 left-0"
           >
-            <SatelliteMarker
-              label={item.inView ? `${item.relay.name} · el ${Math.round(item.elevation)}°` : item.relay.name}
-              className="-top-[14px] -left-[13px] mw-reveal"
-            />
-            {item.live ? <Brackets className="-top-[20px] -left-[20px] size-[40px]" /> : null}
+            <Badge variant="marker" className="-top-[14px] -left-[13px] mw-reveal absolute">
+              <span aria-hidden="true" className="flex size-[14px] shrink-0 items-center justify-center">
+                <span className="block size-[10px] -rotate-45 border border-canvas bg-link-high" />
+              </span>
+              <span className="relay-marker-label">
+                {item.inView ? `${item.relay.name} · el ${Math.round(item.elevation)}°` : item.relay.name}
+              </span>
+            </Badge>
+            <div className="relay-bracket" style={{ display: item.live ? "block" : "none" }}>
+              <Brackets className="-top-[20px] -left-[20px] size-[40px]" />
+            </div>
           </div>
         ))}
 
@@ -385,6 +469,44 @@ export default function MarsGlobe({
             <div className="pointer-events-auto absolute -top-[28px] left-[48px]">{sitePanel}</div>
           ) : null}
         </div>
+      </div>
+
+      {/* Orbit simulation playback & speed HUD */}
+      <div className="absolute left-lg bottom-lg z-10 flex items-center gap-xs rounded-sm border border-line-subtle bg-top-bar/90 px-sm py-xs backdrop-blur-sm md:left-xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 text-fg hover:bg-raised"
+          aria-label={playing ? "Pause orbit simulation" : "Play orbit simulation"}
+          onClick={() => {
+            setPlaying((p) => {
+              const next = !p;
+              playingRef.current = next;
+              if (next) wakeRef.current();
+              return next;
+            });
+          }}
+        >
+          <Icon name={playing ? "pause" : "play"} size={14} />
+        </Button>
+        <span className="hidden t-label-s text-fg-secondary sm:inline">Orbit speed:</span>
+        {[1, 10, 60, 120].map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => {
+              setSpeed(s);
+              speedRef.current = s;
+              wakeRef.current();
+            }}
+            className={cn(
+              "rounded px-1.5 py-0.5 t-data-telemetry text-xs transition-colors cursor-pointer",
+              speed === s ? "bg-brand text-canvas font-medium" : "text-fg-secondary hover:text-fg hover:bg-raised",
+            )}
+          >
+            {s}×
+          </button>
+        ))}
       </div>
 
       <div className="absolute right-lg bottom-lg z-10 flex flex-col gap-sm md:right-xl">

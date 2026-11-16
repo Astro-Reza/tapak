@@ -38,7 +38,7 @@ def test_passes_shape(client):
         assert all(isinstance(r[key], (int, float)) for r in d["relays"])
     assert 1 <= len(d["passes"]) <= 5
     for p in d["passes"]:
-        assert set(p) == {"id", "name", "window", "maxElevation", "margin", "state"}
+        assert set(p) >= {"id", "name", "window", "maxElevation", "margin", "state", "relayId"}
         assert p["state"] in {"in-view", "next", "later"}
     assert sum(p["state"] == "next" for p in d["passes"]) <= 1
     cw = d["contactWindows"]

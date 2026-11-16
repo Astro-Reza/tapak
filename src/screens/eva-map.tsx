@@ -23,6 +23,7 @@ import {
   RouteOverlay,
   WaypointMarker,
 } from "@/components/marswalk/map";
+import { HazardAlert } from "@/components/marswalk/alerts";
 import {
   LogLine,
   MapTag,
@@ -32,10 +33,10 @@ import {
   StatRow,
   StatusChip,
 } from "@/components/marswalk/primitives";
-import { EVA, PASSES_EVA, type LayerId } from "@/data/mission";
+import { EVA, PASSES_EVA, PLAN, type LayerId } from "@/data/mission";
 import { ORTHO } from "@/sim/load";
 import { MissionGate } from "@/sim/controls";
-import { courseText, COURSE_M, suitIsLive, useMission } from "@/sim/mission";
+import { useMission } from "@/sim/mission";
 import { evaView, fmtHM, layerCells } from "@/sim/view";
 import { headerDelay, motionMs, stagger } from "@/lib/motion";
 
@@ -76,7 +77,7 @@ function EvaMapLoaded() {
   const [added, setAdded] = useState<ExtraLayerId[]>([]);
   const heartRate = useSimulatedHeartRate(92);
   const group = motionMs("stagger-group");
-  const { data, result, ev, evaT, setEvaT, playing, setPlaying, link } = useMission();
+  const { data, result, ev, evaT, setEvaT, playing, setPlaying } = useMission();
   const view = useMemo(() => evaView(data!, result!, ev!, evaT, ROUTE_BOX), [data, result, ev, evaT]);
   // layer cells depend on the route only, not on the clock
   const routeKey = view ? `${view.walked.length + view.remaining.length}` : "";
@@ -101,10 +102,6 @@ function EvaMapLoaded() {
     .map((id) => ({ id, name: EXTRA_LAYERS[id].name, unit: EXTRA_LAYERS[id].unit }));
   const end = ev.end;
   const profile = view.profile;
-  const suit = link.suit;
-  const suitAt = suit && suitIsLive(suit, link.delayS) && suit.x != null && suit.z != null ? view.proj.px(suit.x, suit.z) : null;
-  const suitCourse = suit ? courseText(suit.offM) : null;
-  const suitOff = suit?.offM != null && Math.abs(suit.offM) > COURSE_M;
   const s = result!.s;
 
   return (
@@ -171,13 +168,15 @@ function EvaMapLoaded() {
                 <span key={`${c.x}-${c.y}`} className="absolute size-[6px] rounded-pill" style={{ left: c.x, top: c.y, background: c.color }} />
               ))}
             </div>
-            <RouteOverlay width={710} height={938}>
-              <RouteLine points={view.walked} variant="walked-dotted" />
-              <RouteLine key={ev.end.dist} points={view.remaining} />
-            </RouteOverlay>
-            {view.markers.map((m) => (
-              <WaypointMarker key={m.label} label={m.label} x={m.x} y={m.y} selected={m.next} />
-            ))}
+            <div data-tour="eva-route" className="contents">
+              <RouteOverlay width={710} height={938}>
+                <RouteLine points={view.walked} variant="walked-dotted" />
+                <RouteLine key={ev.end.dist} points={view.remaining} />
+              </RouteOverlay>
+              {view.markers.map((m) => (
+                <WaypointMarker key={m.label} label={m.label} x={m.x} y={m.y} selected={m.next} />
+              ))}
+            </div>
             <div
               role="img"
               aria-label="Your position"
@@ -189,20 +188,6 @@ function EvaMapLoaded() {
             <MapTag className="absolute" style={{ left: view.you[0] + 26, top: view.you[1] + 10 }}>
               {view.youTag}
             </MapTag>
-            {/* the suit's real position from the phone, and whether it is inside the PAPI corridor */}
-            {suitAt ? (
-              <>
-                <div
-                  role="img"
-                  aria-label={`Suit live position · ${suitCourse ?? "course unknown"}`}
-                  className={`absolute size-[22px] rounded-pill border-3 bg-fg ${suitOff ? "border-danger" : "border-safe"}`}
-                  style={{ left: suitAt[0] - 11, top: suitAt[1] - 11 }}
-                />
-                <MapTag className={`absolute ${suitOff ? "text-danger" : "text-safe"}`} style={{ left: suitAt[0] + 18, top: suitAt[1] - 32 }}>
-                  {`Suit · ${suitCourse ?? "live"}`}
-                </MapTag>
-              </>
-            ) : null}
           </>
         }
       >
@@ -213,7 +198,20 @@ function EvaMapLoaded() {
         />
       </MapFrame>
 
+        {/* Step 10 Demo Hazard Alert */}
+        <div
+          data-tour="hazard-card"
+          className="xl:absolute xl:top-[80px] xl:left-xl xl:z-20 xl:w-[min(420px,calc(100%_-_32px))] pointer-events-auto"
+        >
+          <HazardAlert
+            title={PLAN.hazard.title}
+            body={PLAN.hazard.body}
+            action={PLAN.hazard.action}
+          />
+        </div>
+
         <LayerPanel
+          dataTour="eva-layers"
           layers={panelLayers}
           addable={addable}
           onOpacity={(id, v) => setOpacity((o) => ({ ...o, [id]: v }))}
@@ -230,7 +228,7 @@ function EvaMapLoaded() {
           }
         />
 
-        <Card className="rounded-sm xl:absolute xl:bottom-xl xl:left-xl xl:right-[96px] xl:z-10">
+        <Card data-tour="eva-profile" className="rounded-sm xl:absolute xl:bottom-xl xl:left-xl xl:right-[96px] xl:z-10">
           <CardHeader title="Route profile" meta={profile.meta} />
           <Fit width={660} height={148} className="aspect-[660/148] w-full" key={ev.end.dist}>
             <ProfileChart width={660} height={148} baseline={130} area={[...profile.walked, ...profile.ahead.slice(1)]}>

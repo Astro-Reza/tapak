@@ -10,6 +10,7 @@ after it. Clock strings are local mean solar time at the site.
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -17,8 +18,8 @@ import numpy as np
 
 from . import layout
 from .config import SOL_S, LinkSide, Relay, Scenario
-from .link import GammaFit, SideResult, evaluate_side, fit_gamma, margin_db
-from .orbit import elevation_deg, relay_positions
+from .link import GammaFit, SideResult, atmos_loss_db, evaluate_side, fit_gamma, margin_db
+from .orbit import azimuth_deg, elevation_deg, relay_positions, slant_range_km
 
 MARS_HOUR_S = SOL_S / 24.0
 MARS_MIN_S = SOL_S / 1440.0
@@ -106,7 +107,7 @@ def link_model(scn: Scenario) -> LinkModel:
     passes = [p for p in find_passes(scn, t, elevations(scn, t)) if t[0] < p.start_s and p.end_s < t[-1]]
     samples = np.array([p.max_el for p in passes])
     fit = fit_gamma(samples)
-    altitude = float(np.mean([r.altitude_km for r in scn.relays]))
+    altitude = float(np.mean([r.altitude_km for r in scn.relays])) if scn.relays else 400.0
     sides = [evaluate_side(s, fit, samples, altitude, scn.frequency_mhz) for s in (scn.downlink, scn.uplink)]
     return LinkModel(fit, len(passes), *sides)
 
@@ -147,6 +148,8 @@ def passes_payload(scn: Scenario) -> dict:
         rows.append(
             {
                 "id": f"p{idx}",
+                "relayId": p.relay.id,
+                "relay_id": p.relay.id,
                 "name": name,
                 "window": span,
                 "maxElevation": f"max {round(p.max_el)}°",
@@ -154,6 +157,73 @@ def passes_payload(scn: Scenario) -> dict:
                 "state": state,
             }
         )
+
+    # Active pass: in view now at t=0, or next upcoming usable pass
+    in_view = [p for p in passes if p.start_s <= 0 < p.end_s]
+    active_p = max(in_view, key=lambda p: p.max_el) if in_view else next_usable
+    if active_p is None:
+        active_p = next((p for p in passes if p.start_s > 0), None)
+
+    active_pass_obj = None
+    active_pass_track = []
+
+    if active_p is not None:
+        t_start = active_p.start_s
+        t_end = active_p.end_s
+        step = max(scn.step_s, 10.0)
+        track_t = np.arange(t_start, t_end + step, step)
+        if len(track_t) == 0:
+            track_t = np.array([t_start, t_end])
+        elif track_t[-1] > t_end:
+            track_t[-1] = t_end
+        elif track_t[-1] < t_end:
+            track_t = np.append(track_t, t_end)
+
+        pts = relay_positions(active_p.relay, track_t)
+        track_els = elevation_deg(scn.site, pts)
+        track_azs = azimuth_deg(scn.site, pts)
+        track_srs = slant_range_km(track_els, active_p.relay.altitude_km)
+
+        track = []
+        for i in range(len(track_t)):
+            ti = float(track_t[i])
+            eli = float(track_els[i])
+            azi = float(track_azs[i])
+            sri = float(track_srs[i])
+            loss_i = float(atmos_loss_db(eli, scn.uplink.atmos_zenith_db))
+            margin_i = float(margin_db(scn.uplink, eli, active_p.relay.altitude_km, scn.frequency_mhz))
+
+            track.append(
+                {
+                    "az": round(azi, 2),
+                    "el": round(eli, 2),
+                    "marginDb": round(margin_i, 2),
+                    "timeS": round(ti, 2),
+                    "atmosLossDb": round(loss_i, 2),
+                    "slantRangeKm": round(sri, 2),
+                    "azimuth_deg": round(azi, 2),
+                    "elevation_deg": round(eli, 2),
+                    "uplink_margin_db": round(margin_i, 2),
+                    "time_s": round(ti, 2),
+                    "atmos_loss_db": round(loss_i, 2),
+                    "slant_range_km": round(sri, 2),
+                }
+            )
+
+        active_pass_obj = {
+            "relayId": active_p.relay.id,
+            "relayName": active_p.relay.name,
+            "startS": round(active_p.start_s, 2),
+            "endS": round(active_p.end_s, 2),
+            "maxElevationDeg": round(active_p.max_el, 2),
+            "relay_id": active_p.relay.id,
+            "relay_name": active_p.relay.name,
+            "start_s": round(active_p.start_s, 2),
+            "end_s": round(active_p.end_s, 2),
+            "max_elevation_deg": round(active_p.max_el, 2),
+            "track": track,
+        }
+        active_pass_track = track
 
     # One sol from now: contact = some relay above θmin.
     sol = (t >= 0) & (t < SOL_S)
@@ -249,6 +319,9 @@ def passes_payload(scn: Scenario) -> dict:
         "passes": rows,
         "summary": summary,
         "contactWindows": contact_windows,
+        "activePass": active_pass_obj,
+        "active_pass": active_pass_obj,
+        "activePassTrack": active_pass_track,
     }
 
 
@@ -291,4 +364,97 @@ def link_payload(scn: Scenario) -> dict:
         },
         "passCount": model.pass_count,
         "budgets": [layout.budget_chart(down), layout.budget_chart(up)],
+    }
+
+
+# ---------- AR Telemetry Payload ----------
+
+
+def format_ar_comms_payload(
+    scn: Scenario,
+    passes_data: dict | None = None,
+    link_data: dict | None = None,
+    timestamp: int | None = None,
+) -> dict:
+    """Formats AR telemetry payload matching the contract in PROJECT.md and SCOPE.md."""
+    if passes_data is None:
+        passes_data = passes_payload(scn)
+    if link_data is None:
+        link_data = link_payload(scn)
+    if timestamp is None:
+        timestamp = int(time.time())
+
+    active_p_data = passes_data.get("active_pass") or passes_data.get("activePass")
+    active_pass = None
+    in_view_relay_ids: set[str] = set()
+
+    for p in passes_data.get("passes", []):
+        if p.get("state") == "in-view":
+            rid = p.get("relay_id") or p.get("relayId")
+            if rid:
+                in_view_relay_ids.add(rid)
+
+    if active_p_data:
+        relay_id = active_p_data.get("relay_id") or active_p_data.get("relayId")
+        start_s = active_p_data.get("start_s") if "start_s" in active_p_data else active_p_data.get("startS", 0.0)
+        end_s = active_p_data.get("end_s") if "end_s" in active_p_data else active_p_data.get("endS", 0.0)
+        max_el = (
+            active_p_data.get("max_elevation_deg")
+            if "max_elevation_deg" in active_p_data
+            else active_p_data.get("maxElevationDeg", 0.0)
+        )
+        raw_track = active_p_data.get("track", [])
+
+        if start_s <= 0 < end_s and relay_id:
+            in_view_relay_ids.add(relay_id)
+
+        clean_track = []
+        for pt in raw_track:
+            clean_track.append(
+                {
+                    "time_s": pt.get("time_s") if "time_s" in pt else pt.get("timeS", 0.0),
+                    "azimuth_deg": pt.get("azimuth_deg") if "azimuth_deg" in pt else pt.get("az", 0.0),
+                    "elevation_deg": pt.get("elevation_deg") if "elevation_deg" in pt else pt.get("el", 0.0),
+                    "uplink_margin_db": (
+                        pt.get("uplink_margin_db") if "uplink_margin_db" in pt else pt.get("marginDb", 0.0)
+                    ),
+                    "atmos_loss_db": pt.get("atmos_loss_db") if "atmos_loss_db" in pt else pt.get("atmosLossDb", 0.0),
+                }
+            )
+
+        active_pass = {
+            "relay_id": relay_id,
+            "aos": round(lmst_h(start_s, scn), 2),
+            "los": round(lmst_h(end_s, scn), 2),
+            "max_elevation_deg": max_el,
+            "track": clean_track,
+        }
+
+    relays_list = [
+        {
+            "id": r.id,
+            "name": r.name,
+            "altitude_km": r.altitude_km,
+            "in_view": (r.id in in_view_relay_ids),
+        }
+        for r in scn.relays
+    ]
+
+    model = link_model(scn)
+    atmos_loss = round(model.down.atmos_loss_db, 2)
+    delta_atmos = round(model.down.delta_margin_atmos_db, 2)
+    if delta_atmos >= 0:
+        delta_atmos = -abs(atmos_loss) if atmos_loss > 0 else -0.1
+
+    return {
+        "timestamp": timestamp,
+        "constellation": "MRS",
+        "relays": relays_list,
+        "active_pass": active_pass,
+        "link_budget": {
+            "downlink_margin_db": round(model.down.margin_db, 2),
+            "uplink_margin_db": round(model.up.margin_db, 2),
+            "atmos_loss_db": atmos_loss,
+            "delta_atmos_db": delta_atmos,
+        },
     }

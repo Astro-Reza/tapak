@@ -136,7 +136,7 @@ function DebriefLoaded() {
                 />
                 <ScrollArea className="min-h-0 flex-1" aria-label="Walking O₂ and telemetry">
                   <div className="flex flex-col gap-md p-md">
-                    <div className="grid grid-cols-1 gap-md sm:grid-cols-3">
+                    <div data-tour="walk-summary" className="grid grid-cols-1 gap-md sm:grid-cols-3">
                       {[
                         { label: "Distance", value: (end.dist / 1000).toFixed(2), unit: "km", sub: "planned (DTM route)" },
                         { label: "Duration", value: fmtHM(measMin), unit: "h", sub: `simulated · plan ${fmtHM(end.t)} · cap ${fmtHM(s.evaLimitMin)}` },

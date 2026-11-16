@@ -60,94 +60,432 @@ export function elevationDeg(site: { latDeg: number; lonDeg: number }, point: Ve
   return (Math.asin((v[0] * up[0] + v[1] * up[1] + v[2] * up[2]) / length) * 180) / Math.PI;
 }
 
-// ---- Moving relays (same model as backend/marswalk_api/orbit.py): the argument of latitude advances with the
-// Keplerian mean motion and the node drifts west as Mars turns under the inertially fixed orbit plane. No J2, no drag.
+/* =========================================================================
+   Authoritative Physical Constants & Reference Configurations
+   ========================================================================= */
 
-const MARS_MU_KM3_S2 = 42828.37;
-const SIDEREAL_DAY_S = 88642.663;
-/** Mean solar day, s. */
+export const MARS_MU_KM3_S2 = 42828.37;
 export const SOL_S = 88775.244;
+export const SIDEREAL_DAY_S = 88642.663;
 
-/** Relay position `tS` seconds after the snapshot its elements describe. */
-export function relayAt(orbit: RelayOrbit, tS: number): Vec3 {
-  const a = MARS_RADIUS_KM + orbit.altitudeKm;
-  const periodS = 2 * Math.PI * Math.sqrt(a ** 3 / MARS_MU_KM3_S2);
-  return orbitPoint({ ...orbit, raanDeg: orbit.raanDeg - (360 * tS) / SIDEREAL_DAY_S }, orbit.argLatDeg + (360 * tS) / periodS);
-}
-
-const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const unit = (a: Vec3): Vec3 => {
-  const l = Math.hypot(a[0], a[1], a[2]);
-  return [a[0] / l, a[1] / l, a[2] / l];
+export type CommsSite = {
+  name: string;
+  latDeg: number;
+  lonDeg: number;
+  elevationM: number;
 };
 
-/** Azimuth (degrees clockwise from north) and elevation of a point seen from a surface site. */
-export function lookAngles(site: { latDeg: number; lonDeg: number }, point: Vec3): { azDeg: number; elDeg: number } {
+export const DEFAULT_SITE: CommsSite = {
+  name: "Jezero West",
+  latDeg: 18.43,
+  lonDeg: 77.42,
+  elevationM: -2410.0,
+};
+
+export const DEFAULT_RELAYS: RelayOrbit[] = [
+  { id: "l1", name: "MRS-L1", altitudeKm: 400, inclinationDeg: 75, raanDeg: 70, argLatDeg: 9 },
+  { id: "l2", name: "MRS-L2", altitudeKm: 400, inclinationDeg: 52, raanDeg: 190, argLatDeg: 300 },
+  { id: "l3", name: "MRS-L3", altitudeKm: 400, inclinationDeg: 52, raanDeg: 310, argLatDeg: 70 },
+  { id: "l4", name: "MRS-L4", altitudeKm: 400, inclinationDeg: 75, raanDeg: 70, argLatDeg: 189 },
+];
+
+export type LinkConfig = {
+  title: string;
+  tx: "relay" | "suit";
+  ptDbw: number;
+  gtDbi: number;
+  grDbi: number;
+  dustDb: number;
+  pointingDb: number;
+  thresholdDbw: number;
+};
+
+export const DOWNLINK_CONFIG: LinkConfig = {
+  title: "Receive · relay → suit",
+  tx: "relay",
+  ptDbw: 10.0,
+  gtDbi: 4.0,
+  grDbi: 2.0,
+  dustDb: 0.3,
+  pointingDb: 1.0,
+  thresholdDbw: -131.0,
+};
+
+export const UPLINK_CONFIG: LinkConfig = {
+  title: "Transmit · suit → relay",
+  tx: "suit",
+  ptDbw: 6.0,
+  gtDbi: 2.0,
+  grDbi: 4.0,
+  dustDb: 0.3,
+  pointingDb: 1.0,
+  thresholdDbw: -133.0,
+};
+
+/* =========================================================================
+   Orbital Propagation & Geometric Functions
+   ========================================================================= */
+
+/** Orbital period around Mars for a circular orbit at altitude h (Kepler's 3rd Law). */
+export function orbitalPeriodS(altitudeKm: number): number {
+  const a = MARS_RADIUS_KM + altitudeKm;
+  return 2.0 * Math.PI * Math.sqrt(Math.pow(a, 3) / MARS_MU_KM3_S2);
+}
+
+/** Propagates circular orbit in Mars-fixed frame advancing argument of latitude and regressing node. */
+export function propagateRelayPosition(relay: RelayOrbit, timeS: number): Vec3 {
+  const raan = relay.raanDeg - (360.0 * timeS) / SIDEREAL_DAY_S;
+  const T = orbitalPeriodS(relay.altitudeKm);
+  const u = relay.argLatDeg + (360.0 * timeS) / T;
+  return orbitPoint({
+    altitudeKm: relay.altitudeKm,
+    inclinationDeg: relay.inclinationDeg,
+    raanDeg: raan,
+    argLatDeg: u,
+  });
+}
+
+/** Calculates spherical slant range in kilometers from topocentric elevation and orbital altitude. */
+export function slantRangeKm(elevationDegVal: number, altitudeKm: number): number {
+  const eRad = (elevationDegVal * Math.PI) / 180.0;
+  const R = MARS_RADIUS_KM;
+  const a = R + altitudeKm;
+  return Math.sqrt(a * a - Math.pow(R * Math.cos(eRad), 2)) - R * Math.sin(eRad);
+}
+
+/** Topocentric azimuth in degrees [0, 360) from site to 3D position vector in Mars-fixed frame. */
+export function azimuthDeg(site: { latDeg: number; lonDeg: number }, point: Vec3): number {
   const up = latLonToVec(site.latDeg, site.lonDeg);
-  const east = latLonToVec(0, site.lonDeg + 90); // horizontal at any latitude
-  const north = unit(sub(latLonToVec(site.latDeg + 0.01, site.lonDeg), up));
-  const v = sub(point, up);
-  const az = (Math.atan2(dot(v, east), dot(v, north)) * 180) / Math.PI;
-  return { azDeg: (az + 360) % 360, elDeg: elevationDeg(site, point) };
+  const phi = rad(90.0 - site.latDeg);
+  const theta = rad(site.lonDeg + 180.0);
+  const north: Vec3 = [Math.cos(phi) * Math.cos(theta), Math.sin(phi), -Math.cos(phi) * Math.sin(theta)];
+  const east: Vec3 = [
+    north[1] * up[2] - north[2] * up[1],
+    north[2] * up[0] - north[0] * up[2],
+    north[0] * up[1] - north[1] * up[0],
+  ];
+  const v = [point[0] - up[0], point[1] - up[1], point[2] - up[2]];
+  const vN = v[0] * north[0] + v[1] * north[1] + v[2] * north[2];
+  const vE = v[0] * east[0] + v[1] * east[1] + v[2] * east[2];
+  let az = (Math.atan2(vE, vN) * 180.0) / Math.PI;
+  if (az < 0) az += 360.0;
+  return az;
 }
 
-/** Site-to-relay distance for a relay at `altitudeKm` seen at `elevationDeg` (orbit.py slant_range_km). */
-export function slantRangeKm(elevationDeg: number, altitudeKm: number): number {
-  const e = (elevationDeg * Math.PI) / 180, r = MARS_RADIUS_KM, a = r + altitudeKm;
-  return Math.sqrt(a * a - (r * Math.cos(e)) ** 2) - r * Math.sin(e);
+/* =========================================================================
+   Link Budget Calculation & Atmospheric Attenuation Functions
+   ========================================================================= */
+
+/** Free Space Path Loss (ITU-R P.525). */
+export function fsplDb(distanceKm: number, frequencyMhz: number): number {
+  if (distanceKm <= 0 || frequencyMhz <= 0) return 0.0;
+  return 20.0 * Math.log10(distanceKm) + 20.0 * Math.log10(frequencyMhz) + 32.44;
 }
-
-/** Suit → relay UHF uplink, the comms backend's defaults (backend/marswalk_api/config.py UPLINK, 401.6 MHz). */
-const UPLINK = { ptDbw: 6, gtDbi: 2, grDbi: 4, dustDb: 0.3, pointingDb: 1, thresholdDbw: -133, frequencyMhz: 401.6 };
-
-/** Uplink margin above the receiver threshold, dB (link.py margin_db). */
-export function uplinkMarginDb(elevationDeg: number, altitudeKm: number): number {
-  const u = UPLINK;
-  const fspl = 20 * Math.log10(slantRangeKm(elevationDeg, altitudeKm)) + 20 * Math.log10(u.frequencyMhz) + 32.44;
-  return u.ptDbw + u.gtDbi - fspl - u.dustDb - u.pointingDb + u.grDbi - u.thresholdDbw;
-}
-
-export type PassPoint = { lmst: number; azDeg: number; elDeg: number; marginDb: number };
-/** The relay pass in progress at `lmst`, or the next one, with its sky track from AOS to LOS. */
-export type OrbitLink = { relay: string; aosLmst: number; losLmst: number; maxElDeg: number; track: PassPoint[] };
 
 /**
- * Finds the pass (relay above `maskDeg`) in progress at `lmst` or the first one after it, looking up to one sol
- * ahead. `snapshotLmst` is the local time the relays' elements describe. LMST hours may run past 24.
+ * Elevation-dependent atmospheric attenuation (ITU-R P.676 cosecant model).
+ * Enforces minimum elevation floor of 0.5 degrees to prevent division by zero at horizon.
  */
-export function orbitLinkAt(
-  site: { latDeg: number; lonDeg: number },
-  relays: RelayOrbit[],
-  snapshotLmst: number,
-  lmst: number,
-  maskDeg = 0,
-  stepS = 20,
-): OrbitLink | null {
-  const toS = (h: number) => ((h - snapshotLmst) / 24) * SOL_S;
-  const toH = (s: number) => snapshotLmst + (s / SOL_S) * 24;
-  const el = (r: RelayOrbit, s: number) => lookAngles(site, relayAt(r, s)).elDeg;
-  const t0 = toS(lmst);
-  let best: { relay: RelayOrbit; aos: number } | null = null;
-  for (const r of relays) {
-    // a pass in progress starts in the past: walk back to its AOS
-    let aos = t0;
-    if (el(r, t0) > maskDeg) while (el(r, aos - stepS) > maskDeg && t0 - aos < 3600) aos -= stepS;
-    else {
-      while (aos - t0 < SOL_S && el(r, aos) <= maskDeg) aos += stepS;
-      if (aos - t0 >= SOL_S) continue;
-    }
-    if (!best || aos < best.aos) best = { relay: r, aos };
+export function atmosphericLossDb(elevationDegVal: number, zenithLossDb = 0.3, floorDeg = 0.5): number {
+  const effectiveEl = Math.max(elevationDegVal, floorDeg);
+  const elRad = (effectiveEl * Math.PI) / 180.0;
+  return zenithLossDb / Math.sin(elRad);
+}
+
+/** Computes received power incorporating subtractive atmospheric attenuation. */
+export function receivedPowerDbw(side: LinkConfig, fsplVal: number, atmosLossVal: number): number {
+  return (
+    side.ptDbw +
+    side.gtDbi -
+    fsplVal -
+    atmosLossVal -
+    side.dustDb -
+    side.pointingDb +
+    side.grDbi
+  );
+}
+
+/** Full link margin calculation at a given elevation and altitude. */
+export function calculateLinkMarginDb(
+  side: LinkConfig,
+  elevationDegVal: number,
+  altitudeKm = 400.0,
+  frequencyMhz = 401.6,
+  zenithLossDb = 0.3,
+): number {
+  const d = slantRangeKm(elevationDegVal, altitudeKm);
+  const fspl = fsplDb(d, frequencyMhz);
+  const atmos = atmosphericLossDb(elevationDegVal, zenithLossDb);
+  const pr = receivedPowerDbw(side, fspl, atmos);
+  return pr - side.thresholdDbw;
+}
+
+/**
+ * Delta in link margin produced by atmospheric loss.
+ * Delta = Margin(with atmos) - Margin(without atmos) = -A_atm < 0.
+ */
+export function deltaAtmosphericMarginDb(elevationDegVal: number, zenithLossDb = 0.3): number {
+  return -atmosphericLossDb(elevationDegVal, zenithLossDb);
+}
+
+/** Bisection solver finding the minimum usable elevation theta_min where Margin == 0 dB. */
+export function solveThetaMinDeg(
+  side: LinkConfig,
+  altitudeKm = 400.0,
+  frequencyMhz = 401.6,
+  zenithLossDb = 0.3,
+): number {
+  if (calculateLinkMarginDb(side, 0.0, altitudeKm, frequencyMhz, zenithLossDb) >= 0) {
+    return 0.0;
   }
-  if (!best) return null;
-  const { relay, aos } = best;
-  let los = aos;
-  while (el(relay, los + stepS) > maskDeg && los - aos < 3600) los += stepS;
-  const n = Math.max(2, Math.min(60, Math.round((los - aos) / 30) + 1)); // ~30 s apart, enough for a smooth arc
-  const track = Array.from({ length: n }, (_, i) => {
-    const s = aos + ((los - aos) * i) / (n - 1);
-    const { azDeg, elDeg } = lookAngles(site, relayAt(relay, s));
-    return { lmst: toH(s), azDeg, elDeg, marginDb: uplinkMarginDb(Math.max(elDeg, 0), relay.altitudeKm) };
-  });
-  return { relay: relay.name, aosLmst: toH(aos), losLmst: toH(los), maxElDeg: Math.max(...track.map((p) => p.elDeg)), track };
+  if (calculateLinkMarginDb(side, 90.0, altitudeKm, frequencyMhz, zenithLossDb) < 0) {
+    return 90.0;
+  }
+  let lo = 0.0;
+  let hi = 90.0;
+  for (let i = 0; i < 60; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (calculateLinkMarginDb(side, mid, altitudeKm, frequencyMhz, zenithLossDb) >= 0) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  return hi;
+}
+
+/** Lanczos log-gamma approximation for regularized incomplete gamma evaluation. */
+function logGamma(z: number): number {
+  const c = [
+    76.18009172947146,
+    -86.50532032941677,
+    24.01409824083091,
+    -1.231739572450155,
+    0.001208650973866179,
+    -0.000005395239384953,
+  ];
+  let x = z;
+  let y = z;
+  let tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j++) {
+    y += 1;
+    ser += c[j] / y;
+  }
+  return -tmp + Math.log((2.5066282746310005 * ser) / x);
+}
+
+/** Lower regularized incomplete gamma P(a, x) per Numerical Recipes 6.2. */
+export function regularizedGammaP(a: number, x: number): number {
+  if (x <= 0) return 0.0;
+  const logPre = -x + a * Math.log(x) - logGamma(a);
+  if (x < a + 1.0) {
+    let term = 1.0 / a;
+    let total = term;
+    let ap = a;
+    for (let i = 0; i < 500; i++) {
+      ap += 1.0;
+      term *= x / ap;
+      total += term;
+      if (Math.abs(term) < Math.abs(total) * 1e-14) break;
+    }
+    return total * Math.exp(logPre);
+  }
+  const tiny = 1e-300;
+  let b = x + 1.0 - a;
+  let c = 1.0 / tiny;
+  let d = 1.0 / b;
+  let h = d;
+  for (let i = 1; i < 500; i++) {
+    const an = -i * (i - a);
+    b += 2.0;
+    d = an * d + b;
+    if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c;
+    if (Math.abs(c) < tiny) c = tiny;
+    d = 1.0 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1.0) < 1e-14) break;
+  }
+  return 1.0 - Math.exp(logPre) * h;
+}
+
+export type GammaFitResult = {
+  k: number;
+  scale: number;
+  mean: number;
+  cdf: (x: number) => number;
+};
+
+/** Method of moments Gamma distribution fit for contact peak elevations. */
+export function fitGammaDistribution(samples: number[]): GammaFitResult {
+  if (!samples || samples.length === 0) {
+    return { k: 2.4, scale: 14.8, mean: 33.4, cdf: (x: number) => regularizedGammaP(2.4, x / 14.8) };
+  }
+  const n = samples.length;
+  const mean = samples.reduce((acc, v) => acc + v, 0) / n;
+  const variance = samples.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / n;
+  if (variance <= 1e-6) {
+    return { k: 2.4, scale: 14.8, mean, cdf: (x: number) => regularizedGammaP(2.4, x / 14.8) };
+  }
+  const k = (mean * mean) / variance;
+  const scale = variance / mean;
+  return {
+    k,
+    scale,
+    mean,
+    cdf: (x: number) => regularizedGammaP(k, x / scale),
+  };
+}
+
+/* =========================================================================
+   Pass Simulation & Constellation Propagation
+   ========================================================================= */
+
+export type PassTrackPoint = {
+  timeS: number;
+  az: number;
+  el: number;
+  uplinkMarginDb: number;
+  atmosLossDb: number;
+};
+
+export type SimulatedPass = {
+  relay: RelayOrbit;
+  startS: number;
+  endS: number;
+  durationMin: number;
+  maxElDeg: number;
+  track: PassTrackPoint[];
+};
+
+/** Simulates orbital passes for a constellation over a time interval [t0, t1]. */
+export function simulateConstellationPasses(
+  site: { latDeg: number; lonDeg: number } = DEFAULT_SITE,
+  relays: RelayOrbit[] = DEFAULT_RELAYS,
+  t0 = 0.0,
+  t1 = SOL_S,
+  stepS = 20.0,
+  maskDeg = 0.0,
+): SimulatedPass[] {
+  const passes: SimulatedPass[] = [];
+  for (const relay of relays) {
+    let inPass = false;
+    let passStart = 0;
+    let peakEl = -90.0;
+    const track: PassTrackPoint[] = [];
+
+    for (let t = t0; t <= t1; t += stepS) {
+      const pos = propagateRelayPosition(relay, t);
+      const el = elevationDeg(site, pos);
+      if (el > maskDeg) {
+        if (!inPass) {
+          inPass = true;
+          passStart = t;
+          peakEl = el;
+          track.length = 0;
+        }
+        if (el > peakEl) peakEl = el;
+        const az = azimuthDeg(site, pos);
+        const margin = calculateLinkMarginDb(UPLINK_CONFIG, el, relay.altitudeKm);
+        const atmos = atmosphericLossDb(el);
+        track.push({ timeS: t - passStart, az, el, uplinkMarginDb: margin, atmosLossDb: atmos });
+      } else if (inPass) {
+        inPass = false;
+        passes.push({
+          relay,
+          startS: passStart,
+          endS: t - stepS,
+          durationMin: (t - stepS - passStart) / 60.0,
+          maxElDeg: peakEl,
+          track: [...track],
+        });
+      }
+    }
+    if (inPass) {
+      passes.push({
+        relay,
+        startS: passStart,
+        endS: t1,
+        durationMin: (t1 - passStart) / 60.0,
+        maxElDeg: peakEl,
+        track: [...track],
+      });
+    }
+  }
+  return passes.sort((a, b) => a.startS - b.startS);
+}
+
+/* =========================================================================
+   AR Telemetry Serializer & Candlestick Waterfall Stage Builder
+   ========================================================================= */
+
+export type McStatusOrbit = {
+  t: number;
+  lmst: string;
+  orbit: {
+    current: {
+      relay: string;
+      elevationDeg: number;
+      azimuthDeg: number;
+      uplinkMarginDb: number;
+    };
+    aosLmst: string;
+    losLmst: string;
+    maxElDeg: number;
+    track: PassTrackPoint[];
+  };
+};
+
+export function buildMcStatusOrbit(
+  tEvaMin: number,
+  lmstClock: string,
+  pass: SimulatedPass,
+): McStatusOrbit {
+  const currentPt = pass.track[0] ?? { az: 0, el: 0, uplinkMarginDb: 0, atmosLossDb: 0, timeS: 0 };
+  return {
+    t: tEvaMin,
+    lmst: lmstClock,
+    orbit: {
+      current: {
+        relay: pass.relay.name,
+        elevationDeg: currentPt.el,
+        azimuthDeg: currentPt.az,
+        uplinkMarginDb: currentPt.uplinkMarginDb,
+      },
+      aosLmst: lmstClock,
+      losLmst: lmstClock,
+      maxElDeg: pass.maxElDeg,
+      track: pass.track,
+    },
+  };
+}
+
+export type WaterfallStage = {
+  label: "Pt" | "Gt" | "FSPL" | "Atmos" | "Dust" | "Point" | "Gr";
+  kind: "gain" | "loss";
+  value: number;
+};
+
+export function buildWaterfallStages(
+  side: LinkConfig,
+  elevationDegVal: number,
+  altitudeKm = 400.0,
+  freqMhz = 401.6,
+  zenithLossDb = 0.3,
+): WaterfallStage[] {
+  const d = slantRangeKm(elevationDegVal, altitudeKm);
+  const fspl = fsplDb(d, freqMhz);
+  const atmosLoss = atmosphericLossDb(elevationDegVal, zenithLossDb);
+  return [
+    { label: "Pt", kind: "gain", value: side.ptDbw },
+    { label: "Gt", kind: "gain", value: side.gtDbi },
+    { label: "FSPL", kind: "loss", value: -fspl },
+    { label: "Atmos", kind: "loss", value: -atmosLoss },
+    { label: "Dust", kind: "loss", value: -side.dustDb },
+    { label: "Point", kind: "loss", value: -side.pointingDb },
+    { label: "Gr", kind: "gain", value: side.grDbi },
+  ];
 }

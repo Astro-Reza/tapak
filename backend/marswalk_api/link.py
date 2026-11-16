@@ -83,8 +83,12 @@ class GammaFit:
 
 
 def fit_gamma(samples: np.ndarray) -> GammaFit:
+    if len(samples) == 0:
+        return GammaFit(k=2.4, scale=14.8, mean=35.5)
     mean = float(np.mean(samples))
     var = float(np.var(samples))
+    if var <= 1e-6 or mean <= 1e-6:
+        return GammaFit(k=2.4, scale=14.8, mean=mean)
     return GammaFit(k=mean * mean / var, scale=var / mean, mean=mean)
 
 

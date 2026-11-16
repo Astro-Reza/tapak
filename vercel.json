@@ -4,7 +4,10 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/link", "destination": "/api/link" }],
+  "rewrites": [
+    { "source": "/link", "destination": "/api/link" },
+    { "source": "/ar-comms", "destination": "/api/ar-comms" }
+  ],
   "headers": [
     {
       "source": "/(textures|draco|images|data|landing)/(.*)",
