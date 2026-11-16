@@ -13,6 +13,7 @@ import {
   type ModelKey,
   type PolicyId,
   type ScienceId,
+  type Stop,
 } from "@/engine";
 import { buildArPackage } from "./ar-package";
 import { loadMissionData, type LoadedData } from "./load";
@@ -38,6 +39,10 @@ type MissionState = {
   busy: boolean;
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
+  /** add a stop at world metres before the return home; returns an error message or null */
+  addStop: (x: number, z: number, lat: number, lon: number) => string | null;
+  /** remove stop `index` (not the start); returns an error message or null */
+  removeStop: (index: number) => string | null;
   result: MissionResult | null;
   /** evaluation of the selected mode */
   ev: Evaluation | null;
@@ -64,7 +69,10 @@ const DEFAULTS: Settings = {
 const PLAY_RATE = 4;
 
 export function MissionProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<LoadedData | null>(null);
+  const [baseData, setData] = useState<LoadedData | null>(null);
+  /** The user's edited stop list (null = the dataset's own stops). Stop 0 is the start and the return home. */
+  const [stops, setStops] = useState<Stop[] | null>(null);
+  const data = useMemo(() => (baseData && stops ? { ...baseData, stops } : baseData), [baseData, stops]);
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const [result, setResult] = useState<MissionResult | null>(null);
@@ -82,7 +90,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Planning (return field + 3 modes) takes about a second; let the busy state paint first.
-  const planKey = `${settings.scienceId}|${settings.policyId}|${settings.startLmst}|${settings.kSuit}|${settings.modelKey}`;
+  const planKey = `${settings.scienceId}|${settings.policyId}|${settings.startLmst}|${settings.kSuit}|${settings.modelKey}|${stops?.map((s) => s.id).join(",") ?? ""}`;
   useEffect(() => {
     if (!data) return;
     setBusy(true);
@@ -165,6 +173,38 @@ export function MissionProvider({ children }: { children: ReactNode }) {
 
   const update = useCallback((patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })), []);
 
+  /** Add a stop at world metres (x, z) before the return home. Returns an error message, or null when added. */
+  const addStop = useCallback(
+    (x: number, z: number, lat: number, lon: number): string | null => {
+      if (!baseData) return "Mission data is not loaded";
+      const g = baseData.grid;
+      const r = Math.floor((z - g.z0) / g.cell[1]), c = Math.floor((x - g.x0) / g.cell[0]);
+      if (r < 0 || c < 0 || r >= g.rows || c >= g.cols) return "That point is outside the planning terrain";
+      const elev = g.elev[r * g.cols + c];
+      if (!Number.isFinite(elev)) return "No terrain data at that point";
+      setStops((cur) => {
+        const list = cur ?? baseData.stops;
+        const n = list.filter((s) => s.id.startsWith("NEW")).length + 1;
+        return [...list, { id: `NEW${n}`, xz: [x, z], elev, lat, lon, sols: [] }];
+      });
+      return null;
+    },
+    [baseData],
+  );
+  /** Remove the stop at index (the start, index 0, stays; the route needs at least two stops). */
+  const removeStop = useCallback(
+    (index: number): string | null => {
+      const list = stops ?? baseData?.stops;
+      if (!list) return "Mission data is not loaded";
+      if (index <= 0) return "The start cannot be removed";
+      if (list.length <= 2) return "A route needs at least one stop besides the start";
+      if (index >= list.length) return "No such stop";
+      setStops(list.filter((_, i) => i !== index));
+      return null;
+    },
+    [stops, baseData],
+  );
+
   const value = useMemo<MissionState>(
     () => ({
       data,
@@ -172,6 +212,8 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       busy,
       settings,
       update,
+      addStop,
+      removeStop,
       result,
       ev,
       evaT: Math.min(evaT, endT || evaT),
@@ -180,7 +222,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       setPlaying,
       link: { delayS, setDelay, log, sendPlan, relayOnline, suit },
     }),
-    [data, error, busy, settings, update, result, ev, evaT, endT, playing, delayS, setDelay, log, sendPlan, relayOnline, suit],
+    [data, error, busy, settings, update, addStop, removeStop, result, ev, evaT, endT, playing, delayS, setDelay, log, sendPlan, relayOnline, suit],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -127,7 +127,15 @@ const SIDE_TABS = [
 function PlanScreenLoaded() {
   const toast = useToast();
   const { routeCommitted, commitRoute, done, toggle } = useStore();
-  const { data, result, ev, busy, link, settings, evaT, setEvaT, playing, setPlaying } = useMission();
+  const { data, result, ev, busy, link, settings, evaT, setEvaT, playing, setPlaying, addStop, removeStop } = useMission();
+  /** "Add stop" mode: the next tap on the map becomes a stop before the return home */
+  const [adding, setAdding] = useState(false);
+  useEffect(() => {
+    if (!adding) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAdding(false);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [adding]);
 
   let activeStepId: number | null = null;
   try {
@@ -337,10 +345,21 @@ function PlanScreenLoaded() {
   const [prof, setProf] = useState<Profile | null>(null);
   const profRun = useRef(0);
   const [cmpRegion, setCmpRegion] = useState<Region | null>(null);
-  const onPick = useCallback((p: LonLat) => {
-    setPoint(p);
-    setTab("probe");
-  }, []);
+  const onPick = useCallback(
+    (p: LonLat) => {
+      if (adding) {
+        const [x, z] = geo.toWorld(p[0], p[1]);
+        const err = addStop(x, z, p[1], p[0]);
+        if (err) return toast(err, { safety: true });
+        setAdding(false);
+        toast("Stop added before the return · replanning");
+        return;
+      }
+      setPoint(p);
+      setTab("probe");
+    },
+    [adding, geo, addStop, toast],
+  );
   const onProfile = useCallback(
     (a: LonLat, b: LonLat) => {
       setEnds([a, b]);
@@ -602,6 +621,7 @@ function PlanScreenLoaded() {
   }, [catalogError, result, view.ok, ev, PLAN]);
 
   const [goto, setGoto] = useState("");
+  const [bookmark, setBookmark] = useState("");
   const onGoto = (e: FormEvent) => {
     e.preventDefault();
     const ll = parseLatLon(goto);
@@ -660,12 +680,51 @@ function PlanScreenLoaded() {
                           pressed={open}
                           onClick={() => setSelected(wp.id)}
                         />
-                        {open ? <TraceContent last={i === WAYPOINTS.length - 1}>{wp.legNote}</TraceContent> : null}
+                        {open ? (
+                          <TraceContent last={i === WAYPOINTS.length - 1}>
+                            <div className="flex flex-col gap-sm">
+                              <span>{wp.legNote}</span>
+                              {i > 0 && i < WAYPOINTS.length - 1 ? (
+                                <Button
+                                  size="control"
+                                  variant="secondary"
+                                  className="self-start text-danger"
+                                  aria-label={`Delete ${wp.id}`}
+                                  onClick={() => {
+                                    const err = removeStop(i);
+                                    if (err) return toast(err, { safety: true });
+                                    setSelected("WP1");
+                                    toast(`${wp.id} deleted · replanning`);
+                                  }}
+                                >
+                                  Delete {wp.id}
+                                </Button>
+                              ) : (
+                                <span className="t-caption text-fg-muted">
+                                  {i === 0 ? "The start cannot be deleted" : "The return home follows the last stop"}
+                                </span>
+                              )}
+                            </div>
+                          </TraceContent>
+                        ) : null}
                       </TraceStep>
                     );
                   })}
                 </Trace>
                 </div>
+                <Button
+                  size="control"
+                  variant={adding ? "primary" : "secondary"}
+                  className="w-full"
+                  aria-pressed={adding}
+                  disabled={!view.ok || busy}
+                  onClick={() => {
+                    setAdding((a) => !a);
+                    setTool("pan");
+                  }}
+                >
+                  {adding ? "Cancel adding stop" : "+ Add stop"}
+                </Button>
                 {!view.ok ? <p role="alert" className="t-body-s text-danger">{view.error}</p> : null}
                 <PlanControls />
                 <StatList className="rounded-sm bg-panel px-md py-sm">
@@ -706,9 +765,6 @@ function PlanScreenLoaded() {
                 }}
               >
                 Export AR package
-              </Button>
-              <Button size="control" variant="secondary" className="w-full" onClick={() => toast("Stop editing is not in this prototype")}>
-                Edit stops
               </Button>
             </div>
           </TabsContent>
@@ -804,7 +860,7 @@ function PlanScreenLoaded() {
       {/* Map. Panels float over it on wide screens and stack around it on narrow ones. */}
       <section className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
         {/* Map tools (dataset GUI toolbar): pan, profile line, region box; bookmarks; go to a coordinate */}
-        <div className="z-10 flex flex-col items-start gap-sm lg:absolute lg:top-xl lg:left-xl lg:max-w-[calc(100%_-_360px)]">
+        <div className="z-10 flex flex-col items-start gap-sm lg:absolute lg:top-xl lg:left-xl lg:max-w-[calc(100%_-_48px)]">
           <div className="flex flex-wrap items-center gap-sm rounded-sm border border-line-subtle bg-scrim p-xs backdrop-blur-sm">
             <ToggleGroup type="single" value={tool} onValueChange={(v) => v && setTool(v as MapTool)} aria-label="Map tool" className="flex">
               <ToggleGroupItem value="pan" className="h-control px-md">Pan</ToggleGroupItem>
@@ -813,8 +869,9 @@ function PlanScreenLoaded() {
             </ToggleGroup>
             <NativeSelect
               aria-label="Go to a bookmark"
-              value=""
+              value={bookmark}
               onChange={(e) => {
+                setBookmark(e.target.value);
                 const b = catalog?.bookmarks.find((x) => x.name === e.target.value);
                 if (b) mapRef.current?.flyTo({ lon: b.lon, lat: b.lat, h: b.height });
               }}
@@ -851,28 +908,6 @@ function PlanScreenLoaded() {
             </div>
           ) : null}
         </div>
-
-        {/* Overlay control: snapped to the map's top-right */}
-        <LayerPanel
-          layers={panelLayers}
-          addable={addable}
-          onOpacity={(id, v) =>
-            id.startsWith("ctx:") ? setCtxOpacity((o) => ({ ...o, [id.slice(4)]: v })) : setOpacity((o) => ({ ...o, [id]: v }))
-          }
-          onAdd={(id) => {
-            if (id.startsWith("ctx:")) return void showCtx(id.slice(4));
-            setAdded((a) => [...a, id]);
-            setOpacity((o) => ({ ...o, [id]: LAYER_OPACITY }));
-          }}
-          options={panelOptions}
-          footer={
-            <div className="flex flex-col gap-xs border-t border-line-subtle pt-sm">
-              <PointProbe bind={probe} read={(x, z) => pointReadout(data!, result!, orbital, x, z)} />
-              <p className="t-caption text-fg-muted">{credits}</p>
-            </div>
-          }
-          className="lg:absolute lg:top-0 lg:right-0 lg:z-10 lg:w-[304px] lg:max-h-[calc(100%_-_220px)] lg:rounded-none lg:rounded-bl-sm lg:border-t-0 lg:border-r-0"
-        />
 
         <PlanetMap
           className="h-[60vh] min-h-[360px] rounded-md lg:absolute lg:inset-0 lg:h-auto lg:min-h-0 lg:rounded-none"
@@ -944,6 +979,40 @@ function PlanScreenLoaded() {
           </Card>
         ) : null}
       </section>
+
+      {/* Right rail: map layers, mirroring the left rail */}
+      <LayerPanel
+        layers={panelLayers}
+        addable={addable}
+        onOpacity={(id, v) =>
+          id.startsWith("ctx:") ? setCtxOpacity((o) => ({ ...o, [id.slice(4)]: v })) : setOpacity((o) => ({ ...o, [id]: v }))
+        }
+        onAdd={(id) => {
+          if (id.startsWith("ctx:")) return void showCtx(id.slice(4));
+          setAdded((a) => [...a, id]);
+          setOpacity((o) => ({ ...o, [id]: LAYER_OPACITY }));
+        }}
+        options={panelOptions}
+        footer={
+          <div className="flex flex-col gap-xs border-t border-line-subtle pt-sm">
+            <PointProbe bind={probe} read={(x, z) => pointReadout(data!, result!, orbital, x, z)} />
+            <p className="t-caption text-fg-muted">{credits}</p>
+          </div>
+        }
+        title="Map layers"
+        className="order-last rounded-none border-0 bg-raised lg:order-none lg:h-full lg:w-rail lg:shrink-0"
+      />
+      {adding ? (
+        <div
+          role="status"
+          className="mw-flash-in fixed right-xl bottom-xl z-50 flex max-w-[320px] items-center gap-md rounded-sm border border-line-subtle bg-scrim px-lg py-md backdrop-blur-sm"
+        >
+          <span className="t-body-s text-fg">Tap anywhere on the map to place the new stop</span>
+          <Button size="control" variant="secondary" onClick={() => setAdding(false)}>
+            Cancel
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

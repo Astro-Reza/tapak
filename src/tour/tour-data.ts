@@ -54,7 +54,7 @@ export const TOUR_STEPS: readonly TourStepConfig[] = [
     feature: "Stops",
     targetSelector: '[data-tour="plan-stops"]',
     title: "Your stops",
-    text: "These are the places you will visit. Tap Edit stops to change them.",
+    text: "These are the places you will visit. Tap + Add stop to place one on the map, or tap a stop to delete it.",
     simulated: false,
   },
   {

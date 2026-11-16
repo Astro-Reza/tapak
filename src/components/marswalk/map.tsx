@@ -528,7 +528,10 @@ export function LayerPanel({
   footer,
   options,
   dataTour,
+  title,
 }: {
+  /** Header strip, for when the panel is a sidebar rather than a floating overlay */
+  title?: string;
   layers: readonly PanelLayer[];
   addable: readonly { id: string; name: string; unit: string }[];
   onOpacity: (id: string, v: number) => void;
@@ -552,6 +555,11 @@ export function LayerPanel({
         className,
       )}
     >
+      {title ? (
+        <h2 className="-mx-lg -mt-md flex h-control shrink-0 items-center border-b border-line-subtle px-md t-body-s text-fg">
+          {title}
+        </h2>
+      ) : null}
       <div className="flex shrink-0 items-center gap-sm">
         <label className="flex h-control min-w-px flex-1 items-center gap-sm rounded-pill bg-fg px-lg text-panel focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand">
           <input
@@ -579,17 +587,26 @@ export function LayerPanel({
       </div>
 
       {options?.length ? (
-        <div role="group" aria-label="Map display" className="flex shrink-0 flex-col">
-          {options.map((o) => (
-            <label key={o.id} className="flex cursor-pointer items-center gap-sm py-xs">
-              <Checkbox checked={o.checked} onCheckedChange={(v) => o.onChange(v === true)} />
-              <span className="flex min-w-px flex-1 flex-col">
-                <span className="t-label-m text-fg">{o.label}</span>
-                {o.hint ? <span className="t-body-s text-fg-muted">{o.hint}</span> : null}
-              </span>
-            </label>
-          ))}
-        </div>
+        <details className="group shrink-0">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-sm py-xs t-label-m text-fg [&::-webkit-details-marker]:hidden">
+            <span>Map display</span>
+            <span className="flex items-center gap-sm text-fg-secondary">
+              {options.filter((o) => o.checked).length}/{options.length}
+              <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
+            </span>
+          </summary>
+          <div role="group" aria-label="Map display" className="flex flex-col pt-xs">
+            {options.map((o) => (
+              <label key={o.id} className="flex cursor-pointer items-center gap-sm py-xs">
+                <Checkbox checked={o.checked} onCheckedChange={(v) => o.onChange(v === true)} />
+                <span className="flex min-w-px flex-1 flex-col">
+                  <span className="t-label-m text-fg">{o.label}</span>
+                  {o.hint ? <span className="t-body-s text-fg-muted">{o.hint}</span> : null}
+                </span>
+              </label>
+            ))}
+          </div>
+        </details>
       ) : null}
 
       {adding ? (
@@ -618,7 +635,7 @@ export function LayerPanel({
         </div>
       ) : null}
 
-      <ScrollArea className="flex min-h-0 flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
+      <ScrollArea className="flex min-h-0 grow flex-col" viewportClassName="min-h-0 flex-1" aria-label="Map layers">
         <div className="flex flex-col gap-sm py-xs">
           {shown.map((l) => (
             <div key={l.id} className="flex items-center gap-md py-xs">
