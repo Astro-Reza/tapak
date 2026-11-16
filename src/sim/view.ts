@@ -427,13 +427,15 @@ export type EvaView = {
   profile: { walked: Point[]; ahead: Point[]; nowX: number; nowLabel: string; meta: string };
   telemetry: StatView[];
   log: { time: string; level: LogLevel; message: string }[];
+  position: PointReadout;
   proj: Projection;
 };
 
-export function evaView(data: LoadedData, result: MissionResult, ev: Evaluation, T: number, design: Box): EvaView | null {
+export function evaView(data: LoadedData, result: MissionResult, ev: Evaluation, T: number, design: Box, planProj?: Projection): EvaView | null {
   if (!ev.prof || !ev.end) return null;
   const s = result.s, prof = ev.prof, end = ev.end;
-  const proj = fitProjection(prof, design, data.terrain);
+  // pass the Plan map's projection so the EVA overlays land on the same map
+  const proj = planProj ?? fitProjection(prof, design, data.terrain);
   const now = sampleAt(prof, T, s);
   const st = status(now as unknown as ProfileSample, end, s, result.env);
   const marginL = walkBackMargin(data.grid, result.field, now, s);
@@ -520,14 +522,15 @@ export function evaView(data: LoadedData, result: MissionResult, ev: Evaluation,
       meta: `next: ${rise >= 0 ? "+" : ""}${Math.round(rise)} m over ${Math.max(0, nextP.dist - now.dist).toFixed(0)} m · max ${aheadMax.toFixed(0)}°`,
     },
     telemetry: [
-      { label: "O₂ use (modelled)", value: now.rate.toFixed(2), unit: "L/min" },
+      { label: "O₂ use", value: now.rate.toFixed(2), unit: "L/min" },
       { label: "Air temp (MEDA)", value: st.airC == null ? "—" : st.airC.toFixed(0), unit: "°C" },
       { label: "Ground temp (MEDA)", value: st.groundC == null ? "—" : st.groundC.toFixed(0), unit: "°C" },
       { label: "Pressure (MEDA)", value: st.pressurePa.toFixed(0), unit: "Pa" },
-      { label: "Dose rate (model)", value: st.doseRateUSvH.toFixed(1), unit: "µSv/h" },
+      { label: "Dose rate", value: st.doseRateUSvH.toFixed(1), unit: "µSv/h" },
       { label: "LMST", value: fmtLmst(lmstNow), unit: "" },
     ],
     log: log.slice(0, 6),
+    position: pointReadout(data, result, null, now.x, now.z),
     proj,
   };
 }

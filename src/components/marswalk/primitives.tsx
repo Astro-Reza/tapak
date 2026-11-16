@@ -179,7 +179,7 @@ export function ScreenHeading({
   className,
 }: {
   title: string;
-  sub: string;
+  sub?: string;
   inline?: boolean;
   className?: string;
 }) {
@@ -194,9 +194,11 @@ export function ScreenHeading({
       <h1 className="t-heading-m text-fg">
         <DecodeText text={title} />
       </h1>
-      <p className="mw-text-in t-body-s text-fg-secondary" style={{ "--i": 6 } as CSSProperties}>
-        {sub}
-      </p>
+      {sub ? (
+        <p className="mw-text-in t-body-s text-fg-secondary" style={{ "--i": 6 } as CSSProperties}>
+          {sub}
+        </p>
+      ) : null}
     </div>
   );
 }

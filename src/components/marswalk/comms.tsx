@@ -13,10 +13,13 @@ import { Brackets } from "./primitives";
 export function PassRow({
   pass,
   signature = false,
+  liveDot = false,
   style,
 }: {
   pass: RelayPass;
   signature?: boolean;
+  /** in-view pass: a slowly blinking green dot replaces the "· in view" text */
+  liveDot?: boolean;
   style?: CSSProperties;
 }) {
   const later = pass.state === "later";
@@ -32,7 +35,16 @@ export function PassRow({
         <Icon name="satellite" />
       </span>
       <div className="flex min-w-px flex-1 flex-col gap-xs whitespace-nowrap">
-        <p className={cn("t-label-m", later ? "text-fg-secondary" : "text-fg")}>{pass.name}</p>
+        <p className={cn("flex items-center gap-sm t-label-m", later ? "text-fg-secondary" : "text-fg")}>
+          {liveDot && pass.state === "in-view" ? (
+            <>
+              {pass.name.replace(/ · in view$/, "")}
+              <span role="img" aria-label="in view" className="mw-blink-slow size-[8px] rounded-pill bg-safe" />
+            </>
+          ) : (
+            pass.name
+          )}
+        </p>
         <p className="t-data-telemetry text-fg-secondary">{pass.window}</p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-xs whitespace-nowrap">

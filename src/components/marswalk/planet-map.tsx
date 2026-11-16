@@ -51,6 +51,13 @@ function projection(v: GeoView, W: number, H: number) {
 }
 type Proj = ReturnType<typeof projection>;
 
+/* #root is CSS-zoomed (index.css): client coordinates are screen px, layout (and the projection) is not. */
+const localScale = (el: HTMLElement) => el.getBoundingClientRect().width / (el.clientWidth || 1) || 1;
+const localXY = (el: HTMLElement, cx: number, cy: number): [number, number] => {
+  const r = el.getBoundingClientRect(), z = localScale(el);
+  return [(cx - r.left) / z, (cy - r.top) / z];
+};
+
 /** cubic-bezier(0.2, 0, 0, 1), the map easing token */
 function easeMap(t: number) {
   const bez = (a: number, b: number, s: number) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
@@ -198,9 +205,9 @@ export function PlanetMap({
     const el = box.current!;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      const r = el.getBoundingClientRect();
+      const [x, y] = localXY(el, e.clientX, e.clientY);
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-      zoomAt(Math.exp(clamp(dy, -200, 200) * 0.0025), e.clientX - r.left, e.clientY - r.top, false);
+      zoomAt(Math.exp(clamp(dy, -200, 200) * 0.0025), x, y, false);
     };
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
@@ -251,8 +258,8 @@ export function PlanetMap({
   }, [view, size, layers]);
 
   const lonLatAt = (clientX: number, clientY: number): LonLat => {
-    const r = box.current!.getBoundingClientRect();
-    return [P.lon(clientX - r.left), P.lat(clientY - r.top)];
+    const [x, y] = localXY(box.current!, clientX, clientY);
+    return [P.lon(x), P.lat(y)];
   };
   const hover = (ll: LonLat | null) => {
     onHover?.(ll);
@@ -342,7 +349,8 @@ export function PlanetMap({
           hover(ll);
           const d = press.current;
           if (!d || d.id !== e.pointerId) return;
-          const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+          const z = localScale(box.current!);
+          const dx = (e.clientX - d.sx) / z, dy = (e.clientY - d.sy) / z;
           if (!d.moved && Math.hypot(dx, dy) < 4) return; // a tap stays a click for the markers
           if (!d.moved) {
             d.moved = true;
@@ -378,8 +386,8 @@ export function PlanetMap({
         }}
         onPointerLeave={() => hover(null)}
         onDoubleClick={(e) => {
-          const r = box.current!.getBoundingClientRect();
-          zoomAt(0.5, e.clientX - r.left, e.clientY - r.top, true);
+          const [x, y] = localXY(box.current!, e.clientX, e.clientY);
+          zoomAt(0.5, x, y, true);
         }}
       >
         <canvas ref={canvas} aria-hidden="true" className="absolute inset-0 size-full" />

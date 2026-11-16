@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -41,7 +41,6 @@ import {
 import { LogLine, MapTag, MetricTile, ScreenHeading, StatList, StatRow, StatusChip } from "@/components/marswalk/primitives";
 import { ChecklistPanel } from "@/components/marswalk/checklist-panel";
 import { PRE_EVA_BLOCKS } from "@/data/eva-checklist";
-import { useTour } from "@/tour";
 import { useToast } from "@/components/marswalk/toaster";
 import { Trace, TraceContent, TraceLine, TraceStep } from "@/components/marswalk/trace";
 import type { LayerId } from "@/data/mission";
@@ -84,9 +83,9 @@ const LAYER_OPACITY = 0.4;
 const SHADE_OPACITY = 0.55;
 
 
-const DESIGN = { width: 1038, height: 938 };
+export const DESIGN = { width: 1038, height: 938 };
 /** Where the route is fitted on the map: clear of the verdict, hazard and layer panels and the profile card. */
-const ROUTE_BOX = { x0: 90, y0: 360, x1: 700, y1: 680 };
+export const ROUTE_BOX = { x0: 90, y0: 360, x1: 700, y1: 680 };
 /** Orbital layers from marswalk-dataset; minerals and thermal start in the panel, the rest are in the "+" list. */
 const ORBITAL_BASE: string[] = ["minerals", "thermal"];
 const NEAR_PX = 80;
@@ -104,12 +103,12 @@ export function PlanScreen() {
 }
 
 /** The map shows the 4x MOLA overview until about this many screen pixels per degree, then the full 3.7 km grid */
-const MOLA_FULL_PPD = 6;
+export const MOLA_FULL_PPD = 6;
 /** Catalog layers on at start: the global MOLA relief and the CTX orthoimage around Jezero */
-const CTX_START: Record<string, number> = { mola: 1, ctx_ortho: 1 };
+export const CTX_START: Record<string, number> = { mola: 1, ctx_ortho: 1 };
 const DEM_KEYS = ["site_dtm", "ctx_dtm", "mola", "mola:ov"];
-const overlaps = (b: Bounds, r: Region) => b[0] <= r.e && b[1] >= r.w && b[2] <= r.n && b[3] >= r.s;
-const isGlobal = (b: Bounds) => b[1] - b[0] >= 359;
+export const overlaps = (b: Bounds, r: Region) => b[0] <= r.e && b[1] >= r.w && b[2] <= r.n && b[3] >= r.s;
+export const isGlobal = (b: Bounds) => b[1] - b[0] >= 359;
 const fmtRes = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km/px` : `${m >= 10 ? m.toFixed(0) : m.toFixed(1)} m/px`);
 const GREY_RAMP = "linear-gradient(to right, #000, #fff)";
 const SIDE_TABS = [
@@ -124,7 +123,10 @@ const SIDE_TABS = [
   ["search", "Search"],
 ] as const;
 
-function PlanScreenLoaded() {
+/** `eva` turns this screen into EVA Map: same map and layers, the EVA rails around it and the walk always on. */
+export type EvaSlots = { left: ReactNode; right: ReactNode; overlay: ReactNode };
+
+export function PlanScreenLoaded({ eva }: { eva?: EvaSlots } = {}) {
   const toast = useToast();
   const { routeCommitted, commitRoute, done, toggle } = useStore();
   const { data, result, ev, busy, link, settings, evaT, setEvaT, playing, setPlaying, addStop, removeStop } = useMission();
@@ -137,14 +139,6 @@ function PlanScreenLoaded() {
     return () => window.removeEventListener("keydown", esc);
   }, [adding]);
 
-  let activeStepId: number | null = null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const tour = useTour();
-    activeStepId = tour.activeStep?.id ?? null;
-  } catch {
-    // Tour may not be mounted in pure tests
-  }
   const view = useMemo(() => planView(data!, result!, ev!, ROUTE_BOX), [data, result, ev]);
   /** Orbital layers load after the map shows; until then their rows say "loading" */
   const [orbital, setOrbital] = useState<OrbitalLayers | null>(null);
@@ -202,16 +196,9 @@ function PlanScreenLoaded() {
   }, [dose, grid, view.proj, stretch, orbital]);
   const [tab, setTab] = useState("route");
 
-  useEffect(() => {
-    if (activeStepId === 5) {
-      setTab("checklist");
-    } else if (activeStepId === 6) {
-      setTab("route");
-    }
-  }, [activeStepId]);
   const walk = useMemo(
-    () => (tab === "walk" ? planWalkView(data!, result!, ev!, view.proj, orbital, evaT) : null),
-    [tab, data, result, ev, view, orbital, evaT],
+    () => (tab === "walk" || eva ? planWalkView(data!, result!, ev!, view.proj, orbital, evaT) : null),
+    [tab, eva, data, result, ev, view, orbital, evaT],
   );
   /** Hover readout: the map pushes world metres to the panel without re-rendering the map */
   const probe = useRef<(p: [number, number] | null) => void>(() => {});
@@ -632,10 +619,41 @@ function PlanScreenLoaded() {
   };
   const waiting = <p className="px-lg py-xl t-body-s text-fg-muted">{catalogError ? `Catalog failed to load · ${catalogError}` : "Loading the map catalog"}</p>;
 
+  const layerPanel = (
+    <LayerPanel
+        layers={panelLayers}
+        addable={addable}
+        onOpacity={(id, v) =>
+          id.startsWith("ctx:") ? setCtxOpacity((o) => ({ ...o, [id.slice(4)]: v })) : setOpacity((o) => ({ ...o, [id]: v }))
+        }
+        onAdd={(id) => {
+          if (id.startsWith("ctx:")) return void showCtx(id.slice(4));
+          setAdded((a) => [...a, id]);
+          setOpacity((o) => ({ ...o, [id]: LAYER_OPACITY }));
+        }}
+        options={panelOptions}
+        footer={
+          <div className="flex flex-col gap-xs border-t border-line-subtle pt-sm">
+            <PointProbe bind={probe} read={(x, z) => pointReadout(data!, result!, orbital, x, z)} />
+            <p className="t-caption text-fg-muted">{credits}</p>
+          </div>
+        }
+        title="Map layers"
+        dataTour={eva ? "eva-layers" : "plan-layers"}
+        className={
+          eva
+            ? "lg:absolute lg:top-0 lg:right-0 lg:z-10 lg:w-[304px] lg:max-h-[calc(100%_-_300px)] lg:rounded-none lg:rounded-bl-sm lg:border-t-0 lg:border-r-0"
+            : "order-last rounded-none border-0 bg-raised lg:order-none lg:h-full lg:w-rail lg:shrink-0"
+        }
+      />
+  );
+
   return (
     <div className="flex min-h-full flex-col lg:h-full lg:flex-row">
+      {eva?.left}
       {/* Left rail (below the map on narrow screens): the route plan, a walk along it, and the dataset GUI's tools */}
-      <aside className="order-last flex shrink-0 flex-col bg-raised lg:order-none lg:h-full lg:w-rail">
+      {!eva ? (
+      <aside data-tour="plan-left" className="order-last flex shrink-0 flex-col bg-raised lg:order-none lg:h-full lg:w-rail">
         <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1">
           <TabsList className="shrink-0 grid-flow-row grid-cols-4" aria-label="Plan views">
             {SIDE_TABS.map(([v, label]) => (
@@ -856,10 +874,12 @@ function PlanScreenLoaded() {
           </TabsContent>
         </Tabs>
       </aside>
+      ) : null}
 
       {/* Map. Panels float over it on wide screens and stack around it on narrow ones. */}
-      <section className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
+      <section data-tour={eva ? "eva-route" : "plan-map"}className="relative flex flex-col gap-lg p-lg lg:block lg:min-w-0 lg:flex-1 lg:p-0">
         {/* Map tools (dataset GUI toolbar): pan, profile line, region box; bookmarks; go to a coordinate */}
+        {!eva ? (
         <div className="z-10 flex flex-col items-start gap-sm lg:absolute lg:top-xl lg:left-xl lg:max-w-[calc(100%_-_48px)]">
           <div className="flex flex-wrap items-center gap-sm rounded-sm border border-line-subtle bg-scrim p-xs backdrop-blur-sm">
             <ToggleGroup type="single" value={tool} onValueChange={(v) => v && setTool(v as MapTool)} aria-label="Map tool" className="flex">
@@ -908,6 +928,7 @@ function PlanScreenLoaded() {
             </div>
           ) : null}
         </div>
+        ) : null}
 
         <PlanetMap
           className="h-[60vh] min-h-[360px] rounded-md lg:absolute lg:inset-0 lg:h-auto lg:min-h-0 lg:rounded-none"
@@ -932,7 +953,7 @@ function PlanScreenLoaded() {
         />
 
         {PLAN.profile ? (
-          <Card className="rounded-sm lg:absolute lg:bottom-xl lg:left-xl lg:z-10 lg:w-[min(640px,calc(100%_-_120px))]">
+          <Card data-tour={eva ? "eva-profile" : "plan-profile"}className="rounded-sm lg:absolute lg:bottom-xl lg:left-xl lg:z-10 lg:w-[min(640px,calc(100%_-_120px))]">
             <CardHeader title="Route profile" meta={PLAN.profile.meta} />
             <Fit width={638} height={184} className="aspect-[638/184] w-full">
               <ProfileChart width={638} height={184} baseline={160} area={PLAN.profile.line}>
@@ -978,30 +999,11 @@ function PlanScreenLoaded() {
             </Fit>
           </Card>
         ) : null}
+        {eva ? layerPanel : null}
+        {eva?.overlay}
       </section>
 
-      {/* Right rail: map layers, mirroring the left rail */}
-      <LayerPanel
-        layers={panelLayers}
-        addable={addable}
-        onOpacity={(id, v) =>
-          id.startsWith("ctx:") ? setCtxOpacity((o) => ({ ...o, [id.slice(4)]: v })) : setOpacity((o) => ({ ...o, [id]: v }))
-        }
-        onAdd={(id) => {
-          if (id.startsWith("ctx:")) return void showCtx(id.slice(4));
-          setAdded((a) => [...a, id]);
-          setOpacity((o) => ({ ...o, [id]: LAYER_OPACITY }));
-        }}
-        options={panelOptions}
-        footer={
-          <div className="flex flex-col gap-xs border-t border-line-subtle pt-sm">
-            <PointProbe bind={probe} read={(x, z) => pointReadout(data!, result!, orbital, x, z)} />
-            <p className="t-caption text-fg-muted">{credits}</p>
-          </div>
-        }
-        title="Map layers"
-        className="order-last rounded-none border-0 bg-raised lg:order-none lg:h-full lg:w-rail lg:shrink-0"
-      />
+      {eva ? eva.right : layerPanel}
       {adding ? (
         <div
           role="status"

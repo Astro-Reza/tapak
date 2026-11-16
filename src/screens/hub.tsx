@@ -844,11 +844,15 @@ export function HubScreen() {
             <ResizablePanel id="hub-checklists" defaultSize="70%" minSize={wide ? 160 : 240}>
               <ResizablePanelGroup key={wide ? "row" : "stack"} orientation={wide ? "horizontal" : "vertical"}>
                 <ResizablePanel id="hub-lists" defaultSize="72%" minSize="30%">
-                  {isLoadingPreset ? <ChecklistSkeleton /> : <ChecklistTabs delay={group} />}
+                  <div className="size-full min-h-0" data-tour="hub-checklist">
+                    {isLoadingPreset ? <ChecklistSkeleton /> : <ChecklistTabs delay={group} />}
+                  </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel id="hub-hold" defaultSize="28%" minSize="14%">
-                  {isLoadingPreset ? <HoldPanelSkeleton /> : <HoldPanel className={CARD} delay={group * 2} />}
+                  <div className="size-full min-h-0" data-tour="hub-hold">
+                    {isLoadingPreset ? <HoldPanelSkeleton /> : <HoldPanel className={CARD} delay={group * 2} />}
+                  </div>
                 </ResizablePanel>
               </ResizablePanelGroup>
             </ResizablePanel>
@@ -858,7 +862,7 @@ export function HubScreen() {
             <ResizablePanel id="hub-timeline" defaultSize="30%" minSize={96}>
               {isLoadingPreset ? (
                 <TimelineSkeleton />
-              ) : (
+              ) : (<div className="size-full min-h-0" data-tour="hub-timeline">
                 <section className={cn("flex size-full min-h-0 flex-col", CARD)}>
                   <CardHeader
                     title="During-EVA missions · timeline"
@@ -963,7 +967,7 @@ export function HubScreen() {
                     </div>
                   </ScrollArea>
                 </section>
-              )}
+              </div>)}
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>
