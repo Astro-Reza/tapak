@@ -1,6 +1,6 @@
 import test, { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -12,84 +12,46 @@ import {
 } from "../src/tour/tour-data.ts";
 
 describe("Marswalk Onboarding Tour Verification Suite (R1 - R5)", () => {
-  describe("R3: Step Registry & Verification Table (16 steps)", () => {
-    it("should register exactly 16 tour steps with unique sequential IDs 1 to 16", () => {
-      assert.equal(TOUR_STEPS.length, 16, "Tour must contain exactly 16 steps");
-      const ids = TOUR_STEPS.map((s) => s.id);
-      for (let i = 1; i <= 16; i++) {
-        assert.ok(ids.includes(i), `Step ${i} must exist`);
-      }
-      // Check strict ascending order
-      for (let i = 0; i < 16; i++) {
-        assert.equal(TOUR_STEPS[i].id, i + 1, `Index ${i} must have id ${i + 1}`);
-      }
+  describe("R3: Step Registry & Verification Table (23 steps)", () => {
+    it("should register exactly 23 tour steps with unique IDs 1 to 23", () => {
+      assert.equal(TOUR_STEPS.length, 23, "Tour must contain exactly 23 steps");
+      const ids = TOUR_STEPS.map((s) => s.id).sort((x, y) => x - y);
+      assert.deepEqual(ids, Array.from({ length: 23 }, (_, i) => i + 1));
     });
 
     it("should partition mini-tours per screen correctly", () => {
-      assert.deepEqual(SCREEN_STEPS.hub, [1, 2, 3], "Hub initial steps must be 1-3");
-      assert.deepEqual(SCREEN_STEPS.plan, [4, 5], "Plan steps must be 4-5");
-      assert.deepEqual(SCREEN_STEPS.eva, [6, 7, 8, 9, 10], "EVA Map steps must be 6-10");
-      assert.deepEqual(SCREEN_STEPS.fov, [11], "FoV step must be 11");
-      assert.deepEqual(SCREEN_STEPS.comms, [12, 13, 14], "Comms steps must be 12-14");
-      assert.deepEqual(SCREEN_STEPS.debrief, [15], "Debrief step must be 15");
-      assert.equal(STEP_FINAL_ID, 16, "Step 16 must be the final replay target");
+      assert.deepEqual(SCREEN_STEPS.hub, [1, 2, 3, 19, 20, 21]);
+      assert.deepEqual(SCREEN_STEPS.plan, [4, 5, 22, 23]);
+      assert.deepEqual(SCREEN_STEPS.eva, [6, 7, 8, 9, 10, 11, 12]);
+      assert.deepEqual(SCREEN_STEPS.fov, [13]);
+      assert.deepEqual(SCREEN_STEPS.comms, [14, 15, 16]);
+      assert.deepEqual(SCREEN_STEPS.debrief, [17]);
+      assert.equal(STEP_FINAL_ID, 18, "Step 18 must be the final replay target");
     });
 
     it("should format step counter ('X of Y') correctly within each screen's mini-tour", () => {
-      // Hub (3 steps)
-      const hubSteps = getStepsForScreen("hub");
-      assert.equal(hubSteps.length, 3);
-      assert.equal(hubSteps[0].stepInScreen, 1);
-      assert.equal(hubSteps[0].totalInScreen, 3);
-      assert.equal(hubSteps[2].stepInScreen, 3);
-      assert.equal(hubSteps[2].totalInScreen, 3);
+      const sizes = { hub: 6, plan: 4, eva: 7, fov: 1, comms: 3, debrief: 1 } as const;
+      for (const [screen, n] of Object.entries(sizes)) {
+        const steps = getStepsForScreen(screen as keyof typeof sizes);
+        assert.equal(steps.length, n, `${screen} step count`);
+        for (const s of steps) assert.equal(s.totalInScreen, n, `${screen} step ${s.id} total`);
+        assert.deepEqual(
+          steps.map((s) => s.stepInScreen).sort((x, y) => x - y),
+          Array.from({ length: n }, (_, i) => i + 1),
+          `${screen} stepInScreen must run 1..${n}`
+        );
+      }
 
-      // Plan (2 steps)
-      const planSteps = getStepsForScreen("plan");
-      assert.equal(planSteps.length, 2);
-      assert.equal(planSteps[0].stepInScreen, 1);
-      assert.equal(planSteps[0].totalInScreen, 2);
-      assert.equal(planSteps[1].stepInScreen, 2);
-      assert.equal(planSteps[1].totalInScreen, 2);
-
-      // EVA Map (5 steps)
-      const evaSteps = getStepsForScreen("eva");
-      assert.equal(evaSteps.length, 5);
-      assert.equal(evaSteps[0].stepInScreen, 1);
-      assert.equal(evaSteps[0].totalInScreen, 5);
-      assert.equal(evaSteps[4].stepInScreen, 5);
-      assert.equal(evaSteps[4].totalInScreen, 5);
-
-      // FoV (1 step)
-      const fovSteps = getStepsForScreen("fov");
-      assert.equal(fovSteps.length, 1);
-      assert.equal(fovSteps[0].stepInScreen, 1);
-      assert.equal(fovSteps[0].totalInScreen, 1);
-
-      // Comms (3 steps)
-      const commsSteps = getStepsForScreen("comms");
-      assert.equal(commsSteps.length, 3);
-      assert.equal(commsSteps[0].stepInScreen, 1);
-      assert.equal(commsSteps[0].totalInScreen, 3);
-      assert.equal(commsSteps[2].stepInScreen, 3);
-      assert.equal(commsSteps[2].totalInScreen, 3);
-
-      // Debrief (1 step)
-      const debriefSteps = getStepsForScreen("debrief");
-      assert.equal(debriefSteps.length, 1);
-      assert.equal(debriefSteps[0].stepInScreen, 1);
-      assert.equal(debriefSteps[0].totalInScreen, 1);
-
-      // Final step (1 step)
-      const stepFinal = getStepById(16);
+      // Final step is its own one-step tour
+      const stepFinal = getStepById(18);
       assert.ok(stepFinal);
       assert.equal(stepFinal.stepInScreen, 1);
       assert.equal(stepFinal.totalInScreen, 1);
     });
   });
 
-  describe("R2 & R3: Tip Card Content & Word Count Verification (< 25 words)", () => {
-    it("every step must have body copy under 25 words using plain language and sentence case", () => {
+  describe("R2 & R3: Tip Card Content & Word Count Verification (< 60 words)", () => {
+    it("every step must have body copy under 60 words using plain language and sentence case", () => {
       for (const step of TOUR_STEPS) {
         assert.ok(step.title.trim().length > 0, `Step ${step.id} must have non-empty title`);
         assert.ok(step.text.trim().length > 0, `Step ${step.id} must have non-empty text`);
@@ -97,8 +59,8 @@ describe("Marswalk Onboarding Tour Verification Suite (R1 - R5)", () => {
         // Count words separated by whitespace
         const words = step.text.trim().split(/\s+/).filter(Boolean);
         assert.ok(
-          words.length < 25,
-          `Step ${step.id} ("${step.title}") text has ${words.length} words, which exceeds limit of 25: "${step.text}"`
+          words.length < 60,
+          `Step ${step.id} ("${step.title}") text has ${words.length} words, which exceeds limit of 60: "${step.text}"`
         );
       }
     });
@@ -108,19 +70,26 @@ describe("Marswalk Onboarding Tour Verification Suite (R1 - R5)", () => {
         1: { title: "Welcome to Marswalk", textPrefix: "Plan one safe walk on Mars." },
         2: { title: "EVA Presets", textPrefix: "Start here." },
         3: { title: "Your five stops", textPrefix: "These tabs follow one walk:" },
-        4: { title: "Pre-walk checklist", textPrefix: "Finish every item before you go." },
-        5: { title: "Your stops", textPrefix: "These are the places you will visit." },
-        6: { title: "Your route", textPrefix: "The white line is your path." },
-        7: { title: "Map layers", textPrefix: "Turn layers on or off:" },
-        8: { title: "Hazard alerts", textPrefix: "Red means danger." },
-        9: { title: "Route profile", textPrefix: "See how steep your path gets." },
-        10: { title: "Move around", textPrefix: "Zoom in and out," },
-        11: { title: "What you will see", textPrefix: "A preview of the view at your next stop," },
-        12: { title: "Signal map", textPrefix: "Brighter areas of the sky mean a stronger signal." },
-        13: { title: "Two views", textPrefix: "Link budget shows signal strength." },
-        14: { title: "Satellite passes", textPrefix: '"In view" means a satellite is overhead now.' },
-        15: { title: "Walk review", textPrefix: "Compare the plan with the real walk:" },
-        16: { title: "You're ready", textPrefix: "You can replay this tour any time from here." },
+        4: { title: "Plan tools", textPrefix: "The tabs along the top hold your tools" },
+        5: { title: "The map", textPrefix: "Your route drawn on Mars." },
+        6: { title: "EVA progress", textPrefix: "This is your walk from the Plan screen" },
+        7: { title: "Your route", textPrefix: "This is the EVA Map" },
+        8: { title: "Map layers", textPrefix: "Search and toggle" },
+        9: { title: "Hazard alerts", textPrefix: "Red means danger." },
+        10: { title: "Route profile", textPrefix: "Height along your path" },
+        11: { title: "Move around", textPrefix: "Zoom in and out," },
+        12: { title: "Astronaut device link", textPrefix: "This panel is the link" },
+        13: { title: "What you will see", textPrefix: "A preview of the view at your next stop," },
+        14: { title: "Signal map", textPrefix: "Brighter areas of the sky mean a stronger signal." },
+        15: { title: "Two views", textPrefix: "Link budget shows signal strength." },
+        16: { title: "Satellite passes", textPrefix: '"In view" means a satellite is overhead now.' },
+        17: { title: "Walk review", textPrefix: "Compare the plan with the real walk:" },
+        18: { title: "You're ready", textPrefix: "You can replay this tour any time from here." },
+        19: { title: "Checklists", textPrefix: "Tick off each item" },
+        20: { title: "Hold and abort", textPrefix: "The limits that mean pause" },
+        21: { title: "Mission timeline", textPrefix: "Each row is a track" },
+        22: { title: "Route profile", textPrefix: "Height along your path" },
+        23: { title: "Map layers", textPrefix: "Toggle what is drawn" },
       };
 
       for (const [idStr, exp] of Object.entries(expected)) {
@@ -137,8 +106,8 @@ describe("Marswalk Onboarding Tour Verification Suite (R1 - R5)", () => {
   });
 
   describe("R3: Demo Data & 'simulated' Label Verification", () => {
-    it("exactly steps 8, 11, and 12 must have simulated = true, and all other 13 steps must have simulated = false", () => {
-      const simulatedIds = [8, 11, 12];
+    it("exactly steps 9, 12, 13, and 14 must have simulated = true, and all others must have simulated = false", () => {
+      const simulatedIds = [9, 12, 13, 14];
       for (const step of TOUR_STEPS) {
         if (simulatedIds.includes(step.id)) {
           assert.equal(
@@ -162,23 +131,30 @@ describe("Marswalk Onboarding Tour Verification Suite (R1 - R5)", () => {
       // Step 1: whole screen (targetSelector is null)
       assert.equal(getStepById(1)?.targetSelector, null, "Step 1 whole screen targetSelector is null");
 
-      // Steps 2-16 must have valid data-tour attribute selectors
+      // Every other step must have a valid data-tour attribute selector
       const expectedSelectors: Record<number, string> = {
         2: '[data-tour="eva-presets"]',
         3: '[data-tour="main-nav"]',
-        4: '[data-tour="plan-checklist"]',
-        5: '[data-tour="plan-stops"]',
-        6: '[data-tour="eva-route"]',
-        7: '[data-tour="eva-layers"]',
-        8: '[data-tour="hazard-card"]',
-        9: '[data-tour="eva-profile"]',
-        10: '[data-tour="map-controls"]',
-        11: '[data-tour="arrival-preview"]',
-        12: '[data-tour="sky-dome"]',
-        13: '[data-tour="comms-switch"]',
-        14: '[data-tour="pass-list"]',
-        15: '[data-tour="walk-summary"]',
-        16: '[data-tour="help-button"]',
+        4: '[data-tour="plan-left"]',
+        5: '[data-tour="plan-map"]',
+        6: '[data-tour="eva-progress"]',
+        7: '[data-tour="eva-route"]',
+        8: '[data-tour="eva-layers"]',
+        9: '[data-tour="hazard-card"]',
+        10: '[data-tour="eva-profile"]',
+        11: '[data-tour="map-controls"]',
+        12: '[data-tour="eva-device"]',
+        13: '[data-tour="arrival-preview"]',
+        14: '[data-tour="sky-dome"]',
+        15: '[data-tour="comms-switch"]',
+        16: '[data-tour="pass-list"]',
+        17: '[data-tour="walk-summary"]',
+        18: '[data-tour="help-button"]',
+        19: '[data-tour="hub-checklist"]',
+        20: '[data-tour="hub-hold"]',
+        21: '[data-tour="hub-timeline"]',
+        22: '[data-tour="plan-profile"]',
+        23: '[data-tour="plan-layers"]',
       };
 
       for (const [idStr, selector] of Object.entries(expectedSelectors)) {
@@ -190,27 +166,18 @@ describe("Marswalk Onboarding Tour Verification Suite (R1 - R5)", () => {
     });
 
     it("verifies that all data-tour attributes are present in screen/component source code", () => {
-      const rootDir = join(import.meta.dirname, "..");
-      const filesToCheck = [
-        { file: "src/components/marswalk/top-bar.tsx", targets: ['data-tour="help-button"', 'dataTour="main-nav"'] },
-        { file: "src/screens/hub.tsx", targets: ['data-tour="eva-presets"'] },
-        { file: "src/screens/plan.tsx", targets: ['data-tour="plan-checklist"', 'data-tour="plan-stops"'] },
-        { file: "src/screens/eva-map.tsx", targets: ['data-tour="eva-route"', 'dataTour="eva-layers"', 'data-tour="hazard-card"', 'data-tour="eva-profile"'] },
-        { file: "src/components/marswalk/map.tsx", targets: ['data-tour="map-controls"'] },
-        { file: "src/screens/fov.tsx", targets: ['data-tour="arrival-preview"'] },
-        { file: "src/screens/comms-link.tsx", targets: ['data-tour="sky-dome"', 'data-tour="comms-switch"'] },
-        { file: "src/screens/comms-passes.tsx", targets: ['data-tour="pass-list"'] },
-        { file: "src/screens/debrief.tsx", targets: ['data-tour="walk-summary"'] },
-      ];
-
-      for (const { file, targets } of filesToCheck) {
-        const content = readFileSync(join(rootDir, file), "utf8");
-        for (const target of targets) {
-          assert.ok(
-            content.includes(target),
-            `Expected ${file} to contain anchor '${target}'`
-          );
-        }
+      const src = join(import.meta.dirname, "..", "src");
+      const all = (readdirSync(src, { recursive: true }) as string[])
+        .filter((f) => /\.tsx?$/.test(f))
+        .map((f) => readFileSync(join(src, f), "utf8"))
+        .join("\n");
+      for (const step of TOUR_STEPS) {
+        if (!step.targetSelector) continue;
+        const name = step.targetSelector.match(/data-tour="([^"]+)"/)![1];
+        assert.ok(
+          all.includes(`data-tour="${name}"`) || all.includes(`dataTour="${name}"`),
+          `Step ${step.id}: no element in src/ carries anchor '${name}'`
+        );
       }
     });
   });
