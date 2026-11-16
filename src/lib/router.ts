@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const ROUTES = ["hub", "plan", "eva", "fov", "comms", "debrief"] as const;
+export const ROUTES = ["landing", "hub", "plan", "eva", "fov", "comms", "debrief"] as const;
 export type Route = (typeof ROUTES)[number];
 
 function readHash(): Route {
   const raw = window.location.hash.replace(/^#\/?/, "");
-  return (ROUTES as readonly string[]).includes(raw) ? (raw as Route) : "hub";
+  // no hash (the site root) opens the landing page; the planner screens keep their #/ deep links
+  return (ROUTES as readonly string[]).includes(raw) ? (raw as Route) : "landing";
 }
 
 /** Tiny hash router: works from file hosting and keeps deep links (#/plan). */

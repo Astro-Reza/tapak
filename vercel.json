@@ -7,7 +7,7 @@
   "rewrites": [{ "source": "/link", "destination": "/api/link" }],
   "headers": [
     {
-      "source": "/(textures|draco|images|data)/(.*)",
+      "source": "/(textures|draco|images|data|landing)/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     },
     {
