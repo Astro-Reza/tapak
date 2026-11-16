@@ -13,6 +13,7 @@ import { CommsLinkScreen } from "@/screens/comms-link";
 import { DebriefScreen } from "@/screens/debrief";
 import { EvaMapScreen } from "@/screens/eva-map";
 import { HubScreen } from "@/screens/hub";
+import { LandingScreen } from "@/screens/landing";
 import { PlanScreen } from "@/screens/plan";
 
 /** FoV pulls in three.js (~600 kB); load it only when the screen opens. */
@@ -27,6 +28,7 @@ function FovScreen() {
 
 /** Each Figma screen is a snapshot at a mission time (LMST). */
 const CLOCK: Record<Route, string> = {
+  landing: "13:20",
   hub: "13:20",
   plan: PLAN.clock,
   eva: EVA.clock,
@@ -36,6 +38,7 @@ const CLOCK: Record<Route, string> = {
 };
 
 const SCREENS: Record<Route, () => React.JSX.Element> = {
+  landing: LandingScreen,
   hub: HubScreen,
   plan: PlanScreen,
   eva: EvaMapScreen,
@@ -58,6 +61,11 @@ function useScreenChange(route: Route) {
 
   useEffect(() => {
     if (route === shownRef.current) return;
+    if (route === "landing" || shownRef.current === "landing") {
+      shownRef.current = route;
+      setShown(route);
+      return;
+    }
     const swap = () => {
       shownRef.current = route;
       setShown(route);
@@ -88,6 +96,9 @@ export default function App() {
   const [route, navigate] = useHashRoute();
   const { shown, phase } = useScreenChange(route);
   const Screen = SCREENS[shown];
+
+  // The landing page is a document of its own: no mission top bar, no providers.
+  if (route === "landing") return <LandingScreen />;
 
   return (
     <StoreProvider>
