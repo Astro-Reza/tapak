@@ -35,6 +35,30 @@ const READOUTS = [
   { label: "Radiation dose", num: "0.106", unit: "mSv" },
 ] as const;
 
+/** Counts a readout up from zero, keeping its format ("+193", "0.106", "3:37"). */
+function CountUp({ value }: { value: string }) {
+  const [text, setText] = useState(value);
+  useEffect(() => {
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.motion === "reduced";
+    if (reduced) return;
+    const clock = value.includes(":");
+    const target = clock ? value.split(":").reduce((a, p) => a * 60 + +p, 0) : parseFloat(value);
+    const dec = clock ? 0 : (value.split(".")[1]?.length ?? 0);
+    const sign = value.startsWith("+") ? "+" : "";
+    const fmt = (v: number) => clock ? `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}` : sign + v.toFixed(dec);
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - t0) / 1800, 1);
+      setText(p < 1 ? fmt(target * (1 - (1 - p) ** 3)) : value);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{text}</>;
+}
+
 /** Elevation-based link budget, demo scenario of the Comms screen (modelled, not measured). */
 const LINK_ROWS = [
   { label: "Expected received power E[Pr]", down: "−127.0", up: "−131.0", unit: "dBW" },
@@ -95,6 +119,7 @@ function Section({ id, children }: { id: string; children: ReactNode }) {
 export function LandingScreen() {
   const root = useRef<HTMLDivElement>(null);
   const [built, setBuilt] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [shot, setShot] = useState<ScreenKey>("plan");
   const [swapKey, setSwapKey] = useState(0);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -112,6 +137,8 @@ export function LandingScreen() {
     const t = window.setTimeout(go, 1200);
     return () => window.clearTimeout(t);
   }, []);
+
+  const onScroll = () => setScrolled((root.current?.scrollTop ?? 0) > 8);
 
   const scrollTo = (id: string) => (e: { preventDefault: () => void }) => {
     e.preventDefault(); // the app uses the URL hash for screens, so in-page links must not touch it
@@ -136,8 +163,8 @@ export function LandingScreen() {
 
   // #root renders the app at 75% zoom for the tablet UI; the landing page is a normal 100% document, so it mounts on <body>.
   return createPortal(
-    <div ref={root} className={`landing js${built ? " built" : ""}`}>
-      <header className="top">
+    <div ref={root} onScroll={onScroll} className={`landing js${built ? " built" : ""}`}>
+      <header className={`top${scrolled ? " scrolled" : ""}`}>
         <div className="wrap">
           <a className="wordmark" href="#/" onClick={(e) => { e.preventDefault(); root.current?.scrollTo({ top: 0 }); }} aria-label="TAPAK home">
             <img src={tapakWordmark} alt="TAPAK" height={24} />
@@ -156,6 +183,7 @@ export function LandingScreen() {
 
       <main>
         <section className="hero">
+          <video className="hero-bg" src="/landing/hero.mp4" autoPlay muted loop playsInline aria-hidden="true" />
           <div className="wrap">
             <div className="hero-grid">
               <div className="hero-copy">
@@ -164,19 +192,16 @@ export function LandingScreen() {
                   TAPAK is a route planner for single crewed surface excursions. It pairs stochastic route planning with <strong>Damon</strong>, a biomechanical walking model fine-tuned from KINESIS for Martian conditions. Set a base, science goals and mission limits, and TAPAK returns an optimized route with an oxygen budget, radiation dose, walk-back margin and an explained GO, CAUTION or NO-GO verdict.
                 </p>
                 <div className="actions">
-                  <a className="btn btn-primary lp lp-block" style={at(2, { bg: "var(--brand)", fg: "var(--surface-base)" })} href="#/hub">Open the planner</a>
+                  <a className="btn btn-primary lp lp-block" style={at(2, { bg: "var(--brand)", fg: "var(--surface-base)" })} href="#/hub">Open the Software</a>
                 </div>
               </div>
-              <figure className="shot">
-                <img src="/landing/plan-hero.jpg" width={1500} height={1291} alt="TAPAK Plan screen: the planned route over the HiRISE terrain with the slope, hydrated mineral, thermal inertia and dose rate layers and the route profile" />
-              </figure>
             </div>
 
             <div className="readouts" aria-label="Sample route readouts">
               {READOUTS.map((r, i) => (
                 <div key={r.label} className="readout lp lp-text" style={at(4 + i)}>
                   <span className="readout-label">{r.label}</span>
-                  <span className="readout-value"><span className="num">{r.num}</span><span className="unit">{r.unit}</span></span>
+                  <span className="readout-value"><span className="num"><CountUp value={r.num} /></span><span className="unit">{r.unit}</span></span>
                 </div>
               ))}
             </div>
@@ -328,7 +353,7 @@ export function LandingScreen() {
 
       <footer>
         <div className="wrap foot">
-          <div><p>TAPAK · NASA Space Apps Challenge, Jakarta</p></div>
+          <img className="foot-logo" src={tapakWordmark} alt="TAPAK" />
           <div className="credit">
             <p>
               HiRISE imagery NASA/JPL-Caltech/University of Arizona. Terrain model: USGS Mars 2020 TRN HiRISE DTM mosaic, doi:10.5066/P9REJ9JN. MEDA data NASA/JPL-Caltech/CAB(CSIC-INTA), sols 1349 to 1368. Dose model: MSL RAD Gale average scaled to MEDA pressure (Guo et al. 2017) and terrain sky view. Route figures and link budget values are planning outputs and simulations from the TAPAK app, not Mars measurements or guarantees

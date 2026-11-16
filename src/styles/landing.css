@@ -29,7 +29,18 @@
 /* Top bar */
 .landing .top { position: sticky; top: 0; z-index: 10; background: var(--surface-top-bar); border-bottom: 1px solid var(--border-subtle); }
 .landing .top .wrap { height: 72px; display: flex; align-items: center; gap: var(--space-2xl); }
-.landing .wordmark { display: flex; align-items: center; height: 24px; flex: none; }
+/* Scrolled shade: a gradient layer that fades from solid at the top to clear at the bottom edge (opacity animates, gradients don't). */
+.landing .top { transition: border-color 250ms ease, background-color 250ms ease; }
+.landing .top::before {
+  content: ""; position: absolute; inset: 0 0 -24px; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 250ms ease;
+  background: linear-gradient(to bottom, var(--surface-top-bar) 40%, transparent);
+}
+.landing .top.scrolled { background-color: transparent; border-bottom-color: transparent; }
+.landing .top.scrolled::before { opacity: 1; }
+/* The wordmark SVG has the icon square at its left: shrinking the box to 24px clips it down to the icon. 112px = 24 * 1091/234. */
+.landing .wordmark { display: flex; align-items: center; height: 24px; width: 112px; overflow: hidden; flex: none; transition: width 250ms ease; }
+.landing .top.scrolled .wordmark { width: 24px; }
+@media (prefers-reduced-motion: reduce) { .landing .top, .landing .top::before, .landing .wordmark { transition: none; } }
 .landing .wordmark img { height: 24px; width: auto; max-width: none; display: block; }
 .landing .nav { display: flex; gap: var(--space-xl); margin-left: auto; }
 .landing .nav a { font-size: 14px; color: var(--text-secondary); position: relative; padding: var(--space-sm) 0; }
@@ -42,10 +53,11 @@
 .landing .nav a:hover::after,
 .landing .nav a:focus-visible::after { transform: scaleX(1); }
 .landing .top-actions { display: flex; align-items: center; gap: var(--space-md); }
+.landing .top-actions .btn { border-radius: 0; font-size: 11.2px; }
 /* Buttons */
 .landing .btn {
   position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
-  height: 44px; padding: 0 var(--space-xl); border-radius: var(--rounded-sm);
+  height: 44px; padding: 0 var(--space-xl); border-radius: 0;
   font-family: var(--font-ui); font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; isolation: isolate;
   transition: background-color var(--landing-micro) var(--landing-step),
               color var(--landing-micro) var(--landing-step);
@@ -65,8 +77,12 @@
 .landing .btn-sm { height: var(--control-height); padding: 0 var(--space-lg); font-size: 14px; }
 .landing :focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
 /* Hero */
-.landing .hero { padding: 64px 0 var(--space-3xl); }
-.landing .hero-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; }
+.landing .hero { padding: 64px 0 var(--space-3xl); position: relative; overflow: hidden; }
+.landing .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.landing .hero::before { content: ""; position: absolute; inset: 0; z-index: 1; background: color-mix(in srgb, var(--surface-base) 78%, transparent); }
+.landing .hero > .wrap { position: relative; z-index: 2; }
+.landing .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+.landing .hero-copy { max-width: 44em; }
 .landing .hero-copy { display: flex; flex-direction: column; gap: var(--space-xl); }
 .landing h1 { font-size: 56px; line-height: 1.04; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
 .landing h1 .soft { color: var(--text-secondary); }
@@ -169,7 +185,8 @@
 .landing .refs a { border-bottom: 1px solid var(--border-default); }
 .landing .refs a:hover { color: var(--text-primary); border-color: var(--brand); }
 .landing footer { border-top: 1px solid var(--border-subtle); padding: var(--space-2xl) 0 48px; }
-.landing .foot { display: flex; justify-content: space-between; gap: var(--space-2xl); flex-wrap: wrap; font-size: 13px; color: var(--text-muted); }
+.landing .foot { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-xl); font-size: 13px; color: var(--text-muted); }
+.landing .foot .foot-logo { height: clamp(56px, 10vw, 120px); width: auto; max-width: 100%; display: block; }
 .landing .foot .credit { font-size: 12px; max-width: 60em; }
 /* Motion */
 @keyframes lp-flash-in {
